@@ -8,6 +8,19 @@ from bridge.test_game_bridge import mission_telemetry
 
 
 class DepartureTests(unittest.TestCase):
+    def test_streets_require_revision13_and_recognized_runtime_handler(self):
+        self.store.module_catalog["missions"]["2"] = "town_center"
+        self.store.module_catalog["scene_departure_missions"].append(2)
+        self.store.poll({**self.query, "mission": "2", "build": "12"})
+        with self.assertRaises(ValueError):
+            self.store.enqueue_operation("leave_scene", {})
+        self.store.poll({**self.query, "mission": "2", "build": "13"})
+        cmd = self.store.enqueue_operation("leave_scene", {})
+        self.assertIn(
+            f"|{cmd['id']}|20|",
+            self.store.poll({**self.query, "mission": "2", "build": "13"}),
+        )
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.store = Store(

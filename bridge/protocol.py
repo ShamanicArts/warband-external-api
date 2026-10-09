@@ -131,7 +131,11 @@ def validate_operation(kind, payload, state):
     if kind == "leave_scene":
         if (
             state.get("integration_revision", 0) < 12
-            or state.get("mission_template") != "town_default"
+            or state.get("mission_template") not in ("town_default", "town_center")
+            or (
+                state.get("mission_template") == "town_center"
+                and state.get("integration_revision", 0) < 13
+            )
         ):
             raise ValueError("Departure requires revision-12 Native town scene")
         if state.get("mission_flags", 0) & 2:

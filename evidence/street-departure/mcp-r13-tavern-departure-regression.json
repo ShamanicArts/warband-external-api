@@ -1,0 +1,97 @@
+{
+  "method": "actual MCP recognized Native town permission and engine teardown",
+  "before": {
+    "connected": true,
+    "age_seconds": 0.268,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "mission",
+    "received_at": 1791537447.1107655,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": 49,
+    "position": {
+      "x": 0.76,
+      "y": -5.31,
+      "z": 0.0
+    },
+    "clock": 2,
+    "acknowledged_command_id": 1791537445,
+    "scene_id": 103,
+    "mission_session": 3,
+    "player_agent_id": 31,
+    "last_command_result": 0,
+    "integration_revision": 13,
+    "mission_template_id": 0,
+    "mission_template": "town_default",
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 26,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "queued": {
+    "id": 1791537447,
+    "text": "leave_scene",
+    "created": 1791537447.385399,
+    "status": "queued",
+    "kind": "leave_scene",
+    "arguments": {},
+    "scene": 103,
+    "session": 3,
+    "result": null
+  },
+  "command": {
+    "id": 1791537447,
+    "text": "leave_scene",
+    "created": 1791537447.385399,
+    "status": "acknowledged",
+    "kind": "leave_scene",
+    "arguments": {},
+    "scene": 103,
+    "session": 3,
+    "result": 0
+  },
+  "after": {
+    "connected": true,
+    "age_seconds": 0.001,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "menu",
+    "received_at": 1791537447.493774,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -97.3,
+      "y": 35.87,
+      "z": 1.22
+    },
+    "clock": 101,
+    "acknowledged_command_id": 1791537447,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 13,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": 108,
+    "menu_session": 15,
+    "menu_name": "town",
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 26,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  }
+}

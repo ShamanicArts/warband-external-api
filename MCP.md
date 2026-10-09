@@ -493,3 +493,10 @@ Actual Praven tavern scene103→town return passed; independent screenshot confi
 it, with unchanged money/encounter. Streets (`town_center`), village quest exits
 and battle retreats remain excluded. Live brawl/death rejection acceptance pending.
 118 tests; 124 verified opcode IDs. Evidence: `evidence/town-departure/`.
+
+Revision13 additionally recognizes installed `town_center` Tab logic: no
+escape/prison-break, only default/disguised mode, Native talk restoration, extra
+siege-defense refusal. Normal Praven street departure is now live-verified, with
+unchanged gold/encounter and separate before/after screenshots. Tavern departure
+also re-tested on revision13. Special-mode rejections have model tests only;
+village quest exits remain unsupported. 121 tests; 125 verified opcode IDs.

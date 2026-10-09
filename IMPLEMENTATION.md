@@ -331,3 +331,16 @@ mission-mode guards remain unadapted. Village departures have quest consequences
 and stay unsupported. Live active-brawl/dead-player departure rejections still
 need separate acceptance. 118 tests, targeted Ruff clean, Pyright zero errors,
 124 official opcode IDs. Current game is Praven streets scene59, mission session3.
+
+Revision 13: independently recognize exact installed town_center Tab handler,
+retain escape/prison-break refusal, default/disguised-mode checks and original
+mission_enable_talk effect before engine teardown. Conservatively reject siege
+defense too. Runtime catalog lists both recognized mission IDs; streets require
+revision13 telemetry. Actual MCP entered streets scene59, then departure returned
+to Praven town with gold355/encounter26 unchanged. Fresh independent before/after
+screenshots verify actual scene/menu. Original tavern departure re-tested on same
+build: scene103/session3→town also passed. Tests explicitly label condition-mode
+simulation a model, not live escape/quest acceptance. Disguised/escape/prison-break/
+siege/dead-player/brawl cases still need actual acceptance; village exits remain
+unsupported pending their Native quest consequences. 121 tests; Ruff clean;
+Pyright zero errors; 125 official opcode IDs. Current game at Praven town menu.

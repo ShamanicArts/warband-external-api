@@ -66,3 +66,94 @@ def leave_town_ops(mission_id, globals_, mission_slot, flags_slot, dialogue_slot
         ("assign", LOCAL + 10, 0),
         ("finish_mission", 0),
     ]
+
+
+def recognize_street_permission(lines, globals_, cannot_leave_string):
+    headers = [i for i, line in enumerate(lines) if line.startswith("mst_")]
+    for mission_id, start in enumerate(headers):
+        if lines[start].split()[0] != "mst_town_center":
+            continue
+        required = ("talk_context", "g_mt_mode", "g_defending_against_siege")
+        if cannot_leave_string is None or any(
+            name not in globals_ for name in required
+        ):
+            raise ValueError("Native streets departure definitions missing")
+        boundary = (
+            headers[mission_id + 1] if mission_id + 1 < len(headers) else len(lines)
+        )
+        tabs = [
+            line.split()
+            for line in lines[start + 3 : boundary]
+            if line.startswith("-21.000000 ")
+        ]
+        expected = [
+            12,
+            4,
+            0,
+            31 | 0x40000000,
+            2,
+            globals_["talk_context"],
+            19,
+            31,
+            2,
+            globals_["talk_context"],
+            18,
+            1106,
+            1,
+            cannot_leave_string,
+            5,
+            0,
+            31 | 0x40000000,
+            2,
+            globals_["g_mt_mode"],
+            0,
+            31,
+            2,
+            globals_["g_mt_mode"],
+            1,
+            1935,
+            0,
+            2075,
+            1,
+            1,
+            5,
+            0,
+            1106,
+            1,
+            cannot_leave_string,
+            3,
+            0,
+        ]
+        if len(tabs) != 1:
+            raise ValueError("Native streets require one reviewed Tab handler")
+        fields = tabs[0]
+        end = operation_end(fields, 3)
+        if (
+            fields[1:3] != ["0.000000", "0.000000"]
+            or list(map(int, fields[3:end])) != expected
+            or fields[end:] != ["0"]
+        ):
+            raise ValueError("Unreviewed Native streets departure trigger")
+        return mission_id
+    return None
+
+
+def leave_street_ops(mission_id, globals_, mission_slot, flags_slot, dialogue_slot):
+    if mission_id is None:
+        return [("eq", 0, 1)]
+    return [
+        ("troop_get_slot", LOCAL + 29, TROOP, mission_slot),
+        ("eq", LOCAL + 29, mission_id),
+        ("troop_get_slot", LOCAL + 29, TROOP, flags_slot),
+        ("val_and", LOCAL + 29, 2),
+        ("eq", LOCAL + 29, 0),
+        *living_player(dialogue_slot),
+        ("neq", globals_["talk_context"], 19),
+        ("neq", globals_["talk_context"], 18),
+        ("eq", globals_["g_defending_against_siege"], 0),
+        ("or_eq", globals_["g_mt_mode"], 0),
+        ("eq", globals_["g_mt_mode"], 1),
+        ("mission_enable_talk",),
+        ("assign", LOCAL + 10, 0),
+        ("finish_mission", 0),
+    ]

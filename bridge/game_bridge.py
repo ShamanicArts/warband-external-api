@@ -327,6 +327,14 @@ class Store:
                         and (
                             row["kind"] != "leave_scene" or values.get("build", 0) >= 12
                         )
+                        and (
+                            row["kind"] != "leave_scene"
+                            or self.module_catalog.get("missions", {}).get(
+                                str(values.get("mission"))
+                            )
+                            != "town_center"
+                            or values.get("build", 0) >= 13
+                        )
                         and row["session"] == values.get("session")
                         and query["context"] == "mission"
                     )
@@ -681,7 +689,7 @@ class Store:
                 },
                 "merchant_inspection": "384 slots/factors verified; not transactions",
                 "goods_trade": "Full bread buy/sell, price/funds guards verified",
-                "town_scene_departure": "Tavern departure verified; streets excluded",
+                "town_scene_departure": "Tavern and normal street departure verified",
                 "campaign_exports": [
                     "party",
                     "prisoners",
@@ -704,7 +712,7 @@ class Store:
             "module_instrumented_missions": self.module_catalog.get(
                 "instrumented_missions", []
             ),
-            "expected_integration_revision": 12,
+            "expected_integration_revision": 13,
             "polling": "revision 4 chains HTTP long-polls in paused game time",
             "caveats": [
                 "Before revision 4, campaign polling pauses with game time",
@@ -790,6 +798,7 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                             ["10"],
                             ["11"],
                             ["12"],
+                            ["13"],
                         )
                         else 0,
                     )

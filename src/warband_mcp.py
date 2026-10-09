@@ -320,10 +320,12 @@ async def warband_world_start_encounter(
 
 @mcp.tool()
 async def warband_leave_town_scene() -> dict:
-    """Request normal departure from Native town_default scene (town/tavern/castle).
+    """Request normal departure from recognized Native town_default/town_center.
 
     Explicit request provides departure confirmation. Exact installed Native Tab
     permission is recognized at build; game retains its no-active-attacker guard.
+    Streets additionally retain no escape/prison-break and default/disguised mode
+    checks, reject siege defense, and restore talk as Native's handler does.
     Requires living player, exact mission/session and no dialogue/battle. Not
     generic mission abort, battle retreat or village departure (quest effects).
     Uses engine teardown, not desktop input. Verify fresh menu context after ack.
