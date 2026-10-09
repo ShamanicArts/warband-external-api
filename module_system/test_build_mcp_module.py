@@ -57,7 +57,7 @@ class ModuleBuildTests(unittest.TestCase):
         dialogue = (output / "conversation.txt").read_text(encoding="latin-1")
         self.assertIn("{s60}", dialogue)
         self.assertNotIn("{s126}", dialogue)
-        self.assertEqual((output / "strings.txt").read_bytes().splitlines()[1], b"7")
+        self.assertEqual((output / "strings.txt").read_bytes().splitlines()[1], b"9")
         self.assertEqual(
             (output / "simple_triggers.txt").read_text().splitlines()[1], "2"
         )
@@ -72,7 +72,12 @@ class ModuleBuildTests(unittest.TestCase):
         cursor, depth = 1, 0
         while cursor < len(tokens):
             opcode, arity = tokens[cursor : cursor + 2]
-            if opcode in (OPS["try_begin"], OPS["try_for_agents"]):
+            if opcode in (
+                OPS["try_begin"],
+                OPS["try_for_agents"],
+                OPS["try_for_range"],
+                OPS["try_for_parties"],
+            ):
                 depth += 1
             elif opcode == OPS["try_end"]:
                 depth -= 1

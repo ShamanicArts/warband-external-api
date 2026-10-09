@@ -2,7 +2,21 @@
 
 import math
 
-OPERATIONS = {"message": 1, "scan_agents": 2, "relocate_player": 3, "npc_say": 4}
+OPERATIONS = {
+    "message": 1,
+    "scan_agents": 2,
+    "relocate_player": 3,
+    "npc_say": 4,
+    "scan_campaign": 5,
+}
+DATASETS = {
+    "party": 1,
+    "prisoners": 2,
+    "inventory": 3,
+    "character": 4,
+    "world_parties": 5,
+    "quests": 6,
+}
 
 
 def validate_operation(kind, payload, state):
@@ -10,18 +24,30 @@ def validate_operation(kind, payload, state):
         raise ValueError("Unknown game operation or malformed arguments")
     if not state.get("connected"):
         raise ValueError("Game telemetry is stale or disconnected")
+    context = "campaign" if kind == "scan_campaign" else "mission"
     if kind != "message" and (
-        state.get("protocol") != 2 or state.get("context") != "mission"
+        state.get("protocol") != 2 or state.get("context") != context
     ):
-        raise ValueError("This operation requires protocol-2 mission telemetry")
+        raise ValueError(f"This operation requires protocol-2 {context} telemetry")
     expected = {
         "message": {"text"},
         "scan_agents": set(),
         "relocate_player": {"x", "y"},
         "npc_say": {"agent_id", "text"},
+        "scan_campaign": {"dataset", "offset", "limit"},
     }[kind]
     if set(payload) != expected:
         raise ValueError("Unexpected or missing operation arguments")
+    if kind == "scan_campaign":
+        if (
+            not isinstance(payload["dataset"], str)
+            or payload["dataset"] not in DATASETS
+        ):
+            raise ValueError("Unknown campaign dataset")
+        if type(payload["offset"]) is not int or not 0 <= payload["offset"] <= 100000:
+            raise ValueError("Offset must be an integer from 0 to 100000")
+        if type(payload["limit"]) is not int or not 1 <= payload["limit"] <= 16:
+            raise ValueError("Limit must be an integer from 1 to 16")
     if "text" in payload:
         text = payload["text"]
         if (
@@ -50,6 +76,8 @@ def validate_operation(kind, payload, state):
 
 
 def wire_arguments(kind, payload):
+    if kind == "scan_campaign":
+        return [DATASETS[payload["dataset"]], payload["offset"], payload["limit"], 0]
     if kind == "relocate_player":
         return [round(payload["x"] * 100), round(payload["y"] * 100), 0, 0]
     if kind == "npc_say":

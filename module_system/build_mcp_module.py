@@ -12,6 +12,8 @@ import shutil
 from pathlib import Path
 from urllib.parse import urlparse
 
+from module_system.campaign_ops import campaign_export
+
 REG = 1 << 56
 STR = 3 << 56
 LOCAL = 17 << 56
@@ -69,6 +71,30 @@ OPS = {
     "store_add": 2120,
     "le": 0x80000000 | 32,
     "neq": 0x80000000 | 31,
+    "lt": 0x80000000 | 30,
+    "try_for_range": 6,
+    "try_for_parties": 11,
+    "party_is_active": 132,
+    "party_get_num_companion_stacks": 1650,
+    "party_get_num_prisoner_stacks": 1651,
+    "party_stack_get_troop_id": 1652,
+    "party_stack_get_size": 1653,
+    "party_stack_get_num_wounded": 1654,
+    "party_prisoner_stack_get_troop_id": 1656,
+    "party_prisoner_stack_get_size": 1657,
+    "troop_get_inventory_capacity": 1540,
+    "troop_get_inventory_slot": 1541,
+    "troop_get_inventory_slot_modifier": 1542,
+    "troop_inventory_slot_get_item_amount": 1537,
+    "store_character_level": 2171,
+    "store_attribute_level": 2172,
+    "store_skill_level": 2170,
+    "store_faction_of_party": 2204,
+    "party_get_template_id": 1609,
+    "party_get_slot": 521,
+    "party_get_num_companions": 1601,
+    "check_quest_active": 200,
+    "quest_get_slot": 526,
 }
 
 
@@ -123,7 +149,14 @@ def telemetry(url_string, mission):
     return compile_ops(ops)
 
 
-def callback(agent_url=0, end_url=0):
+def callback(
+    agent_url=0,
+    end_url=0,
+    campaign_row_url=0,
+    campaign_end_url=0,
+    quest_count=0,
+    skill_count=0,
+):
     cmd, kind, a, b, session, scene, result, tmp, agent, count = [
         LOCAL + i for i in (3, 4, 5, 6, 8, 9, 10, 11, 12, 13)
     ]
@@ -209,6 +242,7 @@ def callback(agent_url=0, end_url=0):
             ("assign", kind, REG + 3),
             ("assign", a, REG + 4),
             ("assign", b, REG + 5),
+            ("assign", LOCAL + 16, REG + 6),
             ("assign", session, REG + 7),
             ("assign", scene, REG + 8),
             ("assign", result, -1),
@@ -234,6 +268,21 @@ def callback(agent_url=0, end_url=0):
             ("eq", kind, 4),
             *npc,
             ("try_end",),
+            ("else_try",),
+            ("eq", kind, 5),
+            ("troop_get_slot", tmp, TROOP, CONTEXT_SLOT),
+            ("eq", tmp, 0),
+            ("eq", scene, -1),
+            ("eq", session, -1),
+            ("ge", a, 1),
+            ("le", a, 6),
+            ("ge", b, 0),
+            ("le", b, 100000),
+            ("ge", LOCAL + 16, 1),
+            ("le", LOCAL + 16, 16),
+            *campaign_export(
+                campaign_row_url, campaign_end_url, quest_count, skill_count
+            ),
             ("try_end",),
             ("troop_set_slot", TROOP, RESULT_SLOT, result),
             ("troop_set_slot", TROOP, ACK_SLOT, cmd),
@@ -328,10 +377,15 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             "&job={reg20}&id={reg21}&troop={reg22}&team={reg23}&hp={reg24}"
             "&x={reg25}&y={reg26}&z={reg27}&player={reg28}&scene={reg30}"
             "&session={reg31}",
-        f"str_mcp_agents_end_url {endpoint}/agents-end?token={token}&v=2"
+            f"str_mcp_agents_end_url {endpoint}/agents-end?token={token}&v=2"
             "&job={reg20}&count={reg29}&scene={reg30}&session={reg31}",
             f"str_mcp_dialogue_url {endpoint}/dialogue?token={token}&v=2"
             "&job={reg20}&event={reg21}",
+            f"str_mcp_campaign_row {endpoint}/campaign-row?token={token}&v=2"
+            "&job={reg20}&dataset={reg21}&id={reg22}"
+            "&a={reg23}&b={reg24}&c={reg25}&d={reg26}&e={reg27}&f={reg28}",
+            f"str_mcp_campaign_end {endpoint}/campaign-end?token={token}&v=2"
+            "&job={reg20}&dataset={reg21}&count={reg29}&total={reg30}",
         ]
     )
     strings[1] = str(count + len(new_strings))
@@ -367,12 +421,48 @@ def build(native: Path, output: Path, endpoint: str, token: str):
     conversations[1] = str(int(conversations[1]) + 2)
     conversations.insert(3, added_dialogue[0])
     conversations.append(added_dialogue[1])
+
+    def definitions(filename, prefix):
+        path = native / filename
+        if not path.exists():
+            return []
+        return [
+            line.split()
+            for line in path.read_text(encoding="latin-1").splitlines()
+            if line.lstrip().startswith(prefix)
+        ]
+
+    quests = definitions("quests.txt", "qst_")
+    skills = definitions("skills.txt", "skl_")
+    items = definitions("item_kinds1.txt", "itm_")
+    factions = definitions("factions.txt", "fac_")
+    parties = {}
+    for line in (
+        (native / "parties.txt").read_text(encoding="latin-1").splitlines()
+        if (native / "parties.txt").exists()
+        else []
+    ):
+        fields = line.split()
+        if len(fields) > 4 and fields[3].startswith("p_"):
+            parties[fields[1]] = fields[4].replace("_", " ")
     shutil.copytree(native, output)
     (output / "strings.txt").write_text("\n".join(strings) + "\n", encoding="latin-1")
     (output / "scripts.txt").write_text(
         re.sub(
             pattern,
-            lambda m: m[1] + " " + callback(STR + count + 2, STR + count + 3) + "\n",
+            lambda m: (
+                m[1]
+                + " "
+                + callback(
+                    STR + count + 2,
+                    STR + count + 3,
+                    STR + count + 5,
+                    STR + count + 6,
+                    len(quests),
+                    len(skills),
+                )
+                + "\n"
+            ),
             scripts,
         )
     )
@@ -399,6 +489,23 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             {
                 "name_source": "module troop definitions, not live renamed agent names",
                 "troops": {str(i): name for i, name in enumerate(troop_names)},
+                "items": {
+                    str(i): row[1].replace("_", " ") for i, row in enumerate(items)
+                },
+                "skills": {
+                    str(i): row[1].replace("_", " ") for i, row in enumerate(skills)
+                },
+                "quests": {
+                    str(i): {
+                        "symbol": row[0],
+                        "title_template": row[1].replace("_", " "),
+                    }
+                    for i, row in enumerate(quests)
+                },
+                "factions": {
+                    str(i): row[1].replace("_", " ") for i, row in enumerate(factions)
+                },
+                "parties": parties,
             },
             indent=2,
         )
@@ -421,7 +528,13 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     "conversation.txt",
                     "dialog_states.txt",
                 ],
-                "commands": ["message", "scan_agents", "relocate_player", "npc_say"],
+                "commands": [
+                    "message",
+                    "scan_agents",
+                    "relocate_player",
+                    "npc_say",
+                    "scan_campaign",
+                ],
             },
             indent=2,
         )

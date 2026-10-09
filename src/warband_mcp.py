@@ -3,6 +3,7 @@
 import json
 import os
 from pathlib import Path
+from typing import Literal
 from urllib.request import Request, urlopen
 
 import anyio
@@ -51,6 +52,47 @@ async def warband_get_state() -> dict:
     while campaign time advances. Pausing can make telemetry stale.
     """
     return await anyio.to_thread.run_sync(lambda: request("/api/state"))
+
+
+@mcp.tool()
+async def warband_capabilities() -> dict:
+    """Discover implemented vs unsupported features and current context restrictions."""
+    return await anyio.to_thread.run_sync(lambda: request("/api/capabilities"))
+
+
+@mcp.tool()
+async def warband_refresh_campaign(
+    dataset: Literal[
+        "party", "prisoners", "inventory", "character", "world_parties", "quests"
+    ],
+    offset: int = 0,
+    limit: int = 16,
+) -> dict:
+    """Request a game-code campaign snapshot page (at most 16 rows).
+
+    Read it with warband_campaign_result. Campaign time must be running for the
+    game to poll. Inventory includes empty/equipment slots; world data includes
+    all active parties, including hidden parties, so this is an omniscient debug
+    view, not player-visible scouting. Quest titles are definition templates,
+    not rendered journal text. A page is atomic only at its own export time.
+    """
+    return await operation(
+        "scan_campaign", {"dataset": dataset, "offset": offset, "limit": limit}
+    )
+
+
+@mcp.tool()
+async def warband_campaign_result(command_id: int) -> dict:
+    """Read a durable campaign page. Wait for complete, then use next_offset.
+
+    Rows are engine values; names are module definition labels. Stale pages must
+    not be treated as current state. Separate pages can observe changing armies.
+    """
+    if command_id <= 0:
+        raise ValueError("command_id must be positive")
+    return await anyio.to_thread.run_sync(
+        lambda: request(f"/api/campaign/{command_id}")
+    )
 
 
 @mcp.tool()

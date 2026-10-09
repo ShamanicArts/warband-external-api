@@ -11,6 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from bridge.campaign import CampaignExports
 from bridge.protocol import OPERATIONS, validate_operation, wire_arguments
 
 
@@ -40,6 +41,7 @@ class Store:
         self.scans = {}
         self.dialogues = {}
         self.catalog = (catalog or {}).get("troops", {})
+        self.campaign = CampaignExports(self.db, catalog or {})
 
     def _interrupt_mission_commands(self):
         # A restart cannot prove the old mission still exists. Never replay its
@@ -193,7 +195,14 @@ class Store:
                     row is None
                     or row["kind"] == "message"
                     or (
-                        row["scene"] == values.get("scene")
+                        row["kind"] == "scan_campaign"
+                        and query["context"] == "campaign"
+                        and query["v"] == "2"
+                    )
+                    or (
+                        row["kind"] != "scan_campaign"
+                        and query["v"] == "2"
+                        and row["scene"] == values.get("scene")
                         and row["session"] == values.get("session")
                         and query["context"] == "mission"
                     )
@@ -241,6 +250,9 @@ class Store:
                 "interrupted",
             ):
                 raise ValueError("Event does not correspond to a dispatched command")
+            if path in ("/campaign-row", "/campaign-end"):
+                self.campaign.event(path, query, command)
+                return
             if path == "/dialogue":
                 if command["kind"] != "npc_say" or query.get("event") not in ("1", "2"):
                     raise ValueError("Invalid dialogue event")
@@ -337,6 +349,44 @@ class Store:
             age = time.time() - self.state["received_at"]
             return {"connected": age < 15, "age_seconds": round(age, 3), **self.state}
 
+    def capabilities(self):
+        return {
+            "transport": "vanilla game scripts over authenticated loopback HTTP",
+            "desktop_dependency": False,
+            "protocol": 2,
+            "state": self.snapshot(),
+            "implemented": {
+                "message": "mission or campaign",
+                "scene_agents": "instrumented training yard only; 64 living humans max",
+                "relocate_player": "debug teleport <=10m, not walking",
+                "npc_say": "one supplied line in real dialogue; no free-text reply yet",
+                "campaign_exports": [
+                    "party",
+                    "prisoners",
+                    "inventory",
+                    "character",
+                    "world_parties",
+                    "quests",
+                ],
+            },
+            "unimplemented": [
+                "campaign travel orders",
+                "trade",
+                "recruitment",
+                "quest actions",
+                "combat orders",
+                "multi-turn NPC dialogue",
+                "free-text player input",
+                "all-mission instrumentation",
+            ],
+            "campaign_page_limit": 16,
+            "caveats": [
+                "Campaign polling pauses with game time",
+                "World census includes hidden parties (omniscient debug data)",
+                "Labels come from module definitions, not live renamed entities",
+            ],
+        }
+
 
 def make_server(store, token, host="127.0.0.1", port=8765):
     class Handler(BaseHTTPRequestHandler):
@@ -367,6 +417,8 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                 "/agents-end",
                 "/agents_end",
                 "/dialogue",
+                "/campaign-row",
+                "/campaign-end",
             ):
                 supplied = query.get("token", [""])[0]
             else:
@@ -380,13 +432,27 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                         raise ValueError("Duplicate protocol field")
                     result = store.poll({k: v[0] for k, v in query.items()})
                     self.reply(200, result, "text/plain")
-                elif url.path in ("/agent", "/agents-end", "/agents_end", "/dialogue"):
+                elif url.path in (
+                    "/agent",
+                    "/agents-end",
+                    "/agents_end",
+                    "/dialogue",
+                    "/campaign-row",
+                    "/campaign-end",
+                ):
                     if any(len(v) != 1 for v in query.values()):
                         raise ValueError("Duplicate protocol field")
                     store.event(url.path, {k: v[0] for k, v in query.items()})
                     self.reply(200, "0|0|0|0|0|idle", "text/plain")
                 elif url.path == "/api/state":
                     self.reply(200, store.snapshot())
+                elif url.path == "/api/capabilities":
+                    self.reply(200, store.capabilities())
+                elif url.path.startswith("/api/campaign/"):
+                    with store.lock:
+                        self.reply(
+                            200, store.campaign.result(int(url.path.rsplit("/", 1)[1]))
+                        )
                 elif url.path.startswith("/api/commands/"):
                     self.reply(200, store.command(int(url.path.rsplit("/", 1)[1])))
                 elif url.path.startswith("/api/agents/"):
