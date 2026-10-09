@@ -1,0 +1,130 @@
+{
+  "method": "actual MCP engine rejection; no stock/gold mutations",
+  "commands": [
+    {
+      "command": {
+        "id": 1791532881,
+        "text": "goods_trade",
+        "created": 1791532881.070293,
+        "status": "acknowledged",
+        "kind": "goods_trade",
+        "arguments": {
+          "side": "buy",
+          "slot": 10,
+          "item_id": 93,
+          "execute": false,
+          "expected_price": 0
+        },
+        "scene": 135,
+        "session": 16,
+        "result": 0
+      },
+      "complete": true,
+      "facts": {
+        "mode": 0,
+        "item": 93,
+        "source_slot": 10,
+        "destination_slot": 10,
+        "price": 454,
+        "merchant": 627,
+        "town": 26,
+        "player_gold": 350,
+        "merchant_gold": 708,
+        "source_item": 93,
+        "destination_item": -1,
+        "source_amount": 50,
+        "destination_amount": 0,
+        "factor": 101,
+        "can_execute": 0
+      },
+      "source": "Full-unmodified goods adapter and Native economic events",
+      "caveat": "Quote is not reservation; execution recomputes price. Inspect facts before retrying."
+    },
+    {
+      "command": {
+        "id": 1791532882,
+        "text": "goods_trade",
+        "created": 1791532881.1840093,
+        "status": "rejected",
+        "kind": "goods_trade",
+        "arguments": {
+          "side": "buy",
+          "slot": 10,
+          "item_id": 93,
+          "execute": true,
+          "expected_price": 454
+        },
+        "scene": 135,
+        "session": 16,
+        "result": -4
+      },
+      "complete": false,
+      "facts": null,
+      "source": "Full-unmodified goods adapter and Native economic events",
+      "caveat": "Quote is not reservation; execution recomputes price. Inspect facts before retrying."
+    },
+    {
+      "command": {
+        "id": 1791532883,
+        "text": "goods_trade",
+        "created": 1791532881.2952662,
+        "status": "rejected",
+        "kind": "goods_trade",
+        "arguments": {
+          "side": "buy",
+          "slot": 10,
+          "item_id": 121,
+          "execute": false,
+          "expected_price": 0
+        },
+        "scene": 135,
+        "session": 16,
+        "result": -1
+      },
+      "complete": false,
+      "facts": null,
+      "source": "Full-unmodified goods adapter and Native economic events",
+      "caveat": "Quote is not reservation; execution recomputes price. Inspect facts before retrying."
+    },
+    {
+      "command": {
+        "id": 1791532884,
+        "text": "goods_trade",
+        "created": 1791532881.4026363,
+        "status": "acknowledged",
+        "kind": "goods_trade",
+        "arguments": {
+          "side": "buy",
+          "slot": 10,
+          "item_id": 93,
+          "execute": false,
+          "expected_price": 0
+        },
+        "scene": 135,
+        "session": 16,
+        "result": 0
+      },
+      "complete": true,
+      "facts": {
+        "mode": 0,
+        "item": 93,
+        "source_slot": 10,
+        "destination_slot": 10,
+        "price": 454,
+        "merchant": 627,
+        "town": 26,
+        "player_gold": 350,
+        "merchant_gold": 708,
+        "source_item": 93,
+        "destination_item": -1,
+        "source_amount": 50,
+        "destination_amount": 0,
+        "factor": 101,
+        "can_execute": 0
+      },
+      "source": "Full-unmodified goods adapter and Native economic events",
+      "caveat": "Quote is not reservation; execution recomputes price. Inspect facts before retrying."
+    }
+  ],
+  "verified": true
+}

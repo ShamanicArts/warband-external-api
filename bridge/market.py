@@ -4,10 +4,76 @@ import json
 
 
 class MerchantExports:
+    def trade_event(self, query, command):
+        if command["kind"] != "goods_trade":
+            raise ValueError("Trade facts must correspond to a goods trade command")
+        keys = (
+            "mode",
+            "item",
+            "source-slot",
+            "destination-slot",
+            "price",
+            "merchant",
+            "town",
+            "player-gold",
+            "merchant-gold",
+            "source-item",
+            "destination-item",
+            "source-amount",
+            "destination-amount",
+            "factor",
+            "can-execute",
+        )
+        facts = {key.replace("-", "_"): int(query[key]) for key in keys}
+        args = command["arguments"]
+        mode = int(args["side"] == "sell") + 2 * int(args["execute"])
+        if (
+            facts["mode"] != mode
+            or facts["item"] != args["item_id"]
+            or facts["source_slot"] != args["slot"]
+            or not 1 <= facts["price"] <= 1000000
+            or any(abs(value) > 2**53 for value in facts.values())
+        ):
+            raise ValueError("Trade facts do not match requested item/slot/mode")
+        if args["execute"] and facts["price"] != args["expected_price"]:
+            raise ValueError("Executed price differs from explicit price agreement")
+        stored = self.db.execute(
+            "SELECT payload FROM goods_trade_results WHERE job=?", (command["id"],)
+        ).fetchone()
+        if stored and json.loads(stored[0]) != facts:
+            raise ValueError("Conflicting duplicate trade result")
+        self.db.execute(
+            "INSERT OR REPLACE INTO goods_trade_results VALUES (?,?)",
+            (command["id"], json.dumps(facts)),
+        )
+        self.db.commit()
+
+    def trade_result(self, command):
+        if command["kind"] != "goods_trade":
+            raise ValueError("Not a goods trade command")
+        stored = self.db.execute(
+            "SELECT payload FROM goods_trade_results WHERE job=?", (command["id"],)
+        ).fetchone()
+        return {
+            "command": command,
+            "complete": stored is not None,
+            "facts": json.loads(stored[0]) if stored else None,
+            "source": "Full-unmodified goods adapter and Native economic events",
+            "caveat": (
+                "Quote is not reservation; execution recomputes price. "
+                "Inspect facts before retrying."
+            ),
+        }
+
     def __init__(self, database, catalog):
         self.db, self.catalog = database, catalog
         self.db.execute(
             "CREATE TABLE IF NOT EXISTS merchant_exports "
+            "(job INTEGER PRIMARY KEY, payload TEXT)"
+        )
+        self.db.commit()
+        self.db.execute(
+            "CREATE TABLE IF NOT EXISTS goods_trade_results "
             "(job INTEGER PRIMARY KEY, payload TEXT)"
         )
         self.db.commit()

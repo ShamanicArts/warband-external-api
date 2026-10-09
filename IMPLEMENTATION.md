@@ -270,3 +270,22 @@ buy/sell with original Native economic event scripts and independently measured
 inventory, gold and market-price consequences. Extend modifiers/partial stacks
 only after corresponding actual price and transaction evidence.
 Do not substitute base_value*factor for a verified transaction price formula.
+
+Revision 10 live: guarded full-unmodified goods quote/buy/sell adapter, exact
+item/slot/price agreement and marketplace-entry scope. Original Native economic
+event scripts are invoked; not generic inventory editing or UI automation.
+Actual MCP bought Bread 50/50 for 46: player gold 355→309, merchant 703→749;
+sold same full stack for 41: player 309→350, merchant 749→708. Independent UI
+captures confirm both balances and player stack presence/removal; UI sell tooltip
+41 matches quote. Wrong-price requests rejected before mutation; insufficient
+funds for Oil and mismatched source item also engine-rejected with unchanged
+exact stock/gold facts. Bread factors changed 93/81→sell83 after buy→92/80 after
+roundtrip, proving economic consequences (roundtrip is not rollback).
+
+Gear, unique items, modifiers and partially consumed stacks intentionally rejected.
+Price agreement is recomputed at execution, not a reservation. Control-flow tests
+are labelled models, not engine acceptance. 108 active-suite tests; 121 official
+opcode IDs verified. Actual bridge restart followed by fresh MCP recovered exact
+executed buy/sell facts without retrying effects. Original quote/buy/sell/status
+and independent UI evidence retained in evidence/goods-trade. Live full goods
+transaction acceptance is Bread only; wider goods coverage remains to test.

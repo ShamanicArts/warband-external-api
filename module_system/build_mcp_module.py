@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 from module_system.battle_ops import battle_order
 from module_system.campaign_ops import campaign_export
+from module_system.goods_trade import goods_trade
 from module_system.market_ops import market_export
 from module_system.menu_actions import append_actions
 from module_system.menu_hooks import instrument_menus
@@ -148,6 +149,17 @@ OPS = {
     "rest_for_hours_interactive": 1031,
     "troop_inventory_slot_get_item_max_amount": 1538,
     "store_item_value": 2230,
+    "store_mod": 2119,
+    "val_mul": 2107,
+    "val_div": 2108,
+    "store_div": 2123,
+    "troop_add_gold": 1528,
+    "troop_remove_gold": 1529,
+    "troop_inventory_slot_set_item_amount": 1534,
+    "troop_set_inventory_slot": 1543,
+    "troop_set_inventory_slot_modifier": 1544,
+    "item_get_type": 1570,
+    "not_item_has_property": 2723 | 0x80000000,
 }
 
 
@@ -259,6 +271,7 @@ def callback(
     merchant_end_url=0,
     troop_count=0,
     market_menu_id=-1,
+    trade_result_url=0,
 ):
     cmd, kind, a, b, session, scene, result, tmp, agent, count = [
         LOCAL + i for i in (3, 4, 5, 6, 8, 9, 10, 11, 12, 13)
@@ -394,7 +407,8 @@ def callback(
             ("assign", result, 0),
             ("else_try",),
             ("or_eq", kind, 6),
-            ("eq", kind, 17),
+            ("or_eq", kind, 17),
+            ("eq", kind, 18),
             ("troop_get_slot", tmp, TROOP, CONTEXT_SLOT),
             ("eq", tmp, 2),
             ("troop_get_slot", tmp, TROOP, MENU_SESSION_SLOT),
@@ -414,6 +428,16 @@ def callback(
                 native_globals or {},
                 native_scripts or {},
                 troop_count,
+                market_menu_id,
+            ),
+            ("else_try",),
+            ("eq", kind, 18),
+            *goods_trade(
+                trade_result_url,
+                native_globals or {},
+                native_scripts or {},
+                troop_count,
+                item_count,
                 market_menu_id,
             ),
             ("try_end",),
@@ -633,7 +657,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             "&scene={reg8}&agent={reg9}&result={reg10}&session={reg11}"
             "&mission={reg12}&flags={reg13}&captive={reg14}&town={reg15}"
             "&encounter={reg16}&menu={reg17}&pulse={reg18}&dialogue={reg19}"
-            "&menu-session={reg20}&build=9"
+            "&menu-session={reg20}&build=10"
         )
         new_strings.append(f"str_mcp_{kind}_url {value}")
     new_strings.extend(
@@ -686,6 +710,14 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         new_strings[1]
         .replace("str_mcp_campaign_url", "str_mcp_trade_url")
         .replace("context=campaign", "context=trade")
+    )
+    new_strings.append(
+        f"str_mcp_trade_result {endpoint}/trade-result?token={token}&v=2"
+        "&job={reg20}&mode={reg21}&item={reg22}&source-slot={reg23}"
+        "&destination-slot={reg24}&price={reg25}&merchant={reg26}&town={reg27}"
+        "&player-gold={reg28}&merchant-gold={reg29}&source-item={reg30}"
+        "&destination-item={reg31}&source-amount={reg32}&destination-amount={reg33}"
+        "&factor={reg34}&can-execute={reg35}"
     )
     strings[1] = str(count + len(new_strings))
     strings.extend(new_strings)
@@ -886,6 +918,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     menu_names.index("town_trade")
                     if "town_trade" in menu_names
                     else -1,
+                    STR + count + 13,
                 )
                 + "\n"
             ),
@@ -948,7 +981,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         json.dumps(
             {
                 "protocol": 2,
-                "integration_revision": 9,
+                "integration_revision": 10,
                 "source": str(native),
                 "transport": "engine HTTP opcode 380",
                 "instrumented_missions": mission_names,
@@ -980,6 +1013,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     "party_order",
                     "campaign_wait",
                     "scan_merchant",
+                    "goods_trade",
                 ],
             },
             indent=2,

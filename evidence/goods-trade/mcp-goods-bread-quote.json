@@ -1,0 +1,174 @@
+{
+  "method": "actual MCP full/unmodified goods trade",
+  "commands": [
+    {
+      "queued": {
+        "id": 1791532740,
+        "text": "goods_trade",
+        "created": 1791532740.5700016,
+        "status": "queued",
+        "kind": "goods_trade",
+        "arguments": {
+          "side": "buy",
+          "slot": 37,
+          "item_id": 121,
+          "execute": false,
+          "expected_price": 0
+        },
+        "scene": 135,
+        "session": 14,
+        "result": null
+      },
+      "result": {
+        "command": {
+          "id": 1791532740,
+          "text": "goods_trade",
+          "created": 1791532740.5700016,
+          "status": "acknowledged",
+          "kind": "goods_trade",
+          "arguments": {
+            "side": "buy",
+            "slot": 37,
+            "item_id": 121,
+            "execute": false,
+            "expected_price": 0
+          },
+          "scene": 135,
+          "session": 14,
+          "result": 0
+        },
+        "complete": true,
+        "facts": {
+          "mode": 0,
+          "item": 121,
+          "source_slot": 37,
+          "destination_slot": 10,
+          "price": 46,
+          "merchant": 627,
+          "town": 26,
+          "player_gold": 355,
+          "merchant_gold": 703,
+          "source_item": 121,
+          "destination_item": -1,
+          "source_amount": 50,
+          "destination_amount": 0,
+          "factor": 93,
+          "can_execute": 1
+        },
+        "source": "Full-unmodified goods adapter and Native economic events",
+        "caveat": "Quote is not reservation; execution recomputes price. Inspect facts before retrying."
+      }
+    }
+  ],
+  "before": {
+    "connected": true,
+    "age_seconds": 0.245,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "menu",
+    "received_at": 1791532740.317539,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -95.98,
+      "y": 26.65,
+      "z": 1.15
+    },
+    "clock": 103,
+    "acknowledged_command_id": 1791532738,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 10,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": 135,
+    "menu_session": 14,
+    "menu_name": "town_trade",
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 26,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "quote": {
+    "command": {
+      "id": 1791532740,
+      "text": "goods_trade",
+      "created": 1791532740.5700016,
+      "status": "acknowledged",
+      "kind": "goods_trade",
+      "arguments": {
+        "side": "buy",
+        "slot": 37,
+        "item_id": 121,
+        "execute": false,
+        "expected_price": 0
+      },
+      "scene": 135,
+      "session": 14,
+      "result": 0
+    },
+    "complete": true,
+    "facts": {
+      "mode": 0,
+      "item": 121,
+      "source_slot": 37,
+      "destination_slot": 10,
+      "price": 46,
+      "merchant": 627,
+      "town": 26,
+      "player_gold": 355,
+      "merchant_gold": 703,
+      "source_item": 121,
+      "destination_item": -1,
+      "source_amount": 50,
+      "destination_amount": 0,
+      "factor": 93,
+      "can_execute": 1
+    },
+    "source": "Full-unmodified goods adapter and Native economic events",
+    "caveat": "Quote is not reservation; execution recomputes price. Inspect facts before retrying."
+  },
+  "after": {
+    "connected": true,
+    "age_seconds": 0.076,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "menu",
+    "received_at": 1791532740.6049323,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -95.98,
+      "y": 26.65,
+      "z": 1.15
+    },
+    "clock": 103,
+    "acknowledged_command_id": 1791532740,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 10,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": 135,
+    "menu_session": 14,
+    "menu_name": "town_trade",
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 26,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  }
+}

@@ -20,6 +20,7 @@ OPERATIONS = {
     "party_order": 15,
     "campaign_wait": 16,
     "scan_merchant": 17,
+    "goods_trade": 18,
 }
 DATASETS = {
     "party": 1,
@@ -72,7 +73,7 @@ def validate_operation(kind, payload, state):
         raise ValueError("Game telemetry is stale or disconnected")
     context = (
         "menu"
-        if kind in ("select_menu", "scan_merchant")
+        if kind in ("select_menu", "scan_merchant", "goods_trade")
         else "campaign"
         if kind == "scan_campaign" or kind in CAMPAIGN_CONTROLS
         else "mission"
@@ -112,9 +113,34 @@ def validate_operation(kind, payload, state):
         "party_order": {"party_id", "target_party_id", "order", "world_control"},
         "campaign_wait": {"hours", "speed"},
         "scan_merchant": {"merchant", "offset", "limit"},
+        "goods_trade": {"side", "slot", "item_id", "execute", "expected_price"},
     }[kind]
     if set(payload) != expected:
         raise ValueError("Unexpected or missing operation arguments")
+    if kind == "goods_trade":
+        if (
+            state.get("integration_revision", 0) < 10
+            or state.get("menu_name") != "town_trade"
+            or type(state.get("menu_session")) is not int
+            or state["menu_session"] <= 0
+        ):
+            raise ValueError("Goods trade requires revision-10 exact marketplace entry")
+        if state.get("dialogue_active") or state.get("player_is_captive"):
+            raise ValueError("Goods trade requires free player outside dialogue")
+        if (
+            payload["side"] not in ("buy", "sell")
+            or type(payload["execute"]) is not bool
+        ):
+            raise ValueError("Explicit buy/sell and boolean execute are required")
+        for key, low, high in (
+            ("slot", 10, 9999),
+            ("item_id", 0, 99999),
+            ("expected_price", 0, 1000000),
+        ):
+            if type(payload[key]) is not int or not low <= payload[key] <= high:
+                raise ValueError(f"Invalid goods trade {key}")
+        if payload["execute"] and payload["expected_price"] == 0:
+            raise ValueError("Executing trade requires an exact positive quoted price")
     if kind == "scan_merchant":
         if type(state.get("menu_session")) is not int or state["menu_session"] <= 0:
             raise ValueError("Merchant inspection requires a menu-entry session")
@@ -296,6 +322,13 @@ def validate_operation(kind, payload, state):
 
 
 def wire_arguments(kind, payload):
+    if kind == "goods_trade":
+        return [
+            int(payload["side"] == "sell") + 2 * int(payload["execute"]),
+            payload["item_id"] * 10000 + payload["slot"],
+            payload["expected_price"],
+            0,
+        ]
     if kind == "scan_merchant":
         return [
             ("arms", "armor", "goods", "horses").index(payload["merchant"]),

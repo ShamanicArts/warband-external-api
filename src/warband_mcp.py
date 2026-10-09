@@ -319,6 +319,41 @@ async def warband_world_command_result(command_id: int) -> dict:
 
 
 @mcp.tool()
+async def warband_goods_trade(
+    side: Literal["buy", "sell"],
+    slot: int,
+    item_id: int,
+    execute: bool = False,
+    expected_price: int = 0,
+) -> dict:
+    """Quote or explicitly execute ONE full unmodified goods stack at town market.
+
+    Not gear, unique items, partial stacks or an inventory editor. Slot is the
+    source merchant slot for buy, player slot for sell. Item must still match.
+    Quote first and read warband_trade_result. Execute recomputes price and rejects
+    unless it equals expected_price; requires funds and a free destination slot.
+    Executes reviewed stock/gold transfer plus original Native economic event.
+    No UI pending barter balance. Inspect durable result before retrying effects.
+    """
+    return await operation(
+        "goods_trade",
+        {
+            "side": side,
+            "slot": slot,
+            "item_id": item_id,
+            "execute": execute,
+            "expected_price": expected_price,
+        },
+    )
+
+
+@mcp.tool()
+async def warband_trade_result(command_id: int) -> dict:
+    """Read durable quote/transaction engine facts separately from acknowledgement."""
+    return await anyio.to_thread.run_sync(lambda: request(f"/api/trades/{command_id}"))
+
+
+@mcp.tool()
 async def warband_inspect_merchant(
     merchant: Literal["arms", "armor", "goods", "horses"],
     offset: int = 10,

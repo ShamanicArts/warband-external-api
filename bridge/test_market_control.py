@@ -10,6 +10,85 @@ from module_system.build_mcp_module import callback
 
 
 class MarketTests(unittest.TestCase):
+    def test_goods_price_agreement_validation_wire_and_trade_context(self):
+        args = {
+            "side": "buy",
+            "slot": 37,
+            "item_id": 121,
+            "execute": True,
+            "expected_price": 46,
+        }
+        self.store.poll({**self.query, "build": "10"})
+        cmd = self.store.enqueue_operation("goods_trade", args)
+        self.assertEqual((cmd["scene"], cmd["session"]), (5, 2))
+        self.assertEqual(wire_arguments("goods_trade", args), [2, 1210037, 46, 0])
+        for change in (
+            {"execute": 1},
+            {"expected_price": 0},
+            {"slot": 9},
+            {"item_id": True},
+            {"side": "grant"},
+        ):
+            with self.assertRaises(ValueError):
+                validate_operation(
+                    "goods_trade", {**args, **change}, self.store.snapshot()
+                )
+        with self.assertRaises(ValueError):
+            validate_operation(
+                "goods_trade", args, {**self.store.snapshot(), "context": "trade"}
+            )
+        with self.assertRaises(ValueError):
+            validate_operation(
+                "goods_trade",
+                args,
+                {**self.store.snapshot(), "integration_revision": 9},
+            )
+
+    def test_goods_facts_are_item_slot_price_bound_and_durable(self):
+        self.store.poll({**self.query, "build": "10"})
+        cmd = self.store.enqueue_operation(
+            "goods_trade",
+            {
+                "side": "buy",
+                "slot": 37,
+                "item_id": 121,
+                "execute": True,
+                "expected_price": 46,
+            },
+        )
+        self.store.poll({**self.query, "build": "10"})
+        data = {
+            "v": "2",
+            "job": str(cmd["id"]),
+            "mode": "2",
+            "item": "121",
+            "source-slot": "37",
+            "destination-slot": "11",
+            "price": "46",
+            "merchant": "300",
+            "town": "26",
+            "player-gold": "309",
+            "merchant-gold": "749",
+            "source-item": "-1",
+            "destination-item": "121",
+            "source-amount": "0",
+            "destination-amount": "50",
+            "factor": "93",
+            "can-execute": "1",
+        }
+        for change in ({"item": "120"}, {"source-slot": "38"}, {"price": "47"}):
+            with self.assertRaises(ValueError):
+                self.store.event("/trade-result", {**data, **change})
+        self.store.event("/trade-result", data)
+        result = self.store.market.trade_result(cmd)
+        self.assertTrue(result["complete"])
+        self.assertEqual(result["facts"]["player_gold"], 309)
+        with self.assertRaises(ValueError):
+            self.store.event("/trade-result", {**data, "player-gold": "310"})
+        self.store.db.close()
+        self.store = Store(self.path, self.catalog)
+        self.assertEqual(self.store.market.trade_result(cmd)["facts"], result["facts"])
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.path = Path(self.temp.name) / "bridge.sqlite"

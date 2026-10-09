@@ -59,7 +59,7 @@ class ModuleBuildTests(unittest.TestCase):
         dialogue = (output / "conversation.txt").read_text(encoding="latin-1")
         self.assertIn("{s60}", dialogue)
         self.assertNotIn("{s126}", dialogue)
-        self.assertEqual((output / "strings.txt").read_bytes().splitlines()[1], b"15")
+        self.assertEqual((output / "strings.txt").read_bytes().splitlines()[1], b"16")
         self.assertEqual(
             (output / "simple_triggers.txt").read_text().splitlines()[1], "2"
         )

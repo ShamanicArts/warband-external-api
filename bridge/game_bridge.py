@@ -115,7 +115,7 @@ class Store:
                     raise ValueError(
                         "This action is not allowlisted for the current menu"
                     )
-            if kind in ("select_menu", "scan_merchant"):
+            if kind in ("select_menu", "scan_merchant", "goods_trade"):
                 state = {
                     **state,
                     "scene_id": state["menu_id"],
@@ -274,7 +274,7 @@ class Store:
                         and query["v"] == "2"
                     )
                     or (
-                        row["kind"] in ("select_menu", "scan_merchant")
+                        row["kind"] in ("select_menu", "scan_merchant", "goods_trade")
                         and query["context"] == "menu"
                         and values.get("build", 0) >= 5
                         and (
@@ -282,6 +282,9 @@ class Store:
                             or values.get("build", 0) >= 9
                         )
                         and row["scene"] == values.get("menu")
+                        and (
+                            row["kind"] != "goods_trade" or values.get("build", 0) >= 10
+                        )
                         and row["session"] == values.get("menu-session")
                     )
                     or (
@@ -300,6 +303,7 @@ class Store:
                             "party_order",
                             "campaign_wait",
                             "scan_merchant",
+                            "goods_trade",
                         )
                         and query["v"] == "2"
                         and row["scene"] == values.get("scene")
@@ -361,6 +365,9 @@ class Store:
                 return
             if path in ("/merchant-row", "/merchant-end"):
                 self.market.event(path, query, command)
+                return
+            if path == "/trade-result":
+                self.market.trade_event(query, command)
                 return
             if path == "/world-result":
                 if command["kind"] not in ("world_query", "diplomacy", "party_order"):
@@ -637,6 +644,7 @@ class Store:
                     "campaign_wait": "Attackable rest/stop and clock advance verified",
                 },
                 "merchant_inspection": "384 slots/factors verified; not transactions",
+                "goods_trade": "Full bread buy/sell, price/funds guards verified",
                 "campaign_exports": [
                     "party",
                     "prisoners",
@@ -659,7 +667,7 @@ class Store:
             "module_instrumented_missions": self.module_catalog.get(
                 "instrumented_missions", []
             ),
-            "expected_integration_revision": 9,
+            "expected_integration_revision": 10,
             "polling": "revision 4 chains HTTP long-polls in paused game time",
             "caveats": [
                 "Before revision 4, campaign polling pauses with game time",
@@ -719,6 +727,7 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                 "/world-result",
                 "/merchant-row",
                 "/merchant-end",
+                "/trade-result",
             ):
                 supplied = query.get("token", [""])[0]
             else:
@@ -734,7 +743,7 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                         {k: v[0] for k, v in query.items()},
                         wait_seconds=0.25
                         if query.get("build")
-                        in (["4"], ["5"], ["6"], ["7"], ["8"], ["9"])
+                        in (["4"], ["5"], ["6"], ["7"], ["8"], ["9"], ["10"])
                         else 0,
                     )
                     self.reply(200, result, "text/plain")
@@ -749,6 +758,7 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                     "/world-result",
                     "/merchant-row",
                     "/merchant-end",
+                    "/trade-result",
                 ):
                     if any(len(v) != 1 for v in query.values()):
                         raise ValueError("Duplicate protocol field")
@@ -778,6 +788,14 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                         self.reply(
                             200,
                             store.market.result(
+                                store.command(int(url.path.rsplit("/", 1)[1]))
+                            ),
+                        )
+                elif url.path.startswith("/api/trades/"):
+                    with store.lock:
+                        self.reply(
+                            200,
+                            store.market.trade_result(
                                 store.command(int(url.path.rsplit("/", 1)[1]))
                             ),
                         )

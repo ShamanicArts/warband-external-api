@@ -445,3 +445,23 @@ Actual UI tooltips establish unmodified Oil 454, Tools 397 and full Bread 46
 against original buy-factor/base values. Those cases use integer truncation;
 generic modified/partial prices and sale prices are still unverified.
 101 active-suite tests; 110 verified official opcode IDs.
+
+## Full unmodified goods transactions (revision 10)
+
+`warband_goods_trade` quotes by default; explicit `execute=true` requires an exact
+positive `expected_price`. Source slot and expected item must match. Buy uses
+town goods merchant source slot; sell uses player source slot. Requires actual
+marketplace menu/entry, funds, and a free non-equipped destination slot. Full,
+unmodified, nonunique type-goods only: gear/modifiers/partial stacks rejected.
+
+`warband_trade_result` reads durable engine quote/transfer facts. Inspect both
+command status and facts before retrying; quotes are not inventory reservations.
+Price recomputed at execution; mismatches reject before any mutation. The reviewed
+transfer conserves stock/gold and calls original Native buy/sell economic events.
+
+Live bread roundtrip: buy 46 (player 355→309, merchant 703→749), sell 41
+(309→350, 749→708), full 50/50 stack moved in both directions. Independent UI
+confirms both balances, stack presence/removal and sell price 41. Actual wrong
+price, insufficient funds and item mismatch rejected without changes. Economic
+factors changed; roundtrip is not rollback. Broad modified/partial/gear trade and
+multi-item pending UI barter remain unimplemented. 108 tests; 121 opcode IDs.

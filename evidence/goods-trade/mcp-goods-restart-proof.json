@@ -1,0 +1,84 @@
+{
+  "method": "fresh actual MCP after bridge restart; never resend effects",
+  "results": [
+    {
+      "command": {
+        "id": 1791532760,
+        "text": "goods_trade",
+        "created": 1791532757.687247,
+        "status": "acknowledged",
+        "kind": "goods_trade",
+        "arguments": {
+          "side": "buy",
+          "slot": 37,
+          "item_id": 121,
+          "execute": true,
+          "expected_price": 46
+        },
+        "scene": 135,
+        "session": 14,
+        "result": 0
+      },
+      "complete": true,
+      "facts": {
+        "mode": 2,
+        "item": 121,
+        "source_slot": 37,
+        "destination_slot": 10,
+        "price": 46,
+        "merchant": 627,
+        "town": 26,
+        "player_gold": 309,
+        "merchant_gold": 749,
+        "source_item": -1,
+        "destination_item": 121,
+        "source_amount": 0,
+        "destination_amount": 50,
+        "factor": 93,
+        "can_execute": 1
+      },
+      "source": "Full-unmodified goods adapter and Native economic events",
+      "caveat": "Quote is not reservation; execution recomputes price. Inspect facts before retrying."
+    },
+    {
+      "command": {
+        "id": 1791532821,
+        "text": "goods_trade",
+        "created": 1791532818.998656,
+        "status": "acknowledged",
+        "kind": "goods_trade",
+        "arguments": {
+          "side": "sell",
+          "slot": 10,
+          "item_id": 121,
+          "execute": true,
+          "expected_price": 41
+        },
+        "scene": 135,
+        "session": 15,
+        "result": 0
+      },
+      "complete": true,
+      "facts": {
+        "mode": 3,
+        "item": 121,
+        "source_slot": 10,
+        "destination_slot": 37,
+        "price": 41,
+        "merchant": 627,
+        "town": 26,
+        "player_gold": 350,
+        "merchant_gold": 708,
+        "source_item": -1,
+        "destination_item": 121,
+        "source_amount": 0,
+        "destination_amount": 50,
+        "factor": 83,
+        "can_execute": 1
+      },
+      "source": "Full-unmodified goods adapter and Native economic events",
+      "caveat": "Quote is not reservation; execution recomputes price. Inspect facts before retrying."
+    }
+  ],
+  "verified": true
+}
