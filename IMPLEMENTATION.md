@@ -133,3 +133,25 @@ player agent 15, HP 49; CUA confirmed the rendered village.
 Original JSON/capture proof is now persisted and versioned in
 `evidence/native-actions/` (10 artifacts plus README), not solely in temporary
 runtime storage. Files were checked for the private bridge token before copying.
+
+Revision 6: own-team battle orders use `team_give_order`, guarded by the actual
+mission's battle-mode flag, a living player agent, dialogue inactivity and the
+existing mission-session/scene checks. The team comes from the player agent;
+clients cannot choose an enemy team. Formation 0–8 or everyone (9), 15 reviewed
+Native orders. Durable SQLite read-back records movement, fire, riding, weapon
+and order-position values from `team_get_*` operations for each formation.
+No claim of individual combat input, formation placement or battle success.
+
+Live Native Custom Battle, scene 524, template `quick_battle_battle`: stdio MCP
+issued hold fire, fire at will, follow and hold position. Each acknowledged;
+all nine formations matched the expected engine read-back. Fire getters use
+`aordr` (0/1), not command `mordr` (12/13); the initial acceptance assertion
+mistakenly compared these enums, was corrected against the pinned official
+header/scripts, then all four checks passed. CUA independently showed the
+four order messages. Custom Battle setup was CUA, order execution was MCP.
+72 active-suite tests pass; 79 opcode IDs match the pinned official header.
+Evidence: `evidence/battle-orders/`. The isolated campaign was saved normally
+before this test; Native/Pendor files and saves remain untouched.
+Live bridge process restart followed by new stdio MCP result calls recovered
+all four acknowledged order results and exact formation rows. Durable result
+recovery is proven; paused HTTP-outage-loop recovery remains a separate gap.

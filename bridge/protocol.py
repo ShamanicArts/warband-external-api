@@ -9,6 +9,7 @@ OPERATIONS = {
     "npc_say": 4,
     "scan_campaign": 5,
     "select_menu": 6,
+    "battle_order": 7,
 }
 DATASETS = {
     "party": 1,
@@ -17,6 +18,23 @@ DATASETS = {
     "character": 4,
     "world_parties": 5,
     "quests": 6,
+}
+ORDERS = {
+    "hold": 0,
+    "follow": 1,
+    "charge": 2,
+    "mount": 3,
+    "dismount": 4,
+    "advance": 5,
+    "fall_back": 6,
+    "stand_closer": 7,
+    "spread_out": 8,
+    "blunt_weapons": 9,
+    "any_weapons": 10,
+    "stand_ground": 11,
+    "hold_fire": 12,
+    "fire_at_will": 13,
+    "retreat": 14,
 }
 
 
@@ -47,9 +65,24 @@ def validate_operation(kind, payload, state):
         "npc_say": {"agent_id", "text"},
         "scan_campaign": {"dataset", "offset", "limit"},
         "select_menu": {"action_id"},
+        "battle_order": {"formation", "order"},
     }[kind]
     if set(payload) != expected:
         raise ValueError("Unexpected or missing operation arguments")
+    if kind == "battle_order":
+        if state.get("integration_revision", 0) < 6:
+            raise ValueError("Battle orders need integration revision 6")
+        if not (state.get("mission_flags") or 0) & 2:
+            raise ValueError("Battle orders require a battle-mode mission")
+        if (
+            state.get("dialogue_active")
+            or not (state.get("player_hit_points") or 0) > 0
+        ):
+            raise ValueError("Battle orders require a living player outside dialogue")
+        if type(payload["formation"]) is not int or not 0 <= payload["formation"] <= 9:
+            raise ValueError("Formation must be 0–8, or 9 for everyone")
+        if not isinstance(payload["order"], str) or payload["order"] not in ORDERS:
+            raise ValueError("Unknown Native battle order")
     if kind == "select_menu":
         if state.get("integration_revision", 0) < 5:
             raise ValueError("Menu control needs integration revision 5")
@@ -109,6 +142,8 @@ def validate_operation(kind, payload, state):
 
 
 def wire_arguments(kind, payload):
+    if kind == "battle_order":
+        return [payload["formation"], ORDERS[payload["order"]], 0, 0]
     if kind == "select_menu":
         return [payload["action_id"], 0, 0, 0]
     if kind == "scan_campaign":

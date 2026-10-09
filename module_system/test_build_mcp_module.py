@@ -59,7 +59,7 @@ class ModuleBuildTests(unittest.TestCase):
         dialogue = (output / "conversation.txt").read_text(encoding="latin-1")
         self.assertIn("{s60}", dialogue)
         self.assertNotIn("{s126}", dialogue)
-        self.assertEqual((output / "strings.txt").read_bytes().splitlines()[1], b"10")
+        self.assertEqual((output / "strings.txt").read_bytes().splitlines()[1], b"11")
         self.assertEqual(
             (output / "simple_triggers.txt").read_text().splitlines()[1], "2"
         )
@@ -71,6 +71,20 @@ class ModuleBuildTests(unittest.TestCase):
 
     def test_callback_control_blocks_are_balanced(self):
         self.assert_balanced(callback())
+
+    def test_battle_dispatch_contains_engine_readbacks_and_own_team(self):
+        compiled = callback(battle_result_url=123)
+        self.assert_balanced(compiled)
+        for name in (
+            "agent_get_team",
+            "team_give_order",
+            "team_get_movement_order",
+            "team_get_hold_fire_order",
+            "team_get_riding_order",
+            "team_get_weapon_usage_order",
+            "team_get_order_position",
+        ):
+            self.assertIn(f"{OPS[name]} ", compiled)
 
     def test_actual_poll_chain_blocks_are_balanced(self):
         self.assert_balanced(

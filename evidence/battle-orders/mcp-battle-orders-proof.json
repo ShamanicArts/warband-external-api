@@ -1,0 +1,629 @@
+{
+  "method": "actual stdio MCP and Warband engine order read-back",
+  "steps": [
+    {
+      "order": "hold_fire",
+      "result": {
+        "command_id": 1791523878,
+        "command": {
+          "id": 1791523878,
+          "text": "battle_order",
+          "created": 1791523878.5585415,
+          "status": "acknowledged",
+          "kind": "battle_order",
+          "arguments": {
+            "formation": 9,
+            "order": "hold_fire"
+          },
+          "scene": 524,
+          "session": 1,
+          "result": 0
+        },
+        "complete": true,
+        "source": "Warband team_get_*_order engine operations",
+        "formations": [
+          {
+            "team": 0,
+            "formation": 0,
+            "movement": 2,
+            "fire": 1,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 1,
+            "movement": 2,
+            "fire": 1,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 2,
+            "movement": 2,
+            "fire": 1,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 3,
+            "movement": 2,
+            "fire": 1,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 4,
+            "movement": 2,
+            "fire": 1,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 5,
+            "movement": 2,
+            "fire": 1,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 6,
+            "movement": 2,
+            "fire": 1,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 7,
+            "movement": 2,
+            "fire": 1,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 8,
+            "movement": 2,
+            "fire": 1,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          }
+        ],
+        "caveat": "Orders read back; not proof troops moved or won combat"
+      }
+    },
+    {
+      "order": "fire_at_will",
+      "result": {
+        "command_id": 1791523879,
+        "command": {
+          "id": 1791523879,
+          "text": "battle_order",
+          "created": 1791523878.7726054,
+          "status": "acknowledged",
+          "kind": "battle_order",
+          "arguments": {
+            "formation": 9,
+            "order": "fire_at_will"
+          },
+          "scene": 524,
+          "session": 1,
+          "result": 0
+        },
+        "complete": true,
+        "source": "Warband team_get_*_order engine operations",
+        "formations": [
+          {
+            "team": 0,
+            "formation": 0,
+            "movement": 2,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 1,
+            "movement": 2,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 2,
+            "movement": 2,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 3,
+            "movement": 2,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 4,
+            "movement": 2,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 5,
+            "movement": 2,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 6,
+            "movement": 2,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 7,
+            "movement": 2,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 8,
+            "movement": 2,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          }
+        ],
+        "caveat": "Orders read back; not proof troops moved or won combat"
+      }
+    },
+    {
+      "order": "follow",
+      "result": {
+        "command_id": 1791523880,
+        "command": {
+          "id": 1791523880,
+          "text": "battle_order",
+          "created": 1791523878.9895108,
+          "status": "acknowledged",
+          "kind": "battle_order",
+          "arguments": {
+            "formation": 9,
+            "order": "follow"
+          },
+          "scene": 524,
+          "session": 1,
+          "result": 0
+        },
+        "complete": true,
+        "source": "Warband team_get_*_order engine operations",
+        "formations": [
+          {
+            "team": 0,
+            "formation": 0,
+            "movement": 1,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 1,
+            "movement": 1,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 2,
+            "movement": 1,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 3,
+            "movement": 1,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 4,
+            "movement": 1,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 5,
+            "movement": 1,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 6,
+            "movement": 1,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 7,
+            "movement": 1,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 8,
+            "movement": 1,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 2000,
+            "y": 2000,
+            "scene": 524,
+            "session": 1
+          }
+        ],
+        "caveat": "Orders read back; not proof troops moved or won combat"
+      }
+    },
+    {
+      "order": "hold",
+      "result": {
+        "command_id": 1791523881,
+        "command": {
+          "id": 1791523881,
+          "text": "battle_order",
+          "created": 1791523879.2061598,
+          "status": "acknowledged",
+          "kind": "battle_order",
+          "arguments": {
+            "formation": 9,
+            "order": "hold"
+          },
+          "scene": 524,
+          "session": 1,
+          "result": 0
+        },
+        "complete": true,
+        "source": "Warband team_get_*_order engine operations",
+        "formations": [
+          {
+            "team": 0,
+            "formation": 0,
+            "movement": 0,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 22385,
+            "y": 19128,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 1,
+            "movement": 0,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 22385,
+            "y": 19128,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 2,
+            "movement": 0,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 22385,
+            "y": 19128,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 3,
+            "movement": 0,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 22385,
+            "y": 19128,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 4,
+            "movement": 0,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 22385,
+            "y": 19128,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 5,
+            "movement": 0,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 22385,
+            "y": 19128,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 6,
+            "movement": 0,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 22385,
+            "y": 19128,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 7,
+            "movement": 0,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 22385,
+            "y": 19128,
+            "scene": 524,
+            "session": 1
+          },
+          {
+            "team": 0,
+            "formation": 8,
+            "movement": 0,
+            "fire": 0,
+            "riding": 0,
+            "weapon": 0,
+            "x": 22385,
+            "y": 19128,
+            "scene": 524,
+            "session": 1
+          }
+        ],
+        "caveat": "Orders read back; not proof troops moved or won combat"
+      }
+    }
+  ],
+  "before": {
+    "connected": true,
+    "age_seconds": 0.056,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "mission",
+    "received_at": 1791523878.4959848,
+    "player_gold": 0,
+    "player_troop_id": 897,
+    "player_hit_points": 50,
+    "position": {
+      "x": 223.85,
+      "y": 191.28,
+      "z": 1.98
+    },
+    "clock": 36,
+    "acknowledged_command_id": 1791523838,
+    "scene_id": 524,
+    "mission_session": 1,
+    "player_agent_id": 15,
+    "last_command_result": 0,
+    "integration_revision": 6,
+    "mission_template_id": 35,
+    "mission_template": "quick_battle_battle",
+    "mission_flags": 2,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 0,
+      "last_encounter_party_id": 0,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "after": {
+    "connected": true,
+    "age_seconds": 0.019,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "mission",
+    "received_at": 1791523879.4026542,
+    "player_gold": 0,
+    "player_troop_id": 897,
+    "player_hit_points": 50,
+    "position": {
+      "x": 223.85,
+      "y": 191.28,
+      "z": 1.98
+    },
+    "clock": 36,
+    "acknowledged_command_id": 1791523881,
+    "scene_id": 524,
+    "mission_session": 1,
+    "player_agent_id": 15,
+    "last_command_result": 0,
+    "integration_revision": 6,
+    "mission_template_id": 35,
+    "mission_template": "quick_battle_battle",
+    "mission_flags": 2,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 0,
+      "last_encounter_party_id": 0,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "visual_verification": {
+    "screenshot": "mcp-battle-orders-final-proof.png",
+    "method": "independent CUA capture and inspection",
+    "messages": [
+      "Everyone, hold your fire!",
+      "Everyone, fire at will!",
+      "Everyone, follow me!",
+      "Everyone, hold this position!"
+    ]
+  },
+  "restart_verification": {
+    "method": "real stdio MCP reads after bridge process restart",
+    "command_ids": [
+      1791523878,
+      1791523879,
+      1791523880,
+      1791523881
+    ],
+    "all_results_preserved": true
+  }
+}

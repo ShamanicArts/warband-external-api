@@ -85,6 +85,44 @@ async def warband_select_menu(action_id: int) -> dict:
 
 
 @mcp.tool()
+async def warband_battle_order(
+    formation: int,
+    order: Literal[
+        "hold",
+        "follow",
+        "charge",
+        "mount",
+        "dismount",
+        "advance",
+        "fall_back",
+        "stand_closer",
+        "spread_out",
+        "blunt_weapons",
+        "any_weapons",
+        "stand_ground",
+        "hold_fire",
+        "fire_at_will",
+        "retreat",
+    ],
+) -> dict:
+    """Issue a Native order to the living player's own team in a battle mission.
+
+    Formation 0–8 selects one division; 9 selects everyone. No enemy-team control.
+    Retreat can lose a battle. Check acknowledgement and warband_battle_order_result;
+    read-back proves order state, not movement, obedience, or combat success.
+    """
+    return await operation("battle_order", {"formation": formation, "order": order})
+
+
+@mcp.tool()
+async def warband_battle_order_result(command_id: int) -> dict:
+    """Read durable per-formation Native engine orders for a battle command."""
+    return await anyio.to_thread.run_sync(
+        lambda: request(f"/api/battle-orders/{command_id}")
+    )
+
+
+@mcp.tool()
 async def warband_refresh_campaign(
     dataset: Literal[
         "party", "prisoners", "inventory", "character", "world_parties", "quests"

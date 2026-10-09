@@ -12,6 +12,7 @@ import shutil
 from pathlib import Path
 from urllib.parse import urlparse
 
+from module_system.battle_ops import battle_order
 from module_system.campaign_ops import campaign_export
 from module_system.menu_actions import append_actions
 from module_system.menu_hooks import instrument_menus
@@ -106,6 +107,12 @@ OPS = {
     "val_and": 2115,
     "copy_position": 700,
     "call_script": 1,
+    "team_get_hold_fire_order": 1784,
+    "team_get_movement_order": 1785,
+    "team_get_riding_order": 1786,
+    "team_get_weapon_usage_order": 1787,
+    "team_give_order": 1790,
+    "team_get_order_position": 1794,
 }
 
 
@@ -202,6 +209,7 @@ def callback(
     poll_urls=None,
     native_globals=None,
     menu_actions=None,
+    battle_result_url=0,
 ):
     cmd, kind, a, b, session, scene, result, tmp, agent, count = [
         LOCAL + i for i in (3, 4, 5, 6, 8, 9, 10, 11, 12, 13)
@@ -349,6 +357,9 @@ def callback(
             ("else_try",),
             ("eq", kind, 4),
             *npc,
+            ("else_try",),
+            ("eq", kind, 7),
+            *battle_order(battle_result_url, MISSION_FLAGS_SLOT, DIALOG_ACTIVE_SLOT),
             ("try_end",),
             ("else_try",),
             ("eq", kind, 5),
@@ -470,7 +481,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             "&scene={reg8}&agent={reg9}&result={reg10}&session={reg11}"
             "&mission={reg12}&flags={reg13}&captive={reg14}&town={reg15}"
             "&encounter={reg16}&menu={reg17}&pulse={reg18}&dialogue={reg19}"
-            "&menu-session={reg20}&build=5"
+            "&menu-session={reg20}&build=6"
         )
         new_strings.append(f"str_mcp_{kind}_url {value}")
     new_strings.extend(
@@ -494,6 +505,12 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         new_strings[1]
         .replace("str_mcp_campaign_url", "str_mcp_menu_url")
         .replace("context=campaign", "context=menu")
+    )
+    new_strings.append(
+        f"str_mcp_order_url {endpoint}/battle-order?token={token}&v=2"
+        "&job={reg20}&team={reg21}&formation={reg22}&movement={reg23}"
+        "&fire={reg24}&riding={reg25}&weapon={reg26}&x={reg27}&y={reg28}"
+        "&scene={reg30}&session={reg31}"
     )
     strings[1] = str(count + len(new_strings))
     strings.extend(new_strings)
@@ -640,6 +657,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     (STR + count, STR + count + 1, STR + count + 7),
                     native_globals,
                     menu_actions,
+                    STR + count + 8,
                 )
                 + "\n"
             ),
@@ -711,7 +729,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         json.dumps(
             {
                 "protocol": 2,
-                "integration_revision": 5,
+                "integration_revision": 6,
                 "source": str(native),
                 "transport": "engine HTTP opcode 380",
                 "instrumented_missions": mission_names,
@@ -732,6 +750,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     "npc_say",
                     "scan_campaign",
                     "select_menu",
+                    "battle_order",
                 ],
             },
             indent=2,

@@ -346,3 +346,26 @@ The reproducible one-action MCP acceptance harness is
 `bridge/smoke_native_menu_mcp.py`. `--party-proof` asserts a real recruitment
 delta and Native's 10-denar/man cost; `--expect-rejected` checks Native rejection.
 67 automated tests pass; Ruff and Pyright are clean for the active suite.
+
+## Native battle orders (revision 6)
+
+`warband_battle_order(formation, order)` executes `team_give_order` for the living
+player agent's **own team** only. Requires a battle-mode mission, no dialogue,
+and matching scene/session. Formation 0–8 selects a division; 9 selects everyone.
+15 Native orders are allowlisted, including retreat (can lose the battle).
+
+`warband_battle_order_result(command_id)` returns durable engine read-back per
+division: movement, fire, riding, weapon use and the existing order position.
+`complete` means all expected rows arrived, not that troops obeyed or won.
+Hold uses the engine's existing order position; custom formation placement is
+not yet implemented. Native fire/riding/weapon getters use distinct enums from
+the command IDs; the response provides the mappings.
+
+Live verified in Native Custom Battle (`quick_battle_battle`, scene 524): hold fire,
+fire at will, follow and hold. Four acknowledgements, nine matching division
+read-backs each. CUA capture independently shows all four Native order messages.
+Original proof: `evidence/battle-orders/`. Reproduce with
+`bridge/smoke_battle_mcp.py`. The other 11 orders have game implementation and
+argument guards but are **not yet live-verified**. No claim of enemy control,
+individual agent combat AI, player attacks or campaign-battle acceptance.
+72 tests pass for the active suite; 79 opcodes checked against official ModSys.

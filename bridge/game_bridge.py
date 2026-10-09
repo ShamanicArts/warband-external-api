@@ -22,6 +22,10 @@ class Store:
         self.db = sqlite3.connect(database, check_same_thread=False)
         self.db.row_factory = sqlite3.Row
         self.db.execute(
+            "CREATE TABLE IF NOT EXISTS battle_orders "
+            "(job INTEGER, formation INTEGER, data TEXT, PRIMARY KEY(job,formation))"
+        )
+        self.db.execute(
             "CREATE TABLE IF NOT EXISTS commands "
             "(id INTEGER PRIMARY KEY, text TEXT, created REAL, status TEXT)"
         )
@@ -328,6 +332,39 @@ class Store:
             if path in ("/campaign-row", "/campaign-end"):
                 self.campaign.event(path, query, command)
                 return
+            if path == "/battle-order":
+                if command["kind"] != "battle_order":
+                    raise ValueError("Order read-back requires a battle order command")
+                data = {
+                    k: int(query[k])
+                    for k in (
+                        "team",
+                        "formation",
+                        "movement",
+                        "fire",
+                        "riding",
+                        "weapon",
+                        "x",
+                        "y",
+                        "scene",
+                        "session",
+                    )
+                }
+                expected = command["arguments"]["formation"]
+                if (
+                    data["scene"] != command["scene"]
+                    or data["session"] != command["session"]
+                    or not 0 <= data["formation"] <= 8
+                    or (expected != 9 and data["formation"] != expected)
+                    or not 0 <= data["team"] < 8
+                ):
+                    raise ValueError("Invalid battle order scope/read-back")
+                self.db.execute(
+                    "INSERT OR REPLACE INTO battle_orders VALUES (?,?,?)",
+                    (job, data["formation"], json.dumps(data)),
+                )
+                self.db.commit()
+                return
             if path == "/dialogue":
                 if command["kind"] != "npc_say" or query.get("event") not in ("1", "2"):
                     raise ValueError("Invalid dialogue event")
@@ -407,6 +444,40 @@ class Store:
                 "truncated": scan["expected_count"] == 64,
             }
 
+    def battle_result(self, job):
+        with self.lock:
+            command = self.command(job)
+            if command["kind"] != "battle_order":
+                raise ValueError("Not a battle order command")
+            rows = [
+                json.loads(row[0])
+                for row in self.db.execute(
+                    "SELECT data FROM battle_orders WHERE job=? ORDER BY formation",
+                    (job,),
+                )
+            ]
+            expected = 9 if command["arguments"]["formation"] == 9 else 1
+            return {
+                "command_id": job,
+                "command": command,
+                "complete": len(rows) == expected,
+                "source": "Warband team_get_*_order engine operations",
+                "enums": {
+                    "fire": {"0": "fire_at_will", "1": "hold_fire"},
+                    "riding": {"0": "free", "1": "mount", "2": "dismount"},
+                    "weapon": {"0": "any", "1": "blunt", "2": "melee", "3": "ranged"},
+                    "movement": {
+                        "0": "hold",
+                        "1": "follow",
+                        "2": "charge",
+                        "11": "stand_ground",
+                        "14": "retreat",
+                    },
+                },
+                "formations": rows,
+                "caveat": "Orders read back; not proof troops moved or won combat",
+            }
+
     def dialogue_result(self, job):
         with self.lock:
             return dict(
@@ -436,6 +507,7 @@ class Store:
                 "relocate_player": "debug teleport <=10m, not walking",
                 "npc_say": "one non-battle dialogue line; no free-text reply yet",
                 "select_menu": "reviewed Native choices; fresh menu; Native conditions",
+                "battle_order": "revision 6; own team; four orders live-verified",
                 "campaign_exports": [
                     "party",
                     "prisoners",
@@ -450,7 +522,7 @@ class Store:
                 "trade",
                 "mercenary/prisoner recruitment outside reviewed village menus",
                 "quest actions",
-                "combat orders",
+                "formation placement, individual combat AI and player combat input",
                 "multi-turn NPC dialogue",
                 "free-text player input",
             ],
@@ -458,7 +530,7 @@ class Store:
             "module_instrumented_missions": self.module_catalog.get(
                 "instrumented_missions", []
             ),
-            "expected_integration_revision": 5,
+            "expected_integration_revision": 6,
             "polling": "revision 4 chains HTTP long-polls in paused game time",
             "caveats": [
                 "Before revision 4, campaign polling pauses with game time",
@@ -514,6 +586,7 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                 "/dialogue",
                 "/campaign-row",
                 "/campaign-end",
+                "/battle-order",
             ):
                 supplied = query.get("token", [""])[0]
             else:
@@ -528,7 +601,7 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                     result = store.poll(
                         {k: v[0] for k, v in query.items()},
                         wait_seconds=0.25
-                        if query.get("build") in (["4"], ["5"])
+                        if query.get("build") in (["4"], ["5"], ["6"])
                         else 0,
                     )
                     self.reply(200, result, "text/plain")
@@ -539,6 +612,7 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                     "/dialogue",
                     "/campaign-row",
                     "/campaign-end",
+                    "/battle-order",
                 ):
                     if any(len(v) != 1 for v in query.values()):
                         raise ValueError("Duplicate protocol field")
@@ -550,6 +624,10 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                     self.reply(200, store.capabilities())
                 elif url.path == "/api/menu-options":
                     self.reply(200, store.menu_options())
+                elif url.path.startswith("/api/battle-orders/"):
+                    self.reply(
+                        200, store.battle_result(int(url.path.rsplit("/", 1)[1]))
+                    )
                 elif url.path.startswith("/api/campaign/"):
                     with store.lock:
                         self.reply(
