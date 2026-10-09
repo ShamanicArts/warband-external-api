@@ -465,3 +465,20 @@ confirms both balances, stack presence/removal and sell price 41. Actual wrong
 price, insufficient funds and item mismatch rejected without changes. Economic
 factors changed; roundtrip is not rollback. Broad modified/partial/gear trade and
 multi-item pending UI barter remain unimplemented. 108 tests; 121 opcode IDs.
+
+## Explicit world center entry (revision 11)
+
+`warband_world_start_encounter` requires `world_control=true`, noncaptive campaign
+scope and an active town/castle/village. It schedules Native's original guarded
+auto-entry flow; no direct menu permission bypass, teleport or player travel.
+Existing Native pending auto-enter/siege/menu/camp work is not overwritten.
+Acknowledgement means scheduling. World result is target data BEFORE entry;
+fresh menu/mission state is required to establish actual outcome.
+
+Praven entry passed through real MCP with unchanged map position/clock/gold.
+Original Native tavern action then entered scene103 with seven living agents;
+independent screenshot verifies tavern. The direct map_free-in-callback failure,
+guard probe and intermediate-menu acceptance races are retained alongside the
+successful test in `evidence/world-encounters/`. Castles/villages, pending-action
+cancellation and mobile parties remain unverified/unimplemented as appropriate.
+111 tests; 123 verified official opcode IDs.

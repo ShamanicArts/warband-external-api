@@ -1,0 +1,131 @@
+{
+  "method": "actual MCP world encounter; no movement/arrival claim",
+  "before": {
+    "connected": true,
+    "age_seconds": 0.251,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "campaign",
+    "received_at": 1791534383.6999974,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -97.3,
+      "y": 35.87,
+      "z": 1.22
+    },
+    "clock": 101,
+    "acknowledged_command_id": 1791534382,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 11,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 93,
+      "last_encounter_party_id": 93,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "default_rejection": {
+    "is_error": true,
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool warband_world_start_encounter: HTTP Error 400: Bad Request",
+        "annotations": null,
+        "meta": null
+      }
+    ]
+  },
+  "queued": {
+    "id": 1791534383,
+    "text": "world_encounter",
+    "created": 1791534383.9610336,
+    "status": "queued",
+    "kind": "world_encounter",
+    "arguments": {
+      "party_id": 26,
+      "world_control": true
+    },
+    "scene": -1,
+    "session": -1,
+    "result": null
+  },
+  "result": {
+    "command": {
+      "id": 1791534383,
+      "text": "world_encounter",
+      "created": 1791534383.9610336,
+      "status": "acknowledged",
+      "kind": "world_encounter",
+      "arguments": {
+        "party_id": 26,
+        "world_control": true
+      },
+      "scene": -1,
+      "session": -1,
+      "result": 0
+    },
+    "complete": true,
+    "facts": {
+      "entity": "party",
+      "party_id": 26,
+      "ai_behavior": 0,
+      "ai_object": 0,
+      "ai_initiative": 100,
+      "faction_id": 15,
+      "position": {
+        "x": -96.0,
+        "y": 26.4
+      }
+    },
+    "source": "Warband engine getters; Native scripts for diplomacy",
+    "caveat": "Target facts before scheduled Native auto-entry; not entry proof. Inspect fresh menu/mission state as real campaign time runs."
+  },
+  "after": {
+    "connected": true,
+    "age_seconds": 0.058,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "campaign",
+    "received_at": 1791534384.0135186,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -97.3,
+      "y": 35.87,
+      "z": 1.22
+    },
+    "clock": 101,
+    "acknowledged_command_id": 1791534383,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 11,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 93,
+      "last_encounter_party_id": 93,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  }
+}

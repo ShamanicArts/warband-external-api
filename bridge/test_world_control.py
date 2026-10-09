@@ -8,6 +8,77 @@ from bridge.test_game_bridge import mission_telemetry
 
 
 class WorldControlTests(unittest.TestCase):
+    def test_encounter_facts_describe_scheduled_target_not_arrival(self):
+        self.store.poll({**self.query, "build": "11"})
+        cmd = self.store.enqueue_operation(
+            "world_encounter", {"party_id": 26, "world_control": True}
+        )
+        self.store.poll({**self.query, "build": "11"})
+        self.store.event(
+            "/world-result",
+            {
+                "v": "2",
+                "job": str(cmd["id"]),
+                "kind": "2",
+                "id": "26",
+                "other": "-1",
+                "a": "0",
+                "b": "0",
+                "c": "100",
+                "d": "15",
+                "e": "-9600",
+                "f": "2640",
+            },
+        )
+        result = self.store.world_result(cmd["id"])
+        self.assertTrue(result["complete"])
+        self.assertIn("not entry proof", result["caveat"])
+        self.assertEqual(self.store.snapshot()["context"], "campaign")
+        self.assertEqual(result["facts"]["party_id"], 26)
+
+    def test_encounter_requires_explicit_world_authority_and_new_build(self):
+        args = {"party_id": 26, "world_control": True}
+        with self.assertRaises(ValueError):
+            self.store.enqueue_operation("world_encounter", args)
+        self.store.poll({**self.query, "build": "11"})
+        for change in (
+            {"world_control": False},
+            {"world_control": 1},
+            {"party_id": True},
+        ):
+            with self.assertRaises(ValueError):
+                self.store.enqueue_operation("world_encounter", {**args, **change})
+        cmd = self.store.enqueue_operation("world_encounter", args)
+        self.assertEqual(wire_arguments("world_encounter", args), [26, 1, 0, 0])
+        self.assertIn(
+            f"|{cmd['id']}|19|26|1|0|-1|-1|",
+            self.store.poll({**self.query, "build": "11"}),
+        )
+        for change in ({"context": "menu"}, {"player_is_captive": True}):
+            with self.assertRaises(ValueError):
+                validate_operation(
+                    "world_encounter", args, {**self.store.snapshot(), **change}
+                )
+
+    def test_encounter_schedules_native_guarded_trigger_without_callback_entry(self):
+        from module_system.world_ops import LOCAL, PARTY, world_encounter
+
+        globals_ = {
+            name: (2 << 56) + i
+            for i, name in enumerate(
+                ("auto_enter_town", "auto_besiege_town", "auto_menu", "g_camp_mode")
+            )
+        }
+        ops = world_encounter(0, globals_)
+        self.assertNotIn("start_encounter", [op[0] for op in ops])
+        self.assertIn(("le", globals_["auto_enter_town"], 0), ops)
+        self.assertIn(("le", globals_["auto_besiege_town"], 0), ops)
+        self.assertIn(("neq", LOCAL + 5, PARTY), ops)
+        self.assertIn(("try_for_parties", LOCAL + 27), ops)
+        self.assertIn(("eq", LOCAL + 29, 4), ops)
+        self.assertEqual(ops[-1], ("assign", globals_["auto_enter_town"], LOCAL + 5))
+        self.assertEqual(world_encounter(0, {}), [("eq", 0, 1)])
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.path = Path(self.temp.name) / "bridge.sqlite"

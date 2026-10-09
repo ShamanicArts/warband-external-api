@@ -1,0 +1,192 @@
+{
+  "method": "real stdio MCP calls; no desktop automation",
+  "catalog": {
+    "state": {
+      "connected": true,
+      "age_seconds": 0.138,
+      "source": "Warband engine scripts",
+      "protocol": 2,
+      "context": "menu",
+      "received_at": 1791534701.8768713,
+      "player_gold": 355,
+      "player_troop_id": 0,
+      "player_hit_points": null,
+      "position": {
+        "x": -97.3,
+        "y": 35.87,
+        "z": 1.22
+      },
+      "clock": 101,
+      "acknowledged_command_id": 1791534660,
+      "scene_id": -1,
+      "mission_session": -1,
+      "player_agent_id": -1,
+      "last_command_result": 0,
+      "integration_revision": 11,
+      "mission_template_id": -1,
+      "mission_template": null,
+      "mission_flags": 0,
+      "menu_id": 108,
+      "menu_session": 17,
+      "menu_name": "town",
+      "dialogue_active": false,
+      "player_is_captive": false,
+      "native_context": {
+        "last_town_id": 26,
+        "last_encounter_party_id": 26,
+        "caveat": "Prior Native context; not proof of an active menu"
+      }
+    },
+    "actions": [
+      {
+        "id": 9,
+        "menu_id": 108,
+        "menu": "town",
+        "option": "town_castle",
+        "text_template": "Go to the castle{s1}."
+      },
+      {
+        "id": 10,
+        "menu_id": 108,
+        "menu": "town",
+        "option": "town_center",
+        "text_template": "Take a walk around the streets."
+      },
+      {
+        "id": 11,
+        "menu_id": 108,
+        "menu": "town",
+        "option": "town_tavern",
+        "text_template": "Visit the tavern."
+      },
+      {
+        "id": 12,
+        "menu_id": 108,
+        "menu": "town",
+        "option": "town_arena",
+        "text_template": "Enter the arena."
+      },
+      {
+        "id": 13,
+        "menu_id": 108,
+        "menu": "town",
+        "option": "trade_with_merchants",
+        "text_template": "Go to the marketplace."
+      },
+      {
+        "id": 14,
+        "menu_id": 108,
+        "menu": "town",
+        "option": "town_leave",
+        "text_template": "Leave..."
+      }
+    ],
+    "availability": "Candidates only; Native conditions checked on selection.",
+    "scope": "Exact menu entry; re-entry invalidates queued actions"
+  },
+  "before": {
+    "connected": true,
+    "age_seconds": 0.144,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "menu",
+    "received_at": 1791534701.8768713,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -97.3,
+      "y": 35.87,
+      "z": 1.22
+    },
+    "clock": 101,
+    "acknowledged_command_id": 1791534660,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 11,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": 108,
+    "menu_session": 17,
+    "menu_name": "town",
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 26,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "selected": {
+    "id": 11,
+    "menu_id": 108,
+    "menu": "town",
+    "option": "town_tavern",
+    "text_template": "Visit the tavern."
+  },
+  "command": {
+    "id": 1791534702,
+    "text": "select_menu",
+    "created": 1791534702.024936,
+    "status": "queued",
+    "kind": "select_menu",
+    "arguments": {
+      "action_id": 11
+    },
+    "scene": 108,
+    "session": 17,
+    "result": null
+  },
+  "status": {
+    "id": 1791534702,
+    "text": "select_menu",
+    "created": 1791534702.024936,
+    "status": "acknowledged",
+    "kind": "select_menu",
+    "arguments": {
+      "action_id": 11
+    },
+    "scene": 108,
+    "session": 17,
+    "result": 0
+  },
+  "after": {
+    "connected": true,
+    "age_seconds": 0.08,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "mission",
+    "received_at": 1791534703.4578338,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": 49,
+    "position": {
+      "x": 0.76,
+      "y": -5.31,
+      "z": 0.0
+    },
+    "clock": 0,
+    "acknowledged_command_id": 1791534702,
+    "scene_id": 103,
+    "mission_session": 2,
+    "player_agent_id": 15,
+    "last_command_result": 0,
+    "integration_revision": 11,
+    "mission_template_id": 0,
+    "mission_template": "town_default",
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 26,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  }
+}

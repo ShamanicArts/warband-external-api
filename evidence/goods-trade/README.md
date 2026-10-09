@@ -45,7 +45,7 @@ merchant gained 5, and the town's market pricing changed.
 - Wrong-price guards tested live separately for buy and sell.
 - `mcp-goods-restart-proof.json`: actual bridge restart, fresh MCP client,
   exact acknowledged executed buy/sell facts recovered. **No mutation retried.**
-- Current live main party remains normally at Praven, 350 gold, clock103.
+- At the end of this transaction run, main party was at Praven, 350 gold, clock103.
   No campaign save written; normal Native/Pendor and existing saves untouched.
 
 ## Limits and checks

@@ -106,8 +106,13 @@ contains installed game assets, not the authoritative readable integration sourc
 - `ykylzmpt`: pause-independent callback polling and 217 menu hooks (57 tests).
 - `oklqlzmr`: reviewed Native menu choices; paid recruitment and village entry.
 - `prvupwmq`: own-team battle orders; four live orders and durable read-backs.
-- Current change: player/NPC combat actions, scripted NPC walking/release and
-  formation placement; campaign navigation/API investigation continues.
+- `lumkqkkz`: player/NPC combat adapters, scripted NPC walking/release,
+  formation placement and main-menu callback lifecycle guard.
+
+Further verified checkpoints: `lumkqkkz` scene control/lifecycle; `tynqtnvp`
+Native diplomacy/NPC campaign travel/time; `vrktsppq` merchant inspection/trade
+context; `kpvllsqz` full-unmodified goods transactions. Current change `vpvkzots`
+adds explicit world encounter scheduling and actual Praven/tavern acceptance.
 
 ## Live campaign notes
 
@@ -289,3 +294,24 @@ opcode IDs verified. Actual bridge restart followed by fresh MCP recovered exact
 executed buy/sell facts without retrying effects. Original quote/buy/sell/status
 and independent UI evidence retained in evidence/goods-trade. Live full goods
 transaction acceptance is Bread only; wider goods coverage remains to test.
+
+Revision 11: explicit world center encounter scheduling through Native's existing
+auto_enter_town trigger; do not present it as player travel. Direct HTTP-callback
+map_free failed repeatedly; tagged guard probe returned -10, identifying that
+guard. Rather than bypass it, schedule original Native auto-entry, retaining its
+map_free check in the original trigger. Reject existing Native auto-entry/siege/
+menu/camp tasks, captivity/non-campaign and non-center parties. Require explicit
+world_control=True; default rejected. Scheduling facts describe target BEFORE
+entry and do not establish arrival.
+
+Actual MCP proof at Praven 26: Native reached town menu through transient
+castle_outside; unchanged player position (-97.3,35.87,1.22), clock101 and gold355.
+Two acceptance-harness failures (racing an unnecessary wait request, then stopping
+at the intermediate gate menu) retained, not hidden; final original test passes by
+waiting for expected menu. Actual Native town_tavern action entered scene103,
+town_default, seven living agents including Jeremus. Fresh independent screenshot
+confirms tavern; initial capture was still loading and is retained separately.
+Castles/villages/mobile encounters, scheduled cancellation and additional quest
+encounter outcomes need acceptance. CUA tavern Tab exit did not take effect;
+leave-scene API/normal exit acceptance remains unfinished. Current game remains
+in Praven tavern, isolated save unchanged. 111 tests; 123 official opcode IDs.

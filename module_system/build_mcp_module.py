@@ -20,7 +20,7 @@ from module_system.menu_actions import append_actions
 from module_system.menu_hooks import instrument_menus
 from module_system.mission_hooks import instrument_missions
 from module_system.scene_ops import agent_combat, agent_move, agent_release, agent_wield
-from module_system.world_ops import diplomacy, party_order
+from module_system.world_ops import diplomacy, party_order, world_encounter
 from module_system.world_ops import query as world_query
 
 REG = 1 << 56
@@ -160,6 +160,8 @@ OPS = {
     "troop_set_inventory_slot_modifier": 1544,
     "item_get_type": 1570,
     "not_item_has_property": 2723 | 0x80000000,
+    "map_free": 37,
+    "start_encounter": 1300,
 }
 
 
@@ -541,6 +543,14 @@ def callback(
             ("rest_for_hours_interactive", a, b, 1),
             ("try_end",),
             ("assign", result, 0),
+            ("else_try",),
+            ("eq", kind, 19),
+            ("troop_get_slot", tmp, TROOP, CONTEXT_SLOT),
+            ("eq", tmp, 0),
+            ("eq", scene, -1),
+            ("eq", session, -1),
+            ("eq", (native_globals or {}).get("g_player_is_captive", -1), 0),
+            *world_encounter(world_result_url, native_globals or {}),
             ("try_end",),
             ("troop_set_slot", TROOP, RESULT_SLOT, result),
             ("troop_set_slot", TROOP, ACK_SLOT, cmd),
@@ -657,7 +667,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             "&scene={reg8}&agent={reg9}&result={reg10}&session={reg11}"
             "&mission={reg12}&flags={reg13}&captive={reg14}&town={reg15}"
             "&encounter={reg16}&menu={reg17}&pulse={reg18}&dialogue={reg19}"
-            "&menu-session={reg20}&build=10"
+            "&menu-session={reg20}&build=11"
         )
         new_strings.append(f"str_mcp_{kind}_url {value}")
     new_strings.extend(
@@ -981,7 +991,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         json.dumps(
             {
                 "protocol": 2,
-                "integration_revision": 10,
+                "integration_revision": 11,
                 "source": str(native),
                 "transport": "engine HTTP opcode 380",
                 "instrumented_missions": mission_names,
@@ -1014,6 +1024,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     "campaign_wait",
                     "scan_merchant",
                     "goods_trade",
+                    "world_encounter",
                 ],
             },
             indent=2,

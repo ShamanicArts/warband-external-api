@@ -288,10 +288,20 @@ class Store:
                         and row["session"] == values.get("menu-session")
                     )
                     or (
-                        row["kind"] in ("diplomacy", "party_order", "campaign_wait")
+                        row["kind"]
+                        in (
+                            "diplomacy",
+                            "party_order",
+                            "campaign_wait",
+                            "world_encounter",
+                        )
                         and query["context"] == "campaign"
                         and query["v"] == "2"
                         and values.get("build", 0) >= 8
+                        and (
+                            row["kind"] != "world_encounter"
+                            or values.get("build", 0) >= 11
+                        )
                     )
                     or (
                         row["kind"]
@@ -304,6 +314,7 @@ class Store:
                             "campaign_wait",
                             "scan_merchant",
                             "goods_trade",
+                            "world_encounter",
                         )
                         and query["v"] == "2"
                         and row["scene"] == values.get("scene")
@@ -370,7 +381,12 @@ class Store:
                 self.market.trade_event(query, command)
                 return
             if path == "/world-result":
-                if command["kind"] not in ("world_query", "diplomacy", "party_order"):
+                if command["kind"] not in (
+                    "world_query",
+                    "diplomacy",
+                    "party_order",
+                    "world_encounter",
+                ):
                     raise ValueError("World result requires a campaign command")
                 data = {
                     k: int(query[k])
@@ -577,7 +593,12 @@ class Store:
     def world_result(self, job):
         with self.lock:
             command = self.command(job)
-            if command["kind"] not in ("world_query", "diplomacy", "party_order"):
+            if command["kind"] not in (
+                "world_query",
+                "diplomacy",
+                "party_order",
+                "world_encounter",
+            ):
                 raise ValueError("Not a campaign world command")
             row = self.db.execute(
                 "SELECT data FROM world_results WHERE job=?", (job,)
@@ -613,7 +634,12 @@ class Store:
                 "complete": True,
                 "facts": facts,
                 "source": "Warband engine getters; Native scripts for diplomacy",
-                "caveat": "AI read-back is not travel proof; Native AI may replace it",
+                "caveat": (
+                    "Target facts before scheduled Native auto-entry; not entry proof. "
+                    "Inspect fresh menu/mission state as Native executes entry."
+                    if command["kind"] == "world_encounter"
+                    else "AI read-back is not travel proof; Native AI may replace it"
+                ),
             }
 
     def capabilities(self):
@@ -642,6 +668,7 @@ class Store:
                     "diplomacy": "Native war/peace and ruler guard verified",
                     "party_order": "NPC travel verified; player travel unverified",
                     "campaign_wait": "Attackable rest/stop and clock advance verified",
+                    "world_encounter": "Praven world entry verified; not travel",
                 },
                 "merchant_inspection": "384 slots/factors verified; not transactions",
                 "goods_trade": "Full bread buy/sell, price/funds guards verified",
@@ -667,7 +694,7 @@ class Store:
             "module_instrumented_missions": self.module_catalog.get(
                 "instrumented_missions", []
             ),
-            "expected_integration_revision": 10,
+            "expected_integration_revision": 11,
             "polling": "revision 4 chains HTTP long-polls in paused game time",
             "caveats": [
                 "Before revision 4, campaign polling pauses with game time",
@@ -743,7 +770,7 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                         {k: v[0] for k, v in query.items()},
                         wait_seconds=0.25
                         if query.get("build")
-                        in (["4"], ["5"], ["6"], ["7"], ["8"], ["9"], ["10"])
+                        in (["4"], ["5"], ["6"], ["7"], ["8"], ["9"], ["10"], ["11"])
                         else 0,
                     )
                     self.reply(200, result, "text/plain")

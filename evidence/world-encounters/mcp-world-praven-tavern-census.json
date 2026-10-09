@@ -1,0 +1,255 @@
+{
+  "method": "actual MCP tavern mission and census",
+  "state": {
+    "connected": true,
+    "age_seconds": 0.208,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "mission",
+    "received_at": 1791534745.4788883,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": 49,
+    "position": {
+      "x": 0.76,
+      "y": -5.31,
+      "z": 0.0
+    },
+    "clock": 41,
+    "acknowledged_command_id": 1791534702,
+    "scene_id": 103,
+    "mission_session": 2,
+    "player_agent_id": 15,
+    "last_command_result": 0,
+    "integration_revision": 11,
+    "mission_template_id": 0,
+    "mission_template": "town_default",
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 26,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "agents": {
+    "command_id": 1791534745,
+    "created": 1791534745.7383685,
+    "complete": true,
+    "scene_id": 103,
+    "mission_session": 2,
+    "agents": [
+      {
+        "agent_id": 9,
+        "troop_id": 918,
+        "name": "Merchant of Praven",
+        "team": 7,
+        "hit_points": 42,
+        "is_player": false,
+        "position": {
+          "x": 4.43,
+          "y": -2.87,
+          "z": 0.0
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": -1
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 10,
+        "troop_id": 188,
+        "name": "Wandering Minstrel",
+        "team": 7,
+        "hit_points": 42,
+        "is_player": false,
+        "position": {
+          "x": -5.2,
+          "y": -0.91,
+          "z": 0.0
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": -1
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 12,
+        "troop_id": 205,
+        "name": "Jeremus",
+        "team": 7,
+        "hit_points": 45,
+        "is_player": false,
+        "position": {
+          "x": -0.25,
+          "y": 5.25,
+          "z": 0.0
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": -1
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          474,
+          -1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 11,
+        "troop_id": 183,
+        "name": "Traveller",
+        "team": 7,
+        "hit_points": 42,
+        "is_player": false,
+        "position": {
+          "x": -1.75,
+          "y": 1.66,
+          "z": 0.0
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": -1
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 13,
+        "troop_id": 32,
+        "name": "Mercenary Horseman",
+        "team": 7,
+        "hit_points": 56,
+        "is_player": false,
+        "position": {
+          "x": 3.82,
+          "y": -0.45,
+          "z": 0.0
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": -1
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          483,
+          520,
+          409,
+          -1
+        ]
+      },
+      {
+        "agent_id": 15,
+        "troop_id": 0,
+        "name": "Player",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": true,
+        "position": {
+          "x": 0.76,
+          "y": -5.31,
+          "z": 0.0
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": -1
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          -1,
+          155,
+          474,
+          -1
+        ]
+      },
+      {
+        "agent_id": 14,
+        "troop_id": 605,
+        "name": "Tavern Keeper",
+        "team": 7,
+        "hit_points": 42,
+        "is_player": false,
+        "position": {
+          "x": -4.11,
+          "y": 3.79,
+          "z": 0.0
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": -1
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      }
+    ],
+    "expected_count": 7,
+    "name_source": "module definitions; not live renamed agent names",
+    "age_seconds": 0.05880999565124512,
+    "truncated": false
+  }
+}

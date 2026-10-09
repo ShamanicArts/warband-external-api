@@ -180,3 +180,28 @@ def party_order(url):
         *party_report(url, actor),
         ("try_end",),
     ]
+
+
+def world_encounter(url, globals_):
+    required = ("auto_enter_town", "auto_besiege_town", "auto_menu", "g_camp_mode")
+    if any(name not in globals_ for name in required):
+        return [("eq", 0, 1)]
+    target = LOCAL + 5
+    return [
+        ("eq", LOCAL + 6, 1),  # explicit world authority, not ordinary arrival
+        # Native's auto-menu trigger checks map_free before start_encounter.
+        # map_free fails in game_receive_url_response even on a visible free map.
+        # Schedule through Native rather than bypass its engine context guard.
+        ("le", globals_["auto_enter_town"], 0),
+        ("le", globals_["auto_besiege_town"], 0),
+        ("le", globals_["auto_menu"], 0),
+        ("eq", globals_["g_camp_mode"], 0),
+        ("neq", target, PARTY),
+        *active_party(target),
+        ("party_get_slot", LOCAL + 29, target, 0),
+        ("or_eq", LOCAL + 29, 2),
+        ("or_eq", LOCAL + 29, 3),
+        ("eq", LOCAL + 29, 4),
+        *party_report(url, target),
+        ("assign", globals_["auto_enter_town"], target),
+    ]

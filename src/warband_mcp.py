@@ -299,6 +299,26 @@ async def warband_campaign_party_order(
 
 
 @mcp.tool()
+async def warband_world_start_encounter(
+    party_id: int, world_control: bool = False
+) -> dict:
+    """Explicit WORLD intervention: schedule Native town/castle/village encounter.
+
+    Requires explicit world_control=True, free campaign map and noncaptivity.
+    Schedules original Native auto-entry flow WITHOUT teleport or travel.
+    Native's own map_free-guarded auto trigger executes entry. Scheduling isn't
+    entry; immediate entry passed at Praven with no measured clock increment.
+    Does not prove legitimate arrival, distance/contact, or normal player action.
+    Mobile-party encounters not supported here yet. Acknowledgement is scheduling;
+    world result describes target BEFORE entry, not proof of menu/scene arrival.
+    Inspect fresh warband_get_state/menu_options for actual encounter outcome.
+    """
+    return await operation(
+        "world_encounter", {"party_id": party_id, "world_control": world_control}
+    )
+
+
+@mcp.tool()
 async def warband_campaign_wait(hours: int, speed: int = 1) -> dict:
     """Start Native attackable, interactive resting for 1–24 hours (speed 1–5).
 

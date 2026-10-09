@@ -21,6 +21,7 @@ OPERATIONS = {
     "campaign_wait": 16,
     "scan_merchant": 17,
     "goods_trade": 18,
+    "world_encounter": 19,
 }
 DATASETS = {
     "party": 1,
@@ -48,7 +49,13 @@ ORDERS = {
     "retreat": 14,
 }
 DIRECTIONS = {"down": 0, "right": 1, "left": 2, "up": 3}
-CAMPAIGN_CONTROLS = {"world_query", "diplomacy", "party_order", "campaign_wait"}
+CAMPAIGN_CONTROLS = {
+    "world_query",
+    "diplomacy",
+    "party_order",
+    "campaign_wait",
+    "world_encounter",
+}
 PARTY_ORDERS = {
     "hold": 0,
     "travel": 1,
@@ -114,6 +121,7 @@ def validate_operation(kind, payload, state):
         "campaign_wait": {"hours", "speed"},
         "scan_merchant": {"merchant", "offset", "limit"},
         "goods_trade": {"side", "slot", "item_id", "execute", "expected_price"},
+        "world_encounter": {"party_id", "world_control"},
     }[kind]
     if set(payload) != expected:
         raise ValueError("Unexpected or missing operation arguments")
@@ -160,6 +168,13 @@ def validate_operation(kind, payload, state):
                 "Merchant inspection requires free player outside dialogue"
             )
     if kind in CAMPAIGN_CONTROLS:
+        if kind == "world_encounter":
+            if state.get("integration_revision", 0) < 11:
+                raise ValueError("World encounter requires revision 11")
+            if payload["world_control"] is not True:
+                raise ValueError(
+                    "Scripted encounter requires explicit world_control=True"
+                )
         if state.get("integration_revision", 0) < 8:
             raise ValueError("World control needs integration revision 8")
         if kind != "world_query" and state.get("player_is_captive"):
@@ -322,6 +337,8 @@ def validate_operation(kind, payload, state):
 
 
 def wire_arguments(kind, payload):
+    if kind == "world_encounter":
+        return [payload["party_id"], int(payload["world_control"]), 0, 0]
     if kind == "goods_trade":
         return [
             int(payload["side"] == "sell") + 2 * int(payload["execute"]),
