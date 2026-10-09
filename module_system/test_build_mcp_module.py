@@ -59,7 +59,7 @@ class ModuleBuildTests(unittest.TestCase):
         dialogue = (output / "conversation.txt").read_text(encoding="latin-1")
         self.assertIn("{s60}", dialogue)
         self.assertNotIn("{s126}", dialogue)
-        self.assertEqual((output / "strings.txt").read_bytes().splitlines()[1], b"11")
+        self.assertEqual((output / "strings.txt").read_bytes().splitlines()[1], b"12")
         self.assertEqual(
             (output / "simple_triggers.txt").read_text().splitlines()[1], "2"
         )
@@ -71,6 +71,41 @@ class ModuleBuildTests(unittest.TestCase):
 
     def test_callback_control_blocks_are_balanced(self):
         self.assert_balanced(callback())
+
+    def test_native_faction_note_count_seam_preserves_all_ids(self):
+        import json
+
+        (self.native / "factions.txt").write_text(
+            "factionsfile version 1\n3\nfac_no_faction No_Faction 0 0\n"
+            "0 fac_kingdom_1 Kingdom_of_Swadia 0 0\n"
+            "0 fac_kingdom_2 Kingdom_of_Vaegirs 0 0\n0\n"
+        )
+        output = self.root / "FactionSeam"
+        build(self.native, output, "http://127.0.0.1", "a" * 64)
+        catalog = json.loads((output / "mcp-catalog.json").read_text())
+        self.assertEqual(catalog["kingdom_ids"], [1, 2])
+        self.assertEqual(catalog["factions"]["2"], "Kingdom of Vaegirs")
+
+    def test_world_native_adapters_are_balanced_and_use_reviewed_scripts(self):
+        compiled = callback(
+            world_result_url=123,
+            faction_count=50,
+            kingdom_ids=[15, 16],
+            native_scripts={
+                "diplomacy_start_war_between_kingdoms": 10,
+                "diplomacy_start_peace_between_kingdoms": 11,
+            },
+            native_globals={"g_player_is_captive": 2 << 56},
+        )
+        self.assert_balanced(compiled)
+        for name in (
+            "store_relation",
+            "faction_get_slot",
+            "faction_slot_eq",
+            "party_set_ai_behavior",
+            "party_set_ai_object",
+        ):
+            self.assertIn(f"{OPS[name]} ", compiled)
 
     def test_callback_checks_lifecycle_before_accessing_troops(self):
         guard = (2 << 56) + 100

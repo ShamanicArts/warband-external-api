@@ -230,3 +230,21 @@ entry, clear before Native quit, test before every callback's troop access.
 This fixes late callbacks after troops unload. Live exit: 0 script errors before
 and after, stopped heartbeat, correctly disconnected MCP after stale window.
 86 tests pass; 96 opcode IDs checked against the pinned official header.
+
+Revision 8 exposes durable faction/party getter results, reviewed Native war/peace
+scripts, campaign-party AI, and bounded attackable interactive rest/stop.
+Diplomacy is either player-ruler authority or explicitly labelled world control;
+other-party AI requires world control. Validate actual active parties before
+engine getters; reject fixed centers for motion. Native faction catalog parser
+now handles the prior note-count sharing the next definition's line, retaining
+all 34 faction IDs and seven kingdoms.
+
+`evidence/campaign-world/` retains actual MCP commands/results and CUA captures:
+non-ruler war rejected, world war relation 0→−40 and actual declaration screen,
+world peace −40→0 and actual agreement screen, faction and party inspection.
+Party 386 travelled 3.9043 map units toward party 26 (3.9032 distance improvement)
+while Native attackable rest advanced clock 102→103, then MCP stopped resting.
+No teleport, clock editing or CUA implementation. **Player travel remains open**:
+AI getter accepted travel, but resting holds main party stationary. The zero-motion
+test is retained and does not prove free-running player travel is impossible.
+95 tests pass, targeted Ruff clean, Pyright zero errors, 108 official opcode IDs.

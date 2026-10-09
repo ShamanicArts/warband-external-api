@@ -1,0 +1,241 @@
+{
+  "dataset": "world_parties",
+  "offset": 300,
+  "limit": 16,
+  "rows": [
+    {
+      "id": 385,
+      "party_id": 385,
+      "faction_id": 27,
+      "template_id": 12,
+      "party_type": 0,
+      "members": 12,
+      "position": {
+        "x": -67.35,
+        "y": -40.54
+      },
+      "name": null,
+      "faction": "Mountain Bandits"
+    },
+    {
+      "id": 386,
+      "party_id": 386,
+      "faction_id": 28,
+      "template_id": 11,
+      "party_type": 0,
+      "members": 5,
+      "position": {
+        "x": -54.94,
+        "y": 4.32
+      },
+      "name": null,
+      "faction": "Forest Bandits"
+    },
+    {
+      "id": 387,
+      "party_id": 387,
+      "faction_id": 2,
+      "template_id": 13,
+      "party_type": 0,
+      "members": 17,
+      "position": {
+        "x": 41.66,
+        "y": 93.72
+      },
+      "name": null,
+      "faction": "Outlaws"
+    },
+    {
+      "id": 388,
+      "party_id": 388,
+      "faction_id": 2,
+      "template_id": 8,
+      "party_type": 0,
+      "members": 18,
+      "position": {
+        "x": 129.97,
+        "y": 10.79
+      },
+      "name": null,
+      "faction": "Outlaws"
+    },
+    {
+      "id": 389,
+      "party_id": 389,
+      "faction_id": 2,
+      "template_id": 9,
+      "party_type": 0,
+      "members": 12,
+      "position": {
+        "x": 109.46,
+        "y": 110.42
+      },
+      "name": null,
+      "faction": "Outlaws"
+    },
+    {
+      "id": 390,
+      "party_id": 390,
+      "faction_id": 2,
+      "template_id": 10,
+      "party_type": 0,
+      "members": 9,
+      "position": {
+        "x": 128.36,
+        "y": -87.2
+      },
+      "name": null,
+      "faction": "Outlaws"
+    },
+    {
+      "id": 395,
+      "party_id": 395,
+      "faction_id": 27,
+      "template_id": 12,
+      "party_type": 0,
+      "members": 14,
+      "position": {
+        "x": -69.87,
+        "y": -42.71
+      },
+      "name": null,
+      "faction": "Mountain Bandits"
+    },
+    {
+      "id": 396,
+      "party_id": 396,
+      "faction_id": 28,
+      "template_id": 11,
+      "party_type": 0,
+      "members": 11,
+      "position": {
+        "x": -31.03,
+        "y": 16.29
+      },
+      "name": null,
+      "faction": "Forest Bandits"
+    },
+    {
+      "id": 397,
+      "party_id": 397,
+      "faction_id": 2,
+      "template_id": 13,
+      "party_type": 0,
+      "members": 6,
+      "position": {
+        "x": 63.53,
+        "y": 84.13
+      },
+      "name": null,
+      "faction": "Outlaws"
+    },
+    {
+      "id": 398,
+      "party_id": 398,
+      "faction_id": 2,
+      "template_id": 8,
+      "party_type": 0,
+      "members": 9,
+      "position": {
+        "x": 153.65,
+        "y": 22.06
+      },
+      "name": null,
+      "faction": "Outlaws"
+    },
+    {
+      "id": 408,
+      "party_id": 408,
+      "faction_id": 2,
+      "template_id": 9,
+      "party_type": 0,
+      "members": 10,
+      "position": {
+        "x": 91.17,
+        "y": 61.18
+      },
+      "name": null,
+      "faction": "Outlaws"
+    },
+    {
+      "id": 409,
+      "party_id": 409,
+      "faction_id": 2,
+      "template_id": 10,
+      "party_type": 0,
+      "members": 5,
+      "position": {
+        "x": 109.7,
+        "y": -62.88
+      },
+      "name": null,
+      "faction": "Outlaws"
+    },
+    {
+      "id": 410,
+      "party_id": 410,
+      "faction_id": 2,
+      "template_id": 6,
+      "party_type": 0,
+      "members": 9,
+      "position": {
+        "x": -20.35,
+        "y": -24.35
+      },
+      "name": null,
+      "faction": "Outlaws"
+    },
+    {
+      "id": 413,
+      "party_id": 413,
+      "faction_id": 27,
+      "template_id": 12,
+      "party_type": 0,
+      "members": 16,
+      "position": {
+        "x": -65.06,
+        "y": -34.93
+      },
+      "name": null,
+      "faction": "Mountain Bandits"
+    },
+    {
+      "id": 414,
+      "party_id": 414,
+      "faction_id": 28,
+      "template_id": 11,
+      "party_type": 0,
+      "members": 12,
+      "position": {
+        "x": -43.92,
+        "y": 7.6
+      },
+      "name": null,
+      "faction": "Forest Bandits"
+    },
+    {
+      "id": 415,
+      "party_id": 415,
+      "faction_id": 2,
+      "template_id": 13,
+      "party_type": 0,
+      "members": 16,
+      "position": {
+        "x": -40.39,
+        "y": 72.4
+      },
+      "name": null,
+      "faction": "Outlaws"
+    }
+  ],
+  "expected_count": 16,
+  "total": 562,
+  "complete": true,
+  "command_id": 1791528472,
+  "age_seconds": 0.072,
+  "stale": false,
+  "source": "Warband engine scripts",
+  "name_source": "module definitions, not live renamed parties/items",
+  "next_offset": 316,
+  "consistency": "Separate pages are not an atomic game-time snapshot"
+}

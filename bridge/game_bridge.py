@@ -22,6 +22,10 @@ class Store:
         self.db = sqlite3.connect(database, check_same_thread=False)
         self.db.row_factory = sqlite3.Row
         self.db.execute(
+            "CREATE TABLE IF NOT EXISTS world_results "
+            "(job INTEGER PRIMARY KEY, data TEXT)"
+        )
+        self.db.execute(
             "CREATE TABLE IF NOT EXISTS battle_orders "
             "(job INTEGER, formation INTEGER, data TEXT, PRIMARY KEY(job,formation))"
         )
@@ -261,7 +265,7 @@ class Store:
                     row is None
                     or row["kind"] == "message"
                     or (
-                        row["kind"] == "scan_campaign"
+                        row["kind"] in ("scan_campaign", "world_query")
                         and query["context"] in ("campaign", "menu")
                         and query["v"] == "2"
                     )
@@ -273,7 +277,21 @@ class Store:
                         and row["session"] == values.get("menu-session")
                     )
                     or (
-                        row["kind"] not in ("scan_campaign", "select_menu")
+                        row["kind"] in ("diplomacy", "party_order", "campaign_wait")
+                        and query["context"] == "campaign"
+                        and query["v"] == "2"
+                        and values.get("build", 0) >= 8
+                    )
+                    or (
+                        row["kind"]
+                        not in (
+                            "scan_campaign",
+                            "select_menu",
+                            "world_query",
+                            "diplomacy",
+                            "party_order",
+                            "campaign_wait",
+                        )
                         and query["v"] == "2"
                         and row["scene"] == values.get("scene")
                         and row["session"] == values.get("session")
@@ -331,6 +349,35 @@ class Store:
                 raise ValueError("Event does not correspond to a dispatched command")
             if path in ("/campaign-row", "/campaign-end"):
                 self.campaign.event(path, query, command)
+                return
+            if path == "/world-result":
+                if command["kind"] not in ("world_query", "diplomacy", "party_order"):
+                    raise ValueError("World result requires a campaign command")
+                data = {
+                    k: int(query[k])
+                    for k in ("kind", "id", "other", "a", "b", "c", "d", "e", "f")
+                }
+                args = command["arguments"]
+                expected = (
+                    (
+                        1 if args["entity"] == "faction" else 2,
+                        args["entity_id"],
+                        args["other_id"],
+                    )
+                    if command["kind"] == "world_query"
+                    else (1, args["faction_a"], args["faction_b"])
+                    if command["kind"] == "diplomacy"
+                    else (2, args["party_id"], -1)
+                )
+                if expected[0] == 2:
+                    expected = (expected[0], expected[1], -1)
+                if (data["kind"], data["id"], data["other"]) != expected:
+                    raise ValueError("World result entity does not match command")
+                self.db.execute(
+                    "INSERT OR REPLACE INTO world_results VALUES (?,?)",
+                    (job, json.dumps(data)),
+                )
+                self.db.commit()
                 return
             if path == "/battle-order":
                 if command["kind"] not in ("battle_order", "formation_position"):
@@ -508,6 +555,48 @@ class Store:
             age = time.time() - self.state["received_at"]
             return {"connected": age < 15, "age_seconds": round(age, 3), **self.state}
 
+    def world_result(self, job):
+        with self.lock:
+            command = self.command(job)
+            if command["kind"] not in ("world_query", "diplomacy", "party_order"):
+                raise ValueError("Not a campaign world command")
+            row = self.db.execute(
+                "SELECT data FROM world_results WHERE job=?", (job,)
+            ).fetchone()
+            if row is None:
+                return {"command": command, "complete": False}
+            data = json.loads(row[0])
+            facts = (
+                {
+                    "entity": "faction",
+                    "faction_id": data["id"],
+                    "other_faction_id": data["other"],
+                    "relation": data["a"],
+                    "leader_troop_id": data["b"],
+                    "state": data["c"],
+                    "color": data["d"],
+                    "other_leader_troop_id": data["e"],
+                    "other_state": data["f"],
+                }
+                if data["kind"] == 1
+                else {
+                    "entity": "party",
+                    "party_id": data["id"],
+                    "ai_behavior": data["a"],
+                    "ai_object": data["b"],
+                    "ai_initiative": data["c"],
+                    "faction_id": data["d"],
+                    "position": {"x": data["e"] / 100, "y": data["f"] / 100},
+                }
+            )
+            return {
+                "command": command,
+                "complete": True,
+                "facts": facts,
+                "source": "Warband engine getters; Native scripts for diplomacy",
+                "caveat": "AI read-back is not travel proof; Native AI may replace it",
+            }
+
     def capabilities(self):
         return {
             "transport": "vanilla game scripts over authenticated loopback HTTP",
@@ -528,6 +617,12 @@ class Store:
                     "agent_release": "clear script mode/rethink; acknowledged live",
                     "agent_combat": "NPC ready/block verified; player hold ineffective",
                     "world_control": "explicit other-team intervention; unverified",
+                },
+                "campaign_world": {
+                    "world_query": "faction/party getters live-verified",
+                    "diplomacy": "Native war/peace and ruler guard verified",
+                    "party_order": "NPC travel verified; player travel unverified",
+                    "campaign_wait": "Attackable rest/stop and clock advance verified",
                 },
                 "campaign_exports": [
                     "party",
@@ -551,7 +646,7 @@ class Store:
             "module_instrumented_missions": self.module_catalog.get(
                 "instrumented_missions", []
             ),
-            "expected_integration_revision": 7,
+            "expected_integration_revision": 8,
             "polling": "revision 4 chains HTTP long-polls in paused game time",
             "caveats": [
                 "Before revision 4, campaign polling pauses with game time",
@@ -608,6 +703,7 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                 "/campaign-row",
                 "/campaign-end",
                 "/battle-order",
+                "/world-result",
             ):
                 supplied = query.get("token", [""])[0]
             else:
@@ -622,7 +718,7 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                     result = store.poll(
                         {k: v[0] for k, v in query.items()},
                         wait_seconds=0.25
-                        if query.get("build") in (["4"], ["5"], ["6"], ["7"])
+                        if query.get("build") in (["4"], ["5"], ["6"], ["7"], ["8"])
                         else 0,
                     )
                     self.reply(200, result, "text/plain")
@@ -634,6 +730,7 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                     "/campaign-row",
                     "/campaign-end",
                     "/battle-order",
+                    "/world-result",
                 ):
                     if any(len(v) != 1 for v in query.values()):
                         raise ValueError("Duplicate protocol field")
@@ -656,6 +753,8 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                         )
                 elif url.path.startswith("/api/commands/"):
                     self.reply(200, store.command(int(url.path.rsplit("/", 1)[1])))
+                elif url.path.startswith("/api/world-results/"):
+                    self.reply(200, store.world_result(int(url.path.rsplit("/", 1)[1])))
                 elif url.path.startswith("/api/agents/"):
                     self.reply(200, store.scan_result(int(url.path.rsplit("/", 1)[1])))
                 elif url.path.startswith("/api/dialogue/"):

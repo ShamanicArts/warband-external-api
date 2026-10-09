@@ -1,0 +1,256 @@
+{
+  "method": "real MCP, attackable Native rest, engine positions",
+  "before": {
+    "connected": true,
+    "age_seconds": 0.247,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "campaign",
+    "received_at": 1791528432.7830048,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -97.3,
+      "y": 35.87,
+      "z": 1.22
+    },
+    "clock": 101,
+    "acknowledged_command_id": 1791528431,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 8,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 93,
+      "last_encounter_party_id": 93,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "party_before": {
+    "command": {
+      "id": 1791528433,
+      "text": "world_query",
+      "created": 1791528433.039423,
+      "status": "acknowledged",
+      "kind": "world_query",
+      "arguments": {
+        "entity": "party",
+        "entity_id": 0,
+        "other_id": 0
+      },
+      "scene": -1,
+      "session": -1,
+      "result": 0
+    },
+    "complete": true,
+    "facts": {
+      "entity": "party",
+      "party_id": 0,
+      "ai_behavior": 0,
+      "ai_object": 0,
+      "ai_initiative": 100,
+      "faction_id": 13,
+      "position": {
+        "x": -97.3,
+        "y": 35.87
+      }
+    },
+    "source": "Warband engine getters; Native scripts for diplomacy",
+    "caveat": "AI read-back is not travel proof; Native AI may replace it"
+  },
+  "order": {
+    "id": 1791528434,
+    "text": "party_order",
+    "created": 1791528433.1578343,
+    "status": "acknowledged",
+    "kind": "party_order",
+    "arguments": {
+      "party_id": 0,
+      "order": "travel",
+      "target_party_id": 26,
+      "world_control": false
+    },
+    "scene": -1,
+    "session": -1,
+    "result": 0
+  },
+  "after_order": {
+    "command": {
+      "id": 1791528435,
+      "text": "world_query",
+      "created": 1791528433.2695563,
+      "status": "acknowledged",
+      "kind": "world_query",
+      "arguments": {
+        "entity": "party",
+        "entity_id": 0,
+        "other_id": 0
+      },
+      "scene": -1,
+      "session": -1,
+      "result": 0
+    },
+    "complete": true,
+    "facts": {
+      "entity": "party",
+      "party_id": 0,
+      "ai_behavior": 1,
+      "ai_object": 26,
+      "ai_initiative": 100,
+      "faction_id": 13,
+      "position": {
+        "x": -97.3,
+        "y": 35.87
+      }
+    },
+    "source": "Warband engine getters; Native scripts for diplomacy",
+    "caveat": "AI read-back is not travel proof; Native AI may replace it"
+  },
+  "wait": {
+    "id": 1791528436,
+    "text": "campaign_wait",
+    "created": 1791528433.3867497,
+    "status": "acknowledged",
+    "kind": "campaign_wait",
+    "arguments": {
+      "hours": 1,
+      "speed": 5
+    },
+    "scene": -1,
+    "session": -1,
+    "result": 0
+  },
+  "samples": [
+    {
+      "connected": true,
+      "age_seconds": 0.035,
+      "source": "Warband engine scripts",
+      "protocol": 2,
+      "context": "campaign",
+      "received_at": 1791528434.4633586,
+      "player_gold": 355,
+      "player_troop_id": 0,
+      "player_hit_points": null,
+      "position": {
+        "x": -97.3,
+        "y": 35.87,
+        "z": 1.22
+      },
+      "clock": 102,
+      "acknowledged_command_id": 1791528436,
+      "scene_id": -1,
+      "mission_session": -1,
+      "player_agent_id": -1,
+      "last_command_result": 0,
+      "integration_revision": 8,
+      "mission_template_id": -1,
+      "mission_template": null,
+      "mission_flags": 0,
+      "menu_id": null,
+      "menu_session": null,
+      "menu_name": null,
+      "dialogue_active": false,
+      "player_is_captive": false,
+      "native_context": {
+        "last_town_id": 93,
+        "last_encounter_party_id": 93,
+        "caveat": "Prior Native context; not proof of an active menu"
+      }
+    }
+  ],
+  "party_after": {
+    "command": {
+      "id": 1791528437,
+      "text": "world_query",
+      "created": 1791528434.504717,
+      "status": "acknowledged",
+      "kind": "world_query",
+      "arguments": {
+        "entity": "party",
+        "entity_id": 0,
+        "other_id": 0
+      },
+      "scene": -1,
+      "session": -1,
+      "result": 0
+    },
+    "complete": true,
+    "facts": {
+      "entity": "party",
+      "party_id": 0,
+      "ai_behavior": 1,
+      "ai_object": 26,
+      "ai_initiative": 100,
+      "faction_id": 13,
+      "position": {
+        "x": -97.3,
+        "y": 35.87
+      }
+    },
+    "source": "Warband engine getters; Native scripts for diplomacy",
+    "caveat": "AI read-back is not travel proof; Native AI may replace it"
+  },
+  "stop_wait": {
+    "id": 1791528438,
+    "text": "campaign_wait",
+    "created": 1791528434.6262963,
+    "status": "acknowledged",
+    "kind": "campaign_wait",
+    "arguments": {
+      "hours": 0,
+      "speed": 1
+    },
+    "scene": -1,
+    "session": -1,
+    "result": 0
+  },
+  "after": {
+    "connected": true,
+    "age_seconds": 0.04,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "campaign",
+    "received_at": 1791528434.6949084,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -97.3,
+      "y": 35.87,
+      "z": 1.22
+    },
+    "clock": 102,
+    "acknowledged_command_id": 1791528438,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 8,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 93,
+      "last_encounter_party_id": 93,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "measured_map_movement": 0.0,
+  "clock_advanced": true,
+  "party_travel_verified": false
+}

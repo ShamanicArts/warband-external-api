@@ -1,0 +1,171 @@
+{
+  "method": "real stdio MCP calls; no desktop automation",
+  "catalog": {
+    "state": {
+      "connected": true,
+      "age_seconds": 0.214,
+      "source": "Warband engine scripts",
+      "protocol": 2,
+      "context": "menu",
+      "received_at": 1791528112.0854728,
+      "player_gold": 355,
+      "player_troop_id": 0,
+      "player_hit_points": null,
+      "position": {
+        "x": -97.3,
+        "y": 35.87,
+        "z": 1.22
+      },
+      "clock": 101,
+      "acknowledged_command_id": 1791528068,
+      "scene_id": -1,
+      "mission_session": -1,
+      "player_agent_id": -1,
+      "last_command_result": 0,
+      "integration_revision": 8,
+      "mission_template_id": -1,
+      "mission_template": null,
+      "mission_flags": 0,
+      "menu_id": 88,
+      "menu_session": 11,
+      "menu_name": "village",
+      "dialogue_active": false,
+      "player_is_captive": false,
+      "native_context": {
+        "last_town_id": 93,
+        "last_encounter_party_id": 93,
+        "caveat": "Prior Native context; not proof of an active menu"
+      }
+    },
+    "actions": [
+      {
+        "id": 2,
+        "menu_id": 88,
+        "menu": "village",
+        "option": "recruit_volunteers",
+        "text_template": "Recruit Volunteers."
+      },
+      {
+        "id": 3,
+        "menu_id": 88,
+        "menu": "village",
+        "option": "village_center",
+        "text_template": "Go to the village center."
+      },
+      {
+        "id": 4,
+        "menu_id": 88,
+        "menu": "village",
+        "option": "village_leave",
+        "text_template": "Leave..."
+      }
+    ],
+    "availability": "Candidates only; Native conditions checked on selection.",
+    "scope": "Exact menu entry; re-entry invalidates queued actions"
+  },
+  "before": {
+    "connected": true,
+    "age_seconds": 0.22,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "menu",
+    "received_at": 1791528112.0854728,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -97.3,
+      "y": 35.87,
+      "z": 1.22
+    },
+    "clock": 101,
+    "acknowledged_command_id": 1791528068,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 8,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": 88,
+    "menu_session": 11,
+    "menu_name": "village",
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 93,
+      "last_encounter_party_id": 93,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "selected": {
+    "id": 4,
+    "menu_id": 88,
+    "menu": "village",
+    "option": "village_leave",
+    "text_template": "Leave..."
+  },
+  "command": {
+    "id": 1791528112,
+    "text": "select_menu",
+    "created": 1791528112.307137,
+    "status": "queued",
+    "kind": "select_menu",
+    "arguments": {
+      "action_id": 4
+    },
+    "scene": 88,
+    "session": 11,
+    "result": null
+  },
+  "status": {
+    "id": 1791528112,
+    "text": "select_menu",
+    "created": 1791528112.307137,
+    "status": "acknowledged",
+    "kind": "select_menu",
+    "arguments": {
+      "action_id": 4
+    },
+    "scene": 88,
+    "session": 11,
+    "result": 0
+  },
+  "after": {
+    "connected": true,
+    "age_seconds": 0.229,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "campaign",
+    "received_at": 1791528112.587437,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -97.3,
+      "y": 35.87,
+      "z": 1.22
+    },
+    "clock": 101,
+    "acknowledged_command_id": 1791528112,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 8,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 93,
+      "last_encounter_party_id": 93,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  }
+}

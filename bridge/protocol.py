@@ -15,6 +15,10 @@ OPERATIONS = {
     "agent_move": 10,
     "agent_release": 11,
     "agent_wield": 12,
+    "world_query": 13,
+    "diplomacy": 14,
+    "party_order": 15,
+    "campaign_wait": 16,
 }
 DATASETS = {
     "party": 1,
@@ -42,6 +46,15 @@ ORDERS = {
     "retreat": 14,
 }
 DIRECTIONS = {"down": 0, "right": 1, "left": 2, "up": 3}
+CAMPAIGN_CONTROLS = {"world_query", "diplomacy", "party_order", "campaign_wait"}
+PARTY_ORDERS = {
+    "hold": 0,
+    "travel": 1,
+    "patrol": 3,
+    "attack": 4,
+    "avoid": 5,
+    "escort": 10,
+}
 SCENE_CONTROLS = {
     "formation_position",
     "agent_combat",
@@ -60,14 +73,17 @@ def validate_operation(kind, payload, state):
         "menu"
         if kind == "select_menu"
         else "campaign"
-        if kind == "scan_campaign"
+        if kind == "scan_campaign" or kind in CAMPAIGN_CONTROLS
         else "mission"
     )
     if kind != "message" and (
         state.get("protocol") != 2
         or (
             state.get("context") != context
-            and not (kind == "scan_campaign" and state.get("context") == "menu")
+            and not (
+                kind in ("scan_campaign", "world_query")
+                and state.get("context") == "menu"
+            )
         )
     ):
         raise ValueError(f"This operation requires protocol-2 {context} telemetry")
@@ -90,9 +106,50 @@ def validate_operation(kind, payload, state):
         "agent_move": {"agent_id", "x", "y", "world_control"},
         "agent_release": {"agent_id", "world_control"},
         "agent_wield": {"agent_id", "item_id", "world_control"},
+        "world_query": {"entity", "entity_id", "other_id"},
+        "diplomacy": {"faction_a", "faction_b", "action", "world_control"},
+        "party_order": {"party_id", "target_party_id", "order", "world_control"},
+        "campaign_wait": {"hours", "speed"},
     }[kind]
     if set(payload) != expected:
         raise ValueError("Unexpected or missing operation arguments")
+    if kind in CAMPAIGN_CONTROLS:
+        if state.get("integration_revision", 0) < 8:
+            raise ValueError("World control needs integration revision 8")
+        if kind != "world_query" and state.get("player_is_captive"):
+            raise ValueError("Campaign actions are unavailable while captive")
+        for key, value in payload.items():
+            if key.endswith("_id") or key in ("faction_a", "faction_b"):
+                if type(value) is not int or not 0 <= value < 1000000:
+                    raise ValueError("Entity IDs must be bounded nonnegative integers")
+        if kind == "world_query" and payload["entity"] not in ("faction", "party"):
+            raise ValueError("Unknown campaign entity type")
+        if (
+            kind not in ("world_query", "campaign_wait")
+            and type(payload["world_control"]) is not bool
+        ):
+            raise ValueError("world_control must be an explicit boolean")
+        if kind == "campaign_wait":
+            if type(payload["hours"]) is not int or not 0 <= payload["hours"] <= 24:
+                raise ValueError("Wait hours must be 0–24; zero stops resting")
+            if type(payload["speed"]) is not int or not 1 <= payload["speed"] <= 5:
+                raise ValueError("Wait speed must be 1–5")
+        if kind == "diplomacy":
+            if (
+                payload["action"] not in ("war", "peace")
+                or payload["faction_a"] == payload["faction_b"]
+            ):
+                raise ValueError("Expected war/peace between distinct kingdoms")
+        if kind == "party_order":
+            if (
+                not isinstance(payload["order"], str)
+                or payload["order"] not in PARTY_ORDERS
+            ):
+                raise ValueError("Unknown campaign party order")
+            if payload["party_id"] != 0 and not payload["world_control"]:
+                raise ValueError(
+                    "Other-party AI control requires explicit world_control"
+                )
     if kind in SCENE_CONTROLS:
         if state.get("integration_revision", 0) < 7:
             raise ValueError("Scene control needs integration revision 7")
@@ -219,6 +276,23 @@ def validate_operation(kind, payload, state):
 
 
 def wire_arguments(kind, payload):
+    if kind == "campaign_wait":
+        return [payload["hours"], payload["speed"], 0, 0]
+    if kind == "world_query":
+        return [
+            1 if payload["entity"] == "faction" else 2,
+            payload["entity_id"],
+            payload["other_id"],
+            0,
+        ]
+    if kind == "diplomacy":
+        code = (1 if payload["action"] == "war" else 2) + (
+            100 if payload["world_control"] else 0
+        )
+        return [payload["faction_a"], payload["faction_b"], code, 0]
+    if kind == "party_order":
+        actor = payload["party_id"] + (1000000 if payload["world_control"] else 0)
+        return [actor, PARTY_ORDERS[payload["order"]], payload["target_party_id"], 0]
     if kind == "formation_position":
         return [
             payload["formation"],

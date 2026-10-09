@@ -397,3 +397,27 @@ Late callbacks previously accessed unloaded troop slots at the main menu. An
 additive lifecycle global now stops callbacks before troop access, and quit hooks
 clear it before unloading. Live main-menu exit had zero script errors, stopped
 heartbeat and correctly stale/disconnected MCP. 86 tests; 96 official opcodes.
+
+## Campaign-world controls (revision 8)
+
+- `warband_inspect_world_entity`: faction relations/leaders/state/color or party
+  AI/faction/actual map position; `warband_world_command_result` reads durable facts.
+- `warband_diplomacy`: reviewed Native war/peace scripts. Normal authority needs
+  player as active kingdom ruler; world override is explicit and consequential.
+- `warband_campaign_party_order`: bounded active-party AI hold/travel/patrol/
+  attack/avoid/escort, fixed centers excluded, other-party control explicit.
+- `warband_campaign_wait`: 1–24 hours Native attackable interactive rest, speed
+  1–5; zero hours stops. Real enemies, food, wages and quest timers still apply.
+  Acknowledgement is start/stop, not proof all requested time elapsed.
+
+Live original evidence: `evidence/campaign-world/`. Non-ruler request rejected;
+explicit world war/peace changed relation 0→−40→0 and produced Native declaration/
+agreement screens. NPC party 386 travelled 3.9043 map units toward target 26,
+distance improved 3.9032; real clock advanced 102→103; MCP stopped resting.
+
+**Main-party travel is not established.** AI destination read-back succeeded,
+but rest keeps the player stationary. Retained zero-motion test does not settle
+free-running player travel. Other AI orders and positive normal ruler authority
+remain unverified. Normal campaign observation and faction data are omniscient
+debug/world information, not automatically legitimate player knowledge.
+95 regression tests; 108 verified official opcode IDs.

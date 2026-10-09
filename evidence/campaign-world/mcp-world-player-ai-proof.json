@@ -1,0 +1,104 @@
+{
+  "method": "actual stdio MCP and engine world results",
+  "before": {
+    "connected": true,
+    "age_seconds": 0.18,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "campaign",
+    "received_at": 1791528162.5091102,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -97.3,
+      "y": 35.87,
+      "z": 1.22
+    },
+    "clock": 101,
+    "acknowledged_command_id": 1791528146,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 8,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 93,
+      "last_encounter_party_id": 93,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "warband_inspect_world_entity": {
+    "command": {
+      "id": 1791528162,
+      "text": "world_query",
+      "created": 1791528162.6953166,
+      "status": "acknowledged",
+      "kind": "world_query",
+      "arguments": {
+        "entity": "party",
+        "entity_id": 0,
+        "other_id": 26
+      },
+      "scene": -1,
+      "session": -1,
+      "result": 0
+    },
+    "complete": true,
+    "facts": {
+      "entity": "party",
+      "party_id": 0,
+      "ai_behavior": 0,
+      "ai_object": 0,
+      "ai_initiative": 100,
+      "faction_id": 13,
+      "position": {
+        "x": -97.3,
+        "y": 35.87
+      }
+    },
+    "source": "Warband engine getters; Native scripts for diplomacy",
+    "caveat": "AI read-back is not travel proof; Native AI may replace it"
+  },
+  "warband_campaign_party_order": {
+    "command": {
+      "id": 1791528163,
+      "text": "party_order",
+      "created": 1791528162.8094623,
+      "status": "acknowledged",
+      "kind": "party_order",
+      "arguments": {
+        "party_id": 0,
+        "order": "travel",
+        "target_party_id": 26,
+        "world_control": false
+      },
+      "scene": -1,
+      "session": -1,
+      "result": 0
+    },
+    "complete": true,
+    "facts": {
+      "entity": "party",
+      "party_id": 0,
+      "ai_behavior": 1,
+      "ai_object": 26,
+      "ai_initiative": 100,
+      "faction_id": 13,
+      "position": {
+        "x": -97.3,
+        "y": 35.87
+      }
+    },
+    "source": "Warband engine getters; Native scripts for diplomacy",
+    "caveat": "AI read-back is not travel proof; Native AI may replace it"
+  }
+}

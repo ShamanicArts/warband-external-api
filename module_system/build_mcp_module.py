@@ -18,6 +18,8 @@ from module_system.menu_actions import append_actions
 from module_system.menu_hooks import instrument_menus
 from module_system.mission_hooks import instrument_missions
 from module_system.scene_ops import agent_combat, agent_move, agent_release, agent_wield
+from module_system.world_ops import diplomacy, party_order
+from module_system.world_ops import query as world_query
 
 REG = 1 << 56
 STR = 3 << 56
@@ -131,6 +133,18 @@ OPS = {
     "agent_set_wielded_item": 1747,
     "agent_get_item_slot": 1804,
     "agent_set_scripted_destination_no_attack": 1748,
+    "or_eq": 0x40000000 | 31,
+    "store_relation": 2190,
+    "faction_get_slot": 522,
+    "faction_get_color": 1277,
+    "faction_slot_eq": 542,
+    "get_party_ai_behavior": 2290,
+    "get_party_ai_object": 2291,
+    "party_get_ai_initiative": 1638,
+    "party_set_ai_behavior": 1640,
+    "party_set_ai_object": 1641,
+    "rest_for_hours": 1030,
+    "rest_for_hours_interactive": 1031,
 }
 
 
@@ -234,6 +248,10 @@ def callback(
     menu_actions=None,
     battle_result_url=0,
     item_count=0,
+    world_result_url=0,
+    faction_count=0,
+    kingdom_ids=None,
+    native_scripts=None,
 ):
     cmd, kind, a, b, session, scene, result, tmp, agent, count = [
         LOCAL + i for i in (3, 4, 5, 6, 8, 9, 10, 11, 12, 13)
@@ -433,6 +451,51 @@ def callback(
             *campaign_export(
                 campaign_row_url, campaign_end_url, quest_count, skill_count
             ),
+            ("else_try",),
+            ("eq", kind, 13),
+            ("troop_get_slot", tmp, TROOP, CONTEXT_SLOT),
+            ("neq", tmp, 1),
+            ("eq", scene, -1),
+            ("eq", session, -1),
+            *world_query(world_result_url, faction_count),
+            ("else_try",),
+            ("or_eq", kind, 14),
+            ("eq", kind, 15),
+            ("troop_get_slot", tmp, TROOP, CONTEXT_SLOT),
+            ("eq", tmp, 0),
+            ("eq", scene, -1),
+            ("eq", session, -1),
+            ("eq", (native_globals or {}).get("g_player_is_captive", -1), 0),
+            ("try_begin",),
+            ("eq", kind, 14),
+            *diplomacy(
+                world_result_url,
+                kingdom_ids or [],
+                native_scripts or {},
+                native_globals or {},
+            ),
+            ("else_try",),
+            ("eq", kind, 15),
+            *party_order(world_result_url),
+            ("try_end",),
+            ("else_try",),
+            ("eq", kind, 16),
+            ("troop_get_slot", tmp, TROOP, CONTEXT_SLOT),
+            ("eq", tmp, 0),
+            ("eq", scene, -1),
+            ("eq", session, -1),
+            ("eq", (native_globals or {}).get("g_player_is_captive", -1), 0),
+            ("ge", a, 0),
+            ("le", a, 24),
+            ("ge", b, 1),
+            ("le", b, 5),
+            ("try_begin",),
+            ("eq", a, 0),
+            ("rest_for_hours", 0, 0, 0),
+            ("else_try",),
+            ("rest_for_hours_interactive", a, b, 1),
+            ("try_end",),
+            ("assign", result, 0),
             ("try_end",),
             ("troop_set_slot", TROOP, RESULT_SLOT, result),
             ("troop_set_slot", TROOP, ACK_SLOT, cmd),
@@ -538,7 +601,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             "&scene={reg8}&agent={reg9}&result={reg10}&session={reg11}"
             "&mission={reg12}&flags={reg13}&captive={reg14}&town={reg15}"
             "&encounter={reg16}&menu={reg17}&pulse={reg18}&dialogue={reg19}"
-            "&menu-session={reg20}&build=7"
+            "&menu-session={reg20}&build=8"
         )
         new_strings.append(f"str_mcp_{kind}_url {value}")
     new_strings.extend(
@@ -570,6 +633,11 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         "&job={reg20}&team={reg21}&formation={reg22}&movement={reg23}"
         "&fire={reg24}&riding={reg25}&weapon={reg26}&x={reg27}&y={reg28}"
         "&scene={reg30}&session={reg31}"
+    )
+    new_strings.append(
+        f"str_mcp_world_url {endpoint}/world-result?token={token}&v=2"
+        "&job={reg20}&kind={reg21}&id={reg22}&other={reg23}"
+        "&a={reg24}&b={reg25}&c={reg26}&d={reg27}&e={reg28}&f={reg29}"
     )
     strings[1] = str(count + len(new_strings))
     strings.extend(new_strings)
@@ -688,16 +756,38 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         path = native / filename
         if not path.exists():
             return []
-        return [
-            line.split()
-            for line in path.read_text(encoding="latin-1").splitlines()
-            if line.lstrip().startswith(prefix)
-        ]
+        rows = []
+        for line in path.read_text(encoding="latin-1").splitlines():
+            fields = line.split()
+            if filename == "factions.txt" and len(fields) > 1 and fields[0].isdigit():
+                # Native writes previous faction's note count without a newline:
+                # all but the first definition begin `0 fac_name ...`.
+                fields = fields[1:]
+            if fields and fields[0].startswith(prefix):
+                rows.append(fields)
+        return rows
 
     quests = definitions("quests.txt", "qst_")
     skills = definitions("skills.txt", "skl_")
     items = definitions("item_kinds1.txt", "itm_")
     factions = definitions("factions.txt", "fac_")
+    faction_ids = [row[0] for row in factions]
+    kingdom_ids = [
+        i
+        for i, name in enumerate(faction_ids)
+        if name == "fac_player_supporters_faction"
+        or re.fullmatch(r"fac_kingdom_[1-6]", name)
+    ]
+    native_scripts = {
+        name: i
+        for i, name in enumerate(
+            re.findall(
+                r"^([A-Za-z_][A-Za-z_0-9]*) -1$",
+                (native / "scripts.txt").read_text(),
+                re.M,
+            )
+        )
+    }
     parties = {}
     for line in (
         (native / "parties.txt").read_text(encoding="latin-1").splitlines()
@@ -730,6 +820,10 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     menu_actions,
                     STR + count + 8,
                     len(items),
+                    STR + count + 9,
+                    len(factions),
+                    kingdom_ids,
+                    native_scripts,
                 )
                 + "\n"
             ),
@@ -777,6 +871,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     str(i): row[1].replace("_", " ") for i, row in enumerate(factions)
                 },
                 "parties": parties,
+                "kingdom_ids": kingdom_ids,
                 "missions": {
                     str(i): line.split()[0][4:]
                     for i, line in enumerate(
@@ -801,7 +896,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         json.dumps(
             {
                 "protocol": 2,
-                "integration_revision": 7,
+                "integration_revision": 8,
                 "source": str(native),
                 "transport": "engine HTTP opcode 380",
                 "instrumented_missions": mission_names,
@@ -828,6 +923,10 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     "agent_move",
                     "agent_release",
                     "agent_wield",
+                    "world_query",
+                    "diplomacy",
+                    "party_order",
+                    "campaign_wait",
                 ],
             },
             indent=2,

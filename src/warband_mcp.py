@@ -225,6 +225,100 @@ async def warband_release_npc(agent_id: int, world_control: bool = False) -> dic
 
 
 @mcp.tool()
+async def warband_inspect_world_entity(
+    entity: Literal["faction", "party"],
+    entity_id: int,
+    other_id: int = 0,
+) -> dict:
+    """Queue actual campaign faction/party getters; read world_command_result.
+
+    Faction returns relation to other_id, leaders, state and color. Party returns
+    AI behavior/object/initiative, faction and actual map position. Observations
+    are omniscient world data, not proof of legitimate player knowledge.
+    """
+    return await operation(
+        "world_query",
+        {
+            "entity": entity,
+            "entity_id": entity_id,
+            "other_id": other_id,
+        },
+    )
+
+
+@mcp.tool()
+async def warband_diplomacy(
+    faction_a: int,
+    faction_b: int,
+    action: Literal["war", "peace"],
+    world_control: bool = False,
+) -> dict:
+    """Call reviewed Native kingdom war/peace scripts, including their consequences.
+
+    Normal authority requires faction_a to be the player's active kingdom with
+    the player as leader. world_control=True is an explicit world intervention
+    permitting other active kingdoms. This can change relations, prisoners,
+    sieges, quests and logs: reversing relation is NOT rollback. Live acceptance
+    pending; inspect result and state, never mistake dispatch for success.
+    """
+    return await operation(
+        "diplomacy",
+        {
+            "faction_a": faction_a,
+            "faction_b": faction_b,
+            "action": action,
+            "world_control": world_control,
+        },
+    )
+
+
+@mcp.tool()
+async def warband_campaign_party_order(
+    party_id: int,
+    order: Literal["hold", "travel", "patrol", "attack", "avoid", "escort"],
+    target_party_id: int = 0,
+    world_control: bool = False,
+) -> dict:
+    """Apply Native map-party AI settings and read actual AI/position back.
+
+    Main party is 0; other parties require explicit world_control. Fixed centers
+    cannot move. Native scripts may overwrite NPC AI. Main-party engine behavior
+    is still under live investigation: this is NOT yet a verified player travel
+    capability. No teleport, clock advancement or invented movement. Check fresh
+    world getters for actual movement, not just acknowledgement or AI values.
+    """
+    return await operation(
+        "party_order",
+        {
+            "party_id": party_id,
+            "order": order,
+            "target_party_id": target_party_id,
+            "world_control": world_control,
+        },
+    )
+
+
+@mcp.tool()
+async def warband_campaign_wait(hours: int, speed: int = 1) -> dict:
+    """Start Native attackable, interactive resting for 1–24 hours (speed 1–5).
+
+    Zero hours cancels resting. Campaign map only, not captive. This genuinely
+    advances the world: enemies, wages, food and quest timers remain active.
+    Acknowledgement means resting started, NOT all requested hours elapsed.
+    Inspect fresh state.clock and interruption/encounter context. Not travel.
+    """
+    return await operation("campaign_wait", {"hours": hours, "speed": speed})
+
+
+@mcp.tool()
+async def warband_world_command_result(command_id: int) -> dict:
+    """Read durable actual engine facts for world inspection/diplomacy/party AI."""
+    return await anyio.to_thread.run_sync(
+        lambda: request(f"/api/world-results/{command_id}")
+    )
+
+
+@mcp.tool()
 async def warband_refresh_campaign(
     dataset: Literal[
         "party", "prisoners", "inventory", "character", "world_parties", "quests"
