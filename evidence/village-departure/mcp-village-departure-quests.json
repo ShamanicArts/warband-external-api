@@ -1,0 +1,30 @@
+{
+  "dataset": "quests",
+  "offset": 0,
+  "limit": 16,
+  "rows": [
+    {
+      "id": 86,
+      "quest_id": 86,
+      "giver_troop_id": 918,
+      "target_troop_id": 0,
+      "target_center_id": 0,
+      "state": 0,
+      "expiration_days": 0,
+      "definition": {
+        "symbol": "qst_collect_men",
+        "title_template": "Collect Five Men"
+      }
+    }
+  ],
+  "expected_count": 1,
+  "total": 1,
+  "complete": true,
+  "command_id": 1791538093,
+  "age_seconds": 0.081,
+  "stale": false,
+  "source": "Warband engine scripts",
+  "name_source": "module definitions, not live renamed parties/items",
+  "next_offset": null,
+  "consistency": "Separate pages are not an atomic game-time snapshot"
+}

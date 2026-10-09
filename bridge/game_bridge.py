@@ -109,6 +109,10 @@ class Store:
         with self.lock:
             state = self.snapshot()
             validate_operation(kind, arguments, state)
+            if kind == "leave_village" and state.get(
+                "mission_template_id"
+            ) not in self.module_catalog.get("village_departure_missions", []):
+                raise ValueError("No recognized Native village quest departure handler")
             if kind == "leave_scene" and state.get(
                 "mission_template_id"
             ) not in self.module_catalog.get("scene_departure_missions", []):
@@ -326,6 +330,10 @@ class Store:
                         and row["scene"] == values.get("scene")
                         and (
                             row["kind"] != "leave_scene" or values.get("build", 0) >= 12
+                        )
+                        and (
+                            row["kind"] != "leave_village"
+                            or values.get("build", 0) >= 14
                         )
                         and (
                             row["kind"] != "leave_scene"
@@ -690,6 +698,7 @@ class Store:
                 "merchant_inspection": "384 slots/factors verified; not transactions",
                 "goods_trade": "Full bread buy/sell, price/funds guards verified",
                 "town_scene_departure": "Tavern and normal street departure verified",
+                "village_scene_departure": "Peaceful exit verified; hunt unverified",
                 "campaign_exports": [
                     "party",
                     "prisoners",
@@ -712,7 +721,7 @@ class Store:
             "module_instrumented_missions": self.module_catalog.get(
                 "instrumented_missions", []
             ),
-            "expected_integration_revision": 13,
+            "expected_integration_revision": 14,
             "polling": "revision 4 chains HTTP long-polls in paused game time",
             "caveats": [
                 "Before revision 4, campaign polling pauses with game time",
@@ -799,6 +808,7 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                             ["11"],
                             ["12"],
                             ["13"],
+                            ["14"],
                         )
                         else 0,
                     )

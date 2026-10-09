@@ -42,7 +42,11 @@ async def run(args):
 
             proof["before"] = await call("warband_get_state")
             save()
-            queued = await call("warband_leave_town_scene")
+            queued = await call(
+                "warband_leave_village_scene"
+                if args.village
+                else "warband_leave_town_scene"
+            )
             proof["queued"] = queued
             save()
             for _ in range(150):
@@ -85,5 +89,6 @@ async def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--expect-menu", default="town")
+    parser.add_argument("--village", action="store_true")
     parser.add_argument("--evidence", required=True)
     asyncio.run(run(parser.parse_args()))

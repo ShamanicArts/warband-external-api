@@ -344,3 +344,18 @@ simulation a model, not live escape/quest acceptance. Disguised/escape/prison-br
 siege/dead-player/brawl cases still need actual acceptance; village exits remain
 unsupported pending their Native quest consequences. 121 tests; Ruff clean;
 Pyright zero errors; 125 official opcode IDs. Current game at Praven town menu.
+
+Revision14: separate `warband_leave_village_scene` uses exact recognized Native
+village_center Tab recipe, including active/not-succeeded/not-failed/state1 hunt
+guard, original cf_troop_agent_is_alive, then original fail_quest/succeed_quest
+scripts before teardown. Native scripts also write the quest journal notes;
+no direct quest-flag editing. Explicit request is confirmation with documented
+potential irreversible quest failure, not normal-menu permission bypass.
+
+Actual peaceful Azgad scene376/session2→village menu passed with gold355 and
+encounter93 unchanged; separate screenshots verify real scene and returned menu.
+Post-departure actual quest export contains only Collect Five Men (quest86), so
+no claim of live active-hunt consequences. Recognition and condition-flow model
+tests preserve both hunt branches; actual active-hunt fail/succeed outcomes still
+need acceptance. 123 tests; targeted Ruff clean; Pyright zero errors;128 opcode IDs.
+Current live game at Azgad village menu, clock101; campaign save not written.

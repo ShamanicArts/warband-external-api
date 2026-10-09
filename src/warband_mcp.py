@@ -334,6 +334,20 @@ async def warband_leave_town_scene() -> dict:
 
 
 @mcp.tool()
+async def warband_leave_village_scene() -> dict:
+    """Leave peaceful Native village_center, preserving original quest consequences.
+
+    IMPORTANT: Native's fugitive hunt quest can FAIL if the fugitive is alive,
+    or succeed if dead, when leaving an active hunt scene. Explicit request is
+    departure confirmation. Not quest rollback or a generic mission abort.
+    Exact installed Native handler is recognized at build; original quest scripts
+    run before teardown. Living player, no dialogue/battle, exact session required.
+    Verify resulting menu AND quest export; acknowledgement isn't quest success.
+    """
+    return await operation("leave_village", {})
+
+
+@mcp.tool()
 async def warband_campaign_wait(hours: int, speed: int = 1) -> dict:
     """Start Native attackable, interactive resting for 1–24 hours (speed 1–5).
 

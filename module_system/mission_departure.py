@@ -1,6 +1,6 @@
 """Recognize Native's reviewed town departure permission; no generic mission abort.
 
-Village Tab has fugitive-quest consequences and is deliberately NOT supported.
+Village Tab retains its original fugitive-quest success/failure consequences.
 """
 
 from module_system.menu_hooks import operation_end
@@ -154,6 +154,116 @@ def leave_street_ops(mission_id, globals_, mission_slot, flags_slot, dialogue_sl
         ("or_eq", globals_["g_mt_mode"], 0),
         ("eq", globals_["g_mt_mode"], 1),
         ("mission_enable_talk",),
+        ("assign", LOCAL + 10, 0),
+        ("finish_mission", 0),
+    ]
+
+
+def village_permission(lines, quest, fugitive, scripts):
+    """Recognize complete Native quest-effect handler and return reviewed recipe."""
+    headers = [i for i, line in enumerate(lines) if line.startswith("mst_")]
+    for mission_id, start in enumerate(headers):
+        if lines[start].split()[0] != "mst_village_center":
+            continue
+        required = ("cf_troop_agent_is_alive", "fail_quest", "succeed_quest")
+        if (
+            quest is None
+            or fugitive is None
+            or any(name not in scripts for name in required)
+        ):
+            raise ValueError("Native village departure quest definitions missing")
+        script = 13 << 56
+        alive, fail, succeed = [script + scripts[name] for name in required]
+        expected = [
+            13,
+            4,
+            0,
+            200,
+            1,
+            quest,
+            202 | 0x80000000,
+            1,
+            quest,
+            203 | 0x80000000,
+            1,
+            quest,
+            546,
+            3,
+            quest,
+            11,
+            1,
+            4,
+            0,
+            1,
+            2,
+            alive,
+            fugitive,
+            1,
+            2,
+            fail,
+            quest,
+            5,
+            0,
+            1,
+            2,
+            succeed,
+            quest,
+            3,
+            0,
+            3,
+            0,
+            2075,
+            1,
+            1,
+        ]
+        boundary = (
+            headers[mission_id + 1] if mission_id + 1 < len(headers) else len(lines)
+        )
+        tabs = [
+            line.split()
+            for line in lines[start + 3 : boundary]
+            if line.startswith("-21.000000 ")
+        ]
+        if len(tabs) != 1:
+            raise ValueError("Native village requires one reviewed Tab handler")
+        fields = tabs[0]
+        end = operation_end(fields, 3)
+        if (
+            fields[1:3] != ["0.000000", "0.000000"]
+            or list(map(int, fields[3:end])) != expected
+            or fields[end:] != ["0"]
+        ):
+            raise ValueError("Unreviewed Native village departure quest handler")
+        return mission_id, [
+            ("try_begin",),
+            ("check_quest_active", quest),
+            ("not_check_quest_succeeded", quest),
+            ("not_check_quest_failed", quest),
+            ("quest_slot_eq", quest, 11, 1),
+            ("try_begin",),
+            ("call_script", alive, fugitive),
+            ("call_script", fail, quest),
+            ("else_try",),
+            ("call_script", succeed, quest),
+            ("try_end",),
+            ("try_end",),
+        ]
+    return None, []
+
+
+def leave_village_ops(
+    mission_id, quest_effects, mission_slot, flags_slot, dialogue_slot
+):
+    if mission_id is None:
+        return [("eq", 0, 1)]
+    return [
+        ("troop_get_slot", LOCAL + 29, TROOP, mission_slot),
+        ("eq", LOCAL + 29, mission_id),
+        ("troop_get_slot", LOCAL + 29, TROOP, flags_slot),
+        ("val_and", LOCAL + 29, 2),
+        ("eq", LOCAL + 29, 0),
+        *living_player(dialogue_slot),
+        *quest_effects,
         ("assign", LOCAL + 10, 0),
         ("finish_mission", 0),
     ]

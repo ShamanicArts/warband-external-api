@@ -5,10 +5,69 @@ from module_system.mission_departure import (
     leave_town_ops,
     recognize_street_permission,
     recognize_town_permission,
+    village_permission,
 )
 
 
 class MissionDepartureTests(unittest.TestCase):
+    def test_village_exact_native_handler_preserves_quest_success_failure_calls(self):
+        quest, fugitive = 504403158265495558, 360287970189640522
+        alive, fail, succeed = (
+            936748722493063593,
+            936748722493063553,
+            936748722493063552,
+        )
+        scripts = {
+            "cf_troop_agent_is_alive": alive - (13 << 56),
+            "fail_quest": fail - (13 << 56),
+            "succeed_quest": succeed - (13 << 56),
+        }
+        tab = (
+            f"-21.000000 0.000000 0.000000 13 4 0 200 1 {quest} "
+            f"2147483850 1 {quest} 2147483851 1 {quest} 546 3 {quest} 11 1 "
+            f"4 0 1 2 {alive} {fugitive} 1 2 {fail} {quest} 5 0 1 2 {succeed} {quest} "
+            "3 0 3 0 2075 1 1 0"
+        )
+        lines = ["mst_village_center 0 0", "Village", "0", "0 1", tab]
+        mission, effects = village_permission(lines, quest, fugitive, scripts)
+        self.assertEqual(mission, 0)
+        self.assertIn(("call_script", fail, quest), effects)
+        self.assertIn(("call_script", succeed, quest), effects)
+        for change in (
+            tab.replace(str(fail), str(succeed)),
+            tab.replace("11 1", "11 0"),
+        ):
+            with self.assertRaises(ValueError):
+                village_permission([*lines[:-1], change], quest, fugitive, scripts)
+        from module_system.test_goods_trade import TradeFlow
+
+        class QuestModel(TradeFlow):
+            def operation(self, op):
+                if op[0] in (
+                    "check_quest_active",
+                    "not_check_quest_succeeded",
+                    "not_check_quest_failed",
+                    "quest_slot_eq",
+                ):
+                    return self.active
+                if op[0] == "call_script":
+                    if op[1] == alive:
+                        return self.alive
+                    self.events.append(op)
+                    return True
+                return super().operation(op)
+
+        # Model only: actual active-hunt consequences remain live-unverified.
+        for active, living, expected in (
+            (False, True, []),
+            (True, True, [("call_script", fail, quest)]),
+            (True, False, [("call_script", succeed, quest)]),
+        ):
+            model = QuestModel()
+            model.active, model.alive = active, living
+            model.block(effects)
+            self.assertEqual(model.events, expected)
+
     def test_street_special_modes_fail_before_teardown_model(self):
         # Model of conditions only, NOT actual engine quest/battle acceptance.
         globals_ = {

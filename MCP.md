@@ -500,3 +500,10 @@ siege-defense refusal. Normal Praven street departure is now live-verified, with
 unchanged gold/encounter and separate before/after screenshots. Tavern departure
 also re-tested on revision13. Special-mode rejections have model tests only;
 village quest exits remain unsupported. 121 tests; 125 verified opcode IDs.
+
+Revision14 adds separate `warband_leave_village_scene`, retaining the exactly
+recognized original Native fugitive-hunt conditions and original fail/succeed
+scripts (including journal notes). **Leaving can fail an active hunt.** Request
+explicitly confirms departure; not a generic quest-safe abort. Peaceful Azgad exit
+is live-verified with unchanged money/encounter and real before/after screenshots.
+Active-hunt outcomes are model-tested only, not live-verified. 123 tests;128 opcodes.

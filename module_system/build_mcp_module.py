@@ -21,8 +21,10 @@ from module_system.menu_hooks import instrument_menus
 from module_system.mission_departure import (
     leave_street_ops,
     leave_town_ops,
+    leave_village_ops,
     recognize_street_permission,
     recognize_town_permission,
+    village_permission,
 )
 from module_system.mission_hooks import instrument_missions
 from module_system.scene_ops import agent_combat, agent_move, agent_release, agent_wield
@@ -170,6 +172,9 @@ OPS = {
     "start_encounter": 1300,
     "finish_mission": 1907,
     "mission_enable_talk": 1935,
+    "not_check_quest_succeeded": 202 | 0x80000000,
+    "not_check_quest_failed": 203 | 0x80000000,
+    "quest_slot_eq": 546,
 }
 
 
@@ -284,6 +289,8 @@ def callback(
     trade_result_url=0,
     town_departure_id=None,
     street_departure_id=None,
+    village_departure_id=None,
+    village_quest_effects=None,
 ):
     cmd, kind, a, b, session, scene, result, tmp, agent, count = [
         LOCAL + i for i in (3, 4, 5, 6, 8, 9, 10, 11, 12, 13)
@@ -511,6 +518,15 @@ def callback(
                 DIALOG_ACTIVE_SLOT,
             ),
             ("try_end",),
+            ("else_try",),
+            ("eq", kind, 21),
+            *leave_village_ops(
+                village_departure_id,
+                village_quest_effects or [],
+                MISSION_SLOT,
+                MISSION_FLAGS_SLOT,
+                DIALOG_ACTIVE_SLOT,
+            ),
             ("try_end",),
             ("else_try",),
             ("eq", kind, 5),
@@ -696,7 +712,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             "&scene={reg8}&agent={reg9}&result={reg10}&session={reg11}"
             "&mission={reg12}&flags={reg13}&captive={reg14}&town={reg15}"
             "&encounter={reg16}&menu={reg17}&pulse={reg18}&dialogue={reg19}"
-            "&menu-session={reg20}&build=13"
+            "&menu-session={reg20}&build=14"
         )
         new_strings.append(f"str_mcp_{kind}_url {value}")
     new_strings.extend(
@@ -931,6 +947,35 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         )
     }
     parties = {}
+    fugitive = (
+        next(
+            (
+                TROOP + i
+                for i, name in enumerate(
+                    line.split()[0]
+                    for line in (native / "troops.txt")
+                    .read_text(encoding="latin-1")
+                    .splitlines()
+                    if line.startswith("trp_")
+                )
+                if name == "trp_fugitive"
+            ),
+            None,
+        )
+        if (native / "troops.txt").exists()
+        else None
+    )
+    fugitive_quest = next(
+        (
+            (7 << 56) + i
+            for i, row in enumerate(quests)
+            if row[0] == "qst_hunt_down_fugitive"
+        ),
+        None,
+    )
+    village_departure_id, village_quest_effects = village_permission(
+        missions, fugitive_quest, fugitive, native_scripts
+    )
     for line in (
         (native / "parties.txt").read_text(encoding="latin-1").splitlines()
         if (native / "parties.txt").exists()
@@ -975,6 +1020,8 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     STR + count + 13,
                     town_departure_id,
                     street_departure_id,
+                    village_departure_id,
+                    village_quest_effects,
                 )
                 + "\n"
             ),
@@ -1026,6 +1073,9 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                 "instrumented_missions": mission_names,
                 "menus": {str(i): name for i, name in enumerate(menu_names)},
                 "scene_departure_missions": departure_ids,
+                "village_departure_missions": []
+                if village_departure_id is None
+                else [village_departure_id],
                 "menu_actions": menu_actions,
             },
             indent=2,
@@ -1038,7 +1088,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         json.dumps(
             {
                 "protocol": 2,
-                "integration_revision": 13,
+                "integration_revision": 14,
                 "scene_departure_missions": departure_ids,
                 "source": str(native),
                 "transport": "engine HTTP opcode 380",
@@ -1074,6 +1124,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     "goods_trade",
                     "world_encounter",
                     "leave_scene",
+                    "leave_village",
                 ],
             },
             indent=2,

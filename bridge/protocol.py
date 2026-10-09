@@ -23,6 +23,7 @@ OPERATIONS = {
     "goods_trade": 18,
     "world_encounter": 19,
     "leave_scene": 20,
+    "leave_village": 21,
 }
 DATASETS = {
     "party": 1,
@@ -66,6 +67,7 @@ PARTY_ORDERS = {
     "escort": 10,
 }
 SCENE_CONTROLS = {
+    "leave_village",
     "leave_scene",
     "formation_position",
     "agent_combat",
@@ -125,9 +127,19 @@ def validate_operation(kind, payload, state):
         "goods_trade": {"side", "slot", "item_id", "execute", "expected_price"},
         "world_encounter": {"party_id", "world_control"},
         "leave_scene": set(),
+        "leave_village": set(),
     }[kind]
     if set(payload) != expected:
         raise ValueError("Unexpected or missing operation arguments")
+    if kind == "leave_village":
+        if (
+            state.get("integration_revision", 0) < 14
+            or state.get("mission_template") != "village_center"
+            or state.get("mission_flags", 0) & 2
+        ):
+            raise ValueError(
+                "Village departure needs revision14 peaceful village_center"
+            )
     if kind == "leave_scene":
         if (
             state.get("integration_revision", 0) < 12
