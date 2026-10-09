@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 from module_system.battle_ops import battle_order
 from module_system.campaign_ops import campaign_export
+from module_system.market_ops import market_export
 from module_system.menu_actions import append_actions
 from module_system.menu_hooks import instrument_menus
 from module_system.mission_hooks import instrument_missions
@@ -145,6 +146,8 @@ OPS = {
     "party_set_ai_object": 1641,
     "rest_for_hours": 1030,
     "rest_for_hours_interactive": 1031,
+    "troop_inventory_slot_get_item_max_amount": 1538,
+    "store_item_value": 2230,
 }
 
 
@@ -252,6 +255,10 @@ def callback(
     faction_count=0,
     kingdom_ids=None,
     native_scripts=None,
+    merchant_row_url=0,
+    merchant_end_url=0,
+    troop_count=0,
+    market_menu_id=-1,
 ):
     cmd, kind, a, b, session, scene, result, tmp, agent, count = [
         LOCAL + i for i in (3, 4, 5, 6, 8, 9, 10, 11, 12, 13)
@@ -386,7 +393,8 @@ def callback(
             ("display_message", 0, 0x66FFAA),
             ("assign", result, 0),
             ("else_try",),
-            ("eq", kind, 6),
+            ("or_eq", kind, 6),
+            ("eq", kind, 17),
             ("troop_get_slot", tmp, TROOP, CONTEXT_SLOT),
             ("eq", tmp, 2),
             ("troop_get_slot", tmp, TROOP, MENU_SESSION_SLOT),
@@ -395,7 +403,20 @@ def callback(
             ("eq", tmp, scene),
             ("troop_get_slot", tmp, TROOP, DIALOG_ACTIVE_SLOT),
             ("eq", tmp, 0),
+            ("try_begin",),
+            ("eq", kind, 6),
             *choose_menu,
+            ("else_try",),
+            ("eq", kind, 17),
+            *market_export(
+                merchant_row_url,
+                merchant_end_url,
+                native_globals or {},
+                native_scripts or {},
+                troop_count,
+                market_menu_id,
+            ),
+            ("try_end",),
             ("else_try",),
             ("troop_get_slot", tmp, TROOP, CONTEXT_SLOT),
             ("eq", tmp, 1),
@@ -515,6 +536,17 @@ def callback(
                     ("else_try",),
                     ("eq", LOCAL + 22, 2),
                     *telemetry_ops(poll_urls[2], False, native_globals, context=2),
+                    *(
+                        [
+                            ("else_try",),
+                            ("eq", LOCAL + 22, 3),
+                            *telemetry_ops(
+                                poll_urls[3], False, native_globals, context=3
+                            ),
+                        ]
+                        if len(poll_urls) > 3
+                        else []
+                    ),
                     ("try_end",),
                     ("try_end",),
                 ]
@@ -601,7 +633,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             "&scene={reg8}&agent={reg9}&result={reg10}&session={reg11}"
             "&mission={reg12}&flags={reg13}&captive={reg14}&town={reg15}"
             "&encounter={reg16}&menu={reg17}&pulse={reg18}&dialogue={reg19}"
-            "&menu-session={reg20}&build=8"
+            "&menu-session={reg20}&build=9"
         )
         new_strings.append(f"str_mcp_{kind}_url {value}")
     new_strings.extend(
@@ -638,6 +670,22 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         f"str_mcp_world_url {endpoint}/world-result?token={token}&v=2"
         "&job={reg20}&kind={reg21}&id={reg22}&other={reg23}"
         "&a={reg24}&b={reg25}&c={reg26}&d={reg27}&e={reg28}&f={reg29}"
+    )
+    new_strings.extend(
+        [
+            f"str_mcp_merchant_row {endpoint}/merchant-row?token={token}&v=2"
+            "&job={reg20}&slot={reg21}&item={reg22}&modifier={reg23}"
+            "&amount={reg24}&max-amount={reg25}&base-value={reg26}"
+            "&buy-factor={reg27}&sell-factor={reg28}&merchant={reg29}&town={reg30}",
+            f"str_mcp_merchant_end {endpoint}/merchant-end?token={token}&v=2"
+            "&job={reg20}&total={reg21}&count={reg22}&gold={reg23}"
+            "&merchant={reg24}&town={reg25}",
+        ]
+    )
+    new_strings.append(
+        new_strings[1]
+        .replace("str_mcp_campaign_url", "str_mcp_trade_url")
+        .replace("context=campaign", "context=trade")
     )
     strings[1] = str(count + len(new_strings))
     strings.extend(new_strings)
@@ -687,20 +735,24 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         ]
 
     missions, mission_names = instrument_missions(missions, mission_triggers)
+
     # Menu entry can consume registers populated by the preceding consequence.
     # Bootstrap must not replace those values with gold/coordinates. Native does
     # not use s123 or pos47; these are reserved scratch in this isolated module.
-    menu_bootstrap = [
-        *[("assign", LOCAL + 32 + i, REG + i) for i in range(21)],
-        ("str_store_string_reg", 123, 127),
-        ("copy_position", 47, 1),
-        ("try_begin",),
-        *telemetry_ops(STR + count + 7, False, native_globals, context=2),
-        ("try_end",),
-        *[("assign", REG + i, LOCAL + 32 + i) for i in range(21)],
-        ("str_store_string_reg", 127, 123),
-        ("copy_position", 1, 47),
-    ]
+    def bootstrap_ops(url, context):
+        return [
+            *[("assign", LOCAL + 32 + i, REG + i) for i in range(21)],
+            ("str_store_string_reg", 123, 127),
+            ("copy_position", 47, 1),
+            ("try_begin",),
+            *telemetry_ops(url, False, native_globals, context=context),
+            ("try_end",),
+            *[("assign", REG + i, LOCAL + 32 + i) for i in range(21)],
+            ("str_store_string_reg", 127, 123),
+            ("copy_position", 1, 47),
+        ]
+
+    menu_bootstrap = bootstrap_ops(STR + count + 7, 2)
     menus, menu_names = instrument_menus(
         (native / "menus.txt").read_text(encoding="latin-1").splitlines(),
         lambda menu_id: compile_ops(
@@ -731,6 +783,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             ]
         ),
         on_shutdown=compile_ops([("assign", native_globals["mcp_http_active"], 0)]),
+        on_trade=compile_ops(bootstrap_ops(STR + count + 12, 3)),
     )
     script_lines = scripts.splitlines()
     extra_scripts, menu_actions = append_actions(
@@ -768,6 +821,9 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         return rows
 
     quests = definitions("quests.txt", "qst_")
+    troop_names = [
+        row[1].replace("_", " ") for row in definitions("troops.txt", "trp_")
+    ]
     skills = definitions("skills.txt", "skl_")
     items = definitions("item_kinds1.txt", "itm_")
     factions = definitions("factions.txt", "fac_")
@@ -815,7 +871,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     STR + count + 6,
                     len(quests),
                     len(skills),
-                    (STR + count, STR + count + 1, STR + count + 7),
+                    (STR + count, STR + count + 1, STR + count + 7, STR + count + 12),
                     native_globals,
                     menu_actions,
                     STR + count + 8,
@@ -824,6 +880,12 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     len(factions),
                     kingdom_ids,
                     native_scripts,
+                    STR + count + 10,
+                    STR + count + 11,
+                    len(troop_names),
+                    menu_names.index("town_trade")
+                    if "town_trade" in menu_names
+                    else -1,
                 )
                 + "\n"
             ),
@@ -838,16 +900,6 @@ def build(native: Path, output: Path, endpoint: str, token: str):
     )
     (output / "conversation.txt").write_text(
         "\n".join(conversations) + "\n", encoding="latin-1"
-    )
-    troop_file = native / "troops.txt"
-    troop_names = (
-        [
-            line.split()[1].replace("_", " ")
-            for line in troop_file.read_text(encoding="latin-1").splitlines()
-            if line.startswith("trp_")
-        ]
-        if troop_file.exists()
-        else []
     )
     (output / "mcp-catalog.json").write_text(
         json.dumps(
@@ -896,7 +948,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         json.dumps(
             {
                 "protocol": 2,
-                "integration_revision": 8,
+                "integration_revision": 9,
                 "source": str(native),
                 "transport": "engine HTTP opcode 380",
                 "instrumented_missions": mission_names,
@@ -927,6 +979,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     "diplomacy",
                     "party_order",
                     "campaign_wait",
+                    "scan_merchant",
                 ],
             },
             indent=2,

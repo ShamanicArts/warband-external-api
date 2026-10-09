@@ -50,6 +50,16 @@ class MenuHookTests(unittest.TestCase):
         )
         self.assertIn("2 2133 2 144115188075855872 0 2055 0 .", output[1])
 
+    def test_trade_screen_reports_separate_context_before_engine_entry(self):
+        lines = [
+            "menu_town_trade 0 Market. none 0 1",
+            " mno_trade 0 Goods. 1 2042 1 300 .",
+        ]
+        result, _ = instrument_menus(
+            lines, lambda mid: "0", on_trade="1 500 3 360287970189639680 99994 3"
+        )
+        self.assertIn("2 500 3 360287970189639680 99994 3 2042 1 300", result[1])
+
 
 if __name__ == "__main__":
     unittest.main()

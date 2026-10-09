@@ -19,6 +19,7 @@ OPERATIONS = {
     "diplomacy": 14,
     "party_order": 15,
     "campaign_wait": 16,
+    "scan_merchant": 17,
 }
 DATASETS = {
     "party": 1,
@@ -71,7 +72,7 @@ def validate_operation(kind, payload, state):
         raise ValueError("Game telemetry is stale or disconnected")
     context = (
         "menu"
-        if kind == "select_menu"
+        if kind in ("select_menu", "scan_merchant")
         else "campaign"
         if kind == "scan_campaign" or kind in CAMPAIGN_CONTROLS
         else "mission"
@@ -110,9 +111,28 @@ def validate_operation(kind, payload, state):
         "diplomacy": {"faction_a", "faction_b", "action", "world_control"},
         "party_order": {"party_id", "target_party_id", "order", "world_control"},
         "campaign_wait": {"hours", "speed"},
+        "scan_merchant": {"merchant", "offset", "limit"},
     }[kind]
     if set(payload) != expected:
         raise ValueError("Unexpected or missing operation arguments")
+    if kind == "scan_merchant":
+        if type(state.get("menu_session")) is not int or state["menu_session"] <= 0:
+            raise ValueError("Merchant inspection requires a menu-entry session")
+        if (
+            state.get("integration_revision", 0) < 9
+            or state.get("menu_name") != "town_trade"
+        ):
+            raise ValueError("Merchant inspection requires revision-9 town marketplace")
+        if payload["merchant"] not in ("arms", "armor", "goods", "horses"):
+            raise ValueError("Unknown town merchant type")
+        if type(payload["offset"]) is not int or not 0 <= payload["offset"] <= 10000:
+            raise ValueError("Merchant offset must be 0–10000")
+        if type(payload["limit"]) is not int or not 1 <= payload["limit"] <= 16:
+            raise ValueError("Merchant page limit must be 1–16")
+        if state.get("dialogue_active") or state.get("player_is_captive"):
+            raise ValueError(
+                "Merchant inspection requires free player outside dialogue"
+            )
     if kind in CAMPAIGN_CONTROLS:
         if state.get("integration_revision", 0) < 8:
             raise ValueError("World control needs integration revision 8")
@@ -276,6 +296,13 @@ def validate_operation(kind, payload, state):
 
 
 def wire_arguments(kind, payload):
+    if kind == "scan_merchant":
+        return [
+            ("arms", "armor", "goods", "horses").index(payload["merchant"]),
+            payload["offset"],
+            payload["limit"],
+            0,
+        ]
     if kind == "campaign_wait":
         return [payload["hours"], payload["speed"], 0, 0]
     if kind == "world_query":

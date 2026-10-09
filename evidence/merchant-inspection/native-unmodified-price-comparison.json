@@ -1,0 +1,54 @@
+{
+  "method": "original Native merchant factors plus independently observed CUA tooltips",
+  "cases": [
+    {
+      "engine_row": {
+        "slot": 10,
+        "item": 93,
+        "modifier": 0,
+        "amount": 50,
+        "max_amount": 50,
+        "base_value": 450,
+        "buy_factor": 101,
+        "sell_factor": 88,
+        "name": "Oil",
+        "equipped": false
+      },
+      "ui_buying_price": 454,
+      "integer_product_divided_by_100": 454
+    },
+    {
+      "engine_row": {
+        "slot": 11,
+        "item": 103,
+        "modifier": 0,
+        "amount": 0,
+        "max_amount": 0,
+        "base_value": 410,
+        "buy_factor": 97,
+        "sell_factor": 85,
+        "name": "Tools",
+        "equipped": false
+      },
+      "ui_buying_price": 397,
+      "integer_product_divided_by_100": 397
+    },
+    {
+      "engine_row": {
+        "slot": 37,
+        "item": 121,
+        "modifier": 0,
+        "amount": 50,
+        "max_amount": 50,
+        "base_value": 50,
+        "buy_factor": 93,
+        "sell_factor": 81,
+        "name": "Bread",
+        "equipped": false
+      },
+      "ui_buying_price": 46,
+      "integer_product_divided_by_100": 46
+    }
+  ],
+  "scope": "unmodified full Oil/Bread and ordinary Tools; no general modified/partial-price claim"
+}

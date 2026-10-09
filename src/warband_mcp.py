@@ -319,6 +319,33 @@ async def warband_world_command_result(command_id: int) -> dict:
 
 
 @mcp.tool()
+async def warband_inspect_merchant(
+    merchant: Literal["arms", "armor", "goods", "horses"],
+    offset: int = 10,
+    limit: int = 16,
+) -> dict:
+    """Queue a bounded actual town merchant inventory/price-factor page.
+
+    Requires the town marketplace menu and exact entry session. Offset 10 skips
+    equipped slots; empty slots remain explicit. Returns Native inventory and
+    ORIGINAL buy/sell factor scripts, not assumed final prices. Modifiers, partial
+    stacks and engine rounding are not yet integrated into transaction quotes.
+    This does not buy/sell anything. Read warband_merchant_result afterwards.
+    """
+    return await operation(
+        "scan_merchant", {"merchant": merchant, "offset": offset, "limit": limit}
+    )
+
+
+@mcp.tool()
+async def warband_merchant_result(command_id: int) -> dict:
+    """Read durable actual merchant inventory, gold and Native price factors."""
+    return await anyio.to_thread.run_sync(
+        lambda: request(f"/api/merchants/{command_id}")
+    )
+
+
+@mcp.tool()
 async def warband_refresh_campaign(
     dataset: Literal[
         "party", "prisoners", "inventory", "character", "world_parties", "quests"

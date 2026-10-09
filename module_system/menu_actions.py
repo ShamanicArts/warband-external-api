@@ -24,6 +24,9 @@ ALLOWLIST = {
         "town_leave",
         "trade_with_merchants",
     },
+    "town_trade": {"back_to_town_menu"},
+    "notification_war_declared": {"continue"},
+    "notification_peace_declared": {"continue"},
 }
 
 

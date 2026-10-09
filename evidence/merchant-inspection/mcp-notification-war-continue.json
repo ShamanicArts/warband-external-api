@@ -1,0 +1,157 @@
+{
+  "method": "real stdio MCP calls; no desktop automation",
+  "catalog": {
+    "state": {
+      "connected": true,
+      "age_seconds": 0.104,
+      "source": "Warband engine scripts",
+      "protocol": 2,
+      "context": "menu",
+      "received_at": 1791531501.2830074,
+      "player_gold": 355,
+      "player_troop_id": 0,
+      "player_hit_points": null,
+      "position": {
+        "x": -95.87,
+        "y": 26.62,
+        "z": 1.16
+      },
+      "clock": 103,
+      "acknowledged_command_id": 1791531500,
+      "scene_id": -1,
+      "mission_session": -1,
+      "player_agent_id": -1,
+      "last_command_result": 0,
+      "integration_revision": 9,
+      "mission_template_id": -1,
+      "mission_template": null,
+      "mission_flags": 0,
+      "menu_id": 197,
+      "menu_session": 17,
+      "menu_name": "notification_war_declared",
+      "dialogue_active": false,
+      "player_is_captive": false,
+      "native_context": {
+        "last_town_id": 26,
+        "last_encounter_party_id": 26,
+        "caveat": "Prior Native context; not proof of an active menu"
+      }
+    },
+    "actions": [
+      {
+        "id": 16,
+        "menu_id": 197,
+        "menu": "notification_war_declared",
+        "option": "continue",
+        "text_template": "Continue..."
+      }
+    ],
+    "availability": "Candidates only; Native conditions checked on selection.",
+    "scope": "Exact menu entry; re-entry invalidates queued actions"
+  },
+  "before": {
+    "connected": true,
+    "age_seconds": 0.114,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "menu",
+    "received_at": 1791531501.2830074,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -95.87,
+      "y": 26.62,
+      "z": 1.16
+    },
+    "clock": 103,
+    "acknowledged_command_id": 1791531500,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 9,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": 197,
+    "menu_session": 17,
+    "menu_name": "notification_war_declared",
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 26,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "selected": {
+    "id": 16,
+    "menu_id": 197,
+    "menu": "notification_war_declared",
+    "option": "continue",
+    "text_template": "Continue..."
+  },
+  "command": {
+    "id": 1791531501,
+    "text": "select_menu",
+    "created": 1791531501.399443,
+    "status": "queued",
+    "kind": "select_menu",
+    "arguments": {
+      "action_id": 16
+    },
+    "scene": 197,
+    "session": 17,
+    "result": null
+  },
+  "status": {
+    "id": 1791531501,
+    "text": "select_menu",
+    "created": 1791531501.399443,
+    "status": "acknowledged",
+    "kind": "select_menu",
+    "arguments": {
+      "action_id": 16
+    },
+    "scene": 197,
+    "session": 17,
+    "result": 0
+  },
+  "after": {
+    "connected": true,
+    "age_seconds": 0.22,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "campaign",
+    "received_at": 1791531501.691701,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -95.87,
+      "y": 26.62,
+      "z": 1.16
+    },
+    "clock": 103,
+    "acknowledged_command_id": 1791531501,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 9,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 26,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  }
+}

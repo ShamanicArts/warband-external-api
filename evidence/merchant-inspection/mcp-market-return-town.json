@@ -1,0 +1,157 @@
+{
+  "method": "real stdio MCP calls; no desktop automation",
+  "catalog": {
+    "state": {
+      "connected": true,
+      "age_seconds": 0.19,
+      "source": "Warband engine scripts",
+      "protocol": 2,
+      "context": "menu",
+      "received_at": 1791531480.4370627,
+      "player_gold": 355,
+      "player_troop_id": 0,
+      "player_hit_points": null,
+      "position": {
+        "x": -95.87,
+        "y": 26.62,
+        "z": 1.16
+      },
+      "clock": 103,
+      "acknowledged_command_id": 1791531180,
+      "scene_id": -1,
+      "mission_session": -1,
+      "player_agent_id": -1,
+      "last_command_result": 0,
+      "integration_revision": 9,
+      "mission_template_id": -1,
+      "mission_template": null,
+      "mission_flags": 0,
+      "menu_id": 135,
+      "menu_session": 15,
+      "menu_name": "town_trade",
+      "dialogue_active": false,
+      "player_is_captive": false,
+      "native_context": {
+        "last_town_id": 26,
+        "last_encounter_party_id": 26,
+        "caveat": "Prior Native context; not proof of an active menu"
+      }
+    },
+    "actions": [
+      {
+        "id": 15,
+        "menu_id": 135,
+        "menu": "town_trade",
+        "option": "back_to_town_menu",
+        "text_template": "Head back."
+      }
+    ],
+    "availability": "Candidates only; Native conditions checked on selection.",
+    "scope": "Exact menu entry; re-entry invalidates queued actions"
+  },
+  "before": {
+    "connected": true,
+    "age_seconds": 0.202,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "menu",
+    "received_at": 1791531480.4370627,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -95.87,
+      "y": 26.62,
+      "z": 1.16
+    },
+    "clock": 103,
+    "acknowledged_command_id": 1791531180,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 9,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": 135,
+    "menu_session": 15,
+    "menu_name": "town_trade",
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 26,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "selected": {
+    "id": 15,
+    "menu_id": 135,
+    "menu": "town_trade",
+    "option": "back_to_town_menu",
+    "text_template": "Head back."
+  },
+  "command": {
+    "id": 1791531480,
+    "text": "select_menu",
+    "created": 1791531480.6433375,
+    "status": "queued",
+    "kind": "select_menu",
+    "arguments": {
+      "action_id": 15
+    },
+    "scene": 135,
+    "session": 15,
+    "result": null
+  },
+  "status": {
+    "id": 1791531480,
+    "text": "select_menu",
+    "created": 1791531480.6433375,
+    "status": "acknowledged",
+    "kind": "select_menu",
+    "arguments": {
+      "action_id": 15
+    },
+    "scene": 135,
+    "session": 15,
+    "result": 0
+  },
+  "after": {
+    "connected": true,
+    "age_seconds": 0.225,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "menu",
+    "received_at": 1791531480.9322257,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -95.87,
+      "y": 26.62,
+      "z": 1.16
+    },
+    "clock": 103,
+    "acknowledged_command_id": 1791531480,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 9,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": 108,
+    "menu_session": 16,
+    "menu_name": "town",
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 26,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  }
+}

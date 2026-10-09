@@ -1,0 +1,84 @@
+{
+  "method": "actual MCP while Native trade UI is visibly open",
+  "first": {
+    "connected": true,
+    "age_seconds": 0.068,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "trade",
+    "received_at": 1791531223.6246994,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -95.87,
+      "y": 26.62,
+      "z": 1.16
+    },
+    "clock": 103,
+    "acknowledged_command_id": 1791531180,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 9,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 26,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "second": {
+    "connected": true,
+    "age_seconds": 0.078,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "trade",
+    "received_at": 1791531226.6290567,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -95.87,
+      "y": 26.62,
+      "z": 1.16
+    },
+    "clock": 103,
+    "acknowledged_command_id": 1791531180,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 9,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 26,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "merchant_rejected": true,
+  "rejection": [
+    {
+      "type": "text",
+      "text": "Error executing tool warband_inspect_merchant: HTTP Error 400: Bad Request",
+      "annotations": null,
+      "meta": null
+    }
+  ]
+}

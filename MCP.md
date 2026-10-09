@@ -421,3 +421,27 @@ free-running player travel. Other AI orders and positive normal ruler authority
 remain unverified. Normal campaign observation and faction data are omniscient
 debug/world information, not automatically legitimate player knowledge.
 95 regression tests; 108 verified official opcode IDs.
+
+## Merchant inspection and trade-screen context (revision 9)
+
+`warband_inspect_merchant` queues an exact-market-menu/session-scoped page for
+arms/armor/goods/horses; `warband_merchant_result` returns durable inventory,
+gold, quantities/base values and original Native buy/sell pricing factors.
+Pages are bounded to 16 slots. **This does not buy/sell.** Factors are not final
+transaction quotes; modifiers, partial stacks and engine arithmetic still matter.
+
+Live: all **384 non-equipped slots**, four merchants, **24 pages**. Unchanged
+player gold 355; independent Native goods UI matched merchant gold 703.
+All 24 exact pages recovered through a fresh MCP client after bridge restart.
+`evidence/merchant-inspection/` retains original JSON and screenshots.
+
+Native trade entry reports separate `trade` context with continuing heartbeat;
+hidden marketplace commands are rejected. Closing UI restores actual menu
+context. Reviewed marketplace→town and war/peace continue actions passed live,
+bringing the allowlist to 18 Native choices. CUA navigation to Praven is setup,
+not a claim of MCP player travel.
+
+Actual UI tooltips establish unmodified Oil 454, Tools 397 and full Bread 46
+against original buy-factor/base values. Those cases use integer truncation;
+generic modified/partial prices and sale prices are still unverified.
+101 active-suite tests; 110 verified official opcode IDs.

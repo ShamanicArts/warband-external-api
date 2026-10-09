@@ -18,7 +18,12 @@ def operation_end(fields, start):
 
 
 def instrument_menus(
-    lines, make_prefix, on_return=None, make_suffix=None, on_shutdown=None
+    lines,
+    make_prefix,
+    on_return=None,
+    make_suffix=None,
+    on_shutdown=None,
+    on_trade=None,
 ):
     result = list(lines)
     names = []
@@ -48,9 +53,10 @@ def instrument_menus(
         names.append(fields[0][5:])
     if not names:
         raise ValueError("No Native menus found")
-    if on_return or on_shutdown:
+    if on_return or on_shutdown or on_trade:
         return_prefix = on_return.split() if on_return else ["0"]
         shutdown_prefix = on_shutdown.split() if on_shutdown else ["0"]
+        trade_prefix = on_trade.split() if on_trade else ["0"]
         for index, line in enumerate(result):
             if not line.lstrip().startswith("mno_"):
                 continue
@@ -77,6 +83,9 @@ def instrument_menus(
                         if opcode == 2055:  # quit to main menu: runtime troops unload
                             consequences.extend(shutdown_prefix[1:])
                             added += int(shutdown_prefix[0])
+                        if opcode == 2042:  # trade UI, NOT the underlying menu
+                            consequences.extend(trade_prefix[1:])
+                            added += int(trade_prefix[0])
                         consequences.extend(fields[cursor : cursor + 2 + arity])
                         cursor += 2 + arity
                     if fields[cursor].startswith("mno_"):

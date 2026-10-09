@@ -248,3 +248,25 @@ No teleport, clock editing or CUA implementation. **Player travel remains open**
 AI getter accepted travel, but resting holds main party stationary. The zero-motion
 test is retained and does not prove free-running player travel is impossible.
 95 tests pass, targeted Ruff clean, Pyright zero errors, 108 official opcode IDs.
+
+Revision 9 work in progress: actual merchant inventory/base values/quantities,
+merchant gold and original Native buy/sell factor scripts, bounded durable pages
+scoped to the exact town_trade menu entry. Four merchants (arms/armor/goods/horses)
+live-exported all 384 non-equipped slots; 37/44/32/5 stocked. Player gold stayed
+355; independent goods UI matched merchant gold 703 and actual stock. Stock and
+factor observations are NOT final transaction quotes. Buy/sell remains pending.
+Three more reviewed menu actions cover marketplace→town and war/peace continue.
+Trade UI instrumentation uses separate `trade` context, disables underlying menu
+actions and keeps nonce-controlled polling. Live check: fresh heartbeats during
+trade UI, merchant inspection rejected, normal market/town/map transitions after
+closing UI. War/peace continue actions also live-verified. Actual UI buy prices
+match truncating base_value*Native_buy_factor/100 for unmodified Oil 454, Tools
+397 and full Bread 46; this is not yet a formula proven for modifiers/partial
+stacks. Current live build is revision 9; prior builds retained. 101 tests pass,
+targeted Ruff clean, 110 official opcode IDs.
+
+Next: preserve original evidence, then implement guarded full-unmodified-stack
+buy/sell with original Native economic event scripts and independently measured
+inventory, gold and market-price consequences. Extend modifiers/partial stacks
+only after corresponding actual price and transaction evidence.
+Do not substitute base_value*factor for a verified transaction price formula.

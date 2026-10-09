@@ -1,0 +1,164 @@
+{
+  "method": "real stdio MCP calls; no desktop automation",
+  "catalog": {
+    "state": {
+      "connected": true,
+      "age_seconds": 0.016,
+      "source": "Warband engine scripts",
+      "protocol": 2,
+      "context": "menu",
+      "received_at": 1791531651.326356,
+      "player_gold": 355,
+      "player_troop_id": 0,
+      "player_hit_points": null,
+      "position": {
+        "x": -95.87,
+        "y": 26.62,
+        "z": 1.16
+      },
+      "clock": 103,
+      "acknowledged_command_id": 1791531505,
+      "scene_id": -1,
+      "mission_session": -1,
+      "player_agent_id": -1,
+      "last_command_result": 0,
+      "integration_revision": 9,
+      "mission_template_id": -1,
+      "mission_template": null,
+      "mission_flags": 0,
+      "menu_id": 23,
+      "menu_session": 19,
+      "menu_name": "camp",
+      "dialogue_active": false,
+      "player_is_captive": false,
+      "native_context": {
+        "last_town_id": 26,
+        "last_encounter_party_id": 2,
+        "caveat": "Prior Native context; not proof of an active menu"
+      }
+    },
+    "actions": [
+      {
+        "id": 0,
+        "menu_id": 23,
+        "menu": "camp",
+        "option": "camp_action",
+        "text_template": "Take an action."
+      },
+      {
+        "id": 1,
+        "menu_id": 23,
+        "menu": "camp",
+        "option": "resume_travelling",
+        "text_template": "Resume travelling."
+      }
+    ],
+    "availability": "Candidates only; Native conditions checked on selection.",
+    "scope": "Exact menu entry; re-entry invalidates queued actions"
+  },
+  "before": {
+    "connected": true,
+    "age_seconds": 0.028,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "menu",
+    "received_at": 1791531651.326356,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -95.87,
+      "y": 26.62,
+      "z": 1.16
+    },
+    "clock": 103,
+    "acknowledged_command_id": 1791531505,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 9,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": 23,
+    "menu_session": 19,
+    "menu_name": "camp",
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 2,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "selected": {
+    "id": 1,
+    "menu_id": 23,
+    "menu": "camp",
+    "option": "resume_travelling",
+    "text_template": "Resume travelling."
+  },
+  "command": {
+    "id": 1791531651,
+    "text": "select_menu",
+    "created": 1791531651.3591664,
+    "status": "queued",
+    "kind": "select_menu",
+    "arguments": {
+      "action_id": 1
+    },
+    "scene": 23,
+    "session": 19,
+    "result": null
+  },
+  "status": {
+    "id": 1791531651,
+    "text": "select_menu",
+    "created": 1791531651.3591664,
+    "status": "acknowledged",
+    "kind": "select_menu",
+    "arguments": {
+      "action_id": 1
+    },
+    "scene": 23,
+    "session": 19,
+    "result": 0
+  },
+  "after": {
+    "connected": true,
+    "age_seconds": 0.211,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "campaign",
+    "received_at": 1791531651.6612134,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -95.87,
+      "y": 26.62,
+      "z": 1.16
+    },
+    "clock": 103,
+    "acknowledged_command_id": 1791531651,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 9,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 2,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  }
+}
