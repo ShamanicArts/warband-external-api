@@ -1,0 +1,438 @@
+"""Add real engine scripts to a fresh Native copy; never modify Native/Pendor.
+
+Opcodes verified against TaleWorlds ModSys 1.171 mirror at
+int19h/mb_warband_module_system f718b182eb25ae21c3095e89bdba5d95158a682f.
+This deliberately does not import the old, incorrect header_operations.py.
+"""
+
+import argparse
+import json
+import re
+import shutil
+from pathlib import Path
+from urllib.parse import urlparse
+
+REG = 1 << 56
+STR = 3 << 56
+LOCAL = 17 << 56
+TROOP = 5 << 56
+PARTY = 9 << 56
+ACK_SLOT = 99999  # Reserved by this isolated mod on trp_player.
+RESULT_SLOT, NPC_SLOT, READY_SLOT, JOB_SLOT = 99998, 99997, 99996, 99995
+CONTEXT_SLOT, SESSION_SLOT = 99994, 99993
+NPC_AGENT_SLOT = 99992
+
+# Official operation names and values, not the previous prototype's headers.
+OPS = {
+    "try_begin": 4,
+    "else_try": 5,
+    "try_end": 3,
+    "eq": 31,
+    "ge": 30,
+    "gt": 32,
+    "assign": 2133,
+    "store_script_param": 23,
+    "str_store_string": 2320,
+    "send_message_to_url": 380,
+    "troop_get_slot": 520,
+    "troop_set_slot": 500,
+    "get_player_agent_no": 1700,
+    "agent_get_troop_id": 1718,
+    "store_agent_hit_points": 1720,
+    "agent_get_position": 1710,
+    "position_get_x": 726,
+    "position_get_y": 727,
+    "position_get_z": 728,
+    "set_fixed_point_multiplier": 2124,
+    "store_troop_gold": 2149,
+    "display_message": 1106,
+    "party_get_position": 1625,
+    "store_current_hours": 2270,
+    "store_mission_timer_a": 2370,
+    "val_add": 2105,
+    "store_current_scene": 2211,
+    "try_for_agents": 12,
+    "agent_is_alive": 1702,
+    "agent_is_human": 1704,
+    "agent_is_active": 1712,
+    "agent_get_team": 1770,
+    "agent_set_position": 1711,
+    "position_set_x": 729,
+    "position_set_y": 730,
+    "position_set_z_to_ground_level": 791,
+    "str_store_string_reg": 2321,
+    "start_mission_conversation": 1920,
+    "store_conversation_troop": 2200,
+    "store_sub": 2121,
+    "store_conversation_agent": 2199,
+    "store_mul": 2122,
+    "store_add": 2120,
+    "le": 0x80000000 | 32,
+    "neq": 0x80000000 | 31,
+}
+
+
+def compile_ops(operations):
+    return (
+        str(len(operations))
+        + " "
+        + " ".join(
+            " ".join(map(str, (OPS[name], len(args), *args)))
+            for name, *args in operations
+        )
+    )
+
+
+def telemetry(url_string, mission):
+    ops = [
+        ("set_fixed_point_multiplier", 100),
+        ("troop_set_slot", TROOP, CONTEXT_SLOT, int(mission)),
+        ("troop_get_slot", REG + 0, TROOP, ACK_SLOT),
+        ("store_troop_gold", REG + 1, TROOP),
+        ("troop_get_slot", REG + 10, TROOP, RESULT_SLOT),
+        ("troop_get_slot", REG + 11, TROOP, SESSION_SLOT),
+    ]
+    if mission:
+        ops += [
+            ("get_player_agent_no", LOCAL),
+            ("ge", LOCAL, 0),
+            ("agent_get_troop_id", REG + 2, LOCAL),
+            ("store_agent_hit_points", REG + 3, LOCAL, 1),
+            ("agent_get_position", 1, LOCAL),
+            ("store_mission_timer_a", REG + 7),
+            ("store_current_scene", REG + 8),
+            ("assign", REG + 9, LOCAL),
+        ]
+    else:
+        ops += [
+            ("assign", REG + 2, 0),
+            ("assign", REG + 3, -1),
+            ("party_get_position", 1, PARTY),
+            ("store_current_hours", REG + 7),
+            ("assign", REG + 8, -1),
+            ("assign", REG + 9, -1),
+            ("assign", REG + 11, -1),
+        ]
+    ops += [
+        ("position_get_x", REG + 4, 1),
+        ("position_get_y", REG + 5, 1),
+        ("position_get_z", REG + 6, 1),
+        ("str_store_string", 127, url_string),
+        ("send_message_to_url", 127, 0),
+    ]
+    return compile_ops(ops)
+
+
+def callback(agent_url=0, end_url=0):
+    cmd, kind, a, b, session, scene, result, tmp, agent, count = [
+        LOCAL + i for i in (3, 4, 5, 6, 8, 9, 10, 11, 12, 13)
+    ]
+    scan = [
+        ("assign", REG + 20, cmd),
+        ("assign", REG + 30, scene),
+        ("assign", REG + 31, session),
+        ("assign", count, 0),
+        ("get_player_agent_no", LOCAL + 14),
+        ("try_for_agents", agent),
+        ("agent_is_active", agent),
+        ("agent_is_alive", agent),
+        ("agent_is_human", agent),
+        ("le", count, 63),
+        ("val_add", count, 1),
+        ("assign", REG + 21, agent),
+        ("agent_get_troop_id", REG + 22, agent),
+        ("agent_get_team", REG + 23, agent),
+        ("store_agent_hit_points", REG + 24, agent, 1),
+        ("agent_get_position", 2, agent),
+        ("position_get_x", REG + 25, 2),
+        ("position_get_y", REG + 26, 2),
+        ("position_get_z", REG + 27, 2),
+        ("assign", REG + 28, 0),
+        ("try_begin",),
+        ("eq", agent, LOCAL + 14),
+        ("assign", REG + 28, 1),
+        ("try_end",),
+        ("str_store_string", 127, agent_url),
+        ("send_message_to_url", 127, 0),
+        ("try_end",),
+        ("assign", REG + 29, count),
+        ("str_store_string", 127, end_url),
+        ("send_message_to_url", 127, 0),
+        ("assign", result, 0),
+    ]
+    relocate = [
+        ("get_player_agent_no", agent),
+        ("ge", agent, 0),
+        ("agent_is_active", agent),
+        ("agent_is_alive", agent),
+        ("agent_get_position", 2, agent),
+        ("position_get_x", LOCAL + 14, 2),
+        ("position_get_y", LOCAL + 15, 2),
+        ("store_sub", LOCAL + 14, a, LOCAL + 14),
+        ("store_sub", LOCAL + 15, b, LOCAL + 15),
+        ("store_mul", LOCAL + 14, LOCAL + 14, LOCAL + 14),
+        ("store_mul", LOCAL + 15, LOCAL + 15, LOCAL + 15),
+        ("store_add", LOCAL + 14, LOCAL + 14, LOCAL + 15),
+        ("le", LOCAL + 14, 1000000),
+        ("position_set_x", 2, a),
+        ("position_set_y", 2, b),
+        ("position_set_z_to_ground_level", 2),
+        ("agent_set_position", agent, 2),
+        ("assign", result, 0),
+    ]
+    npc = [
+        ("agent_is_active", a),
+        ("agent_is_alive", a),
+        ("agent_is_human", a),
+        ("get_player_agent_no", agent),
+        ("neq", a, agent),
+        ("agent_get_troop_id", tmp, a),
+        ("str_store_string_reg", 126, 0),
+        ("troop_set_slot", TROOP, NPC_SLOT, tmp),
+        ("troop_set_slot", TROOP, NPC_AGENT_SLOT, a),
+        ("troop_set_slot", TROOP, READY_SLOT, 1),
+        ("troop_set_slot", TROOP, JOB_SLOT, cmd),
+        ("assign", result, 0),
+        ("start_mission_conversation", tmp),
+    ]
+    return compile_ops(
+        [
+            ("store_script_param", LOCAL, 1),
+            ("ge", LOCAL, 9),
+            ("store_script_param", LOCAL + 2, 2),
+            ("ge", LOCAL + 2, 1),
+            ("eq", REG, 741731),
+            ("eq", REG + 1, 2),
+            ("troop_get_slot", LOCAL + 1, TROOP, ACK_SLOT),
+            ("gt", REG + 2, LOCAL + 1),
+            ("assign", cmd, REG + 2),
+            ("assign", kind, REG + 3),
+            ("assign", a, REG + 4),
+            ("assign", b, REG + 5),
+            ("assign", session, REG + 7),
+            ("assign", scene, REG + 8),
+            ("assign", result, -1),
+            ("set_fixed_point_multiplier", 100),
+            ("try_begin",),
+            ("eq", kind, 1),
+            ("display_message", 0, 0x66FFAA),
+            ("assign", result, 0),
+            ("else_try",),
+            ("troop_get_slot", tmp, TROOP, CONTEXT_SLOT),
+            ("eq", tmp, 1),
+            ("troop_get_slot", tmp, TROOP, SESSION_SLOT),
+            ("eq", tmp, session),
+            ("store_current_scene", tmp),
+            ("eq", tmp, scene),
+            ("try_begin",),
+            ("eq", kind, 2),
+            *scan,
+            ("else_try",),
+            ("eq", kind, 3),
+            *relocate,
+            ("else_try",),
+            ("eq", kind, 4),
+            *npc,
+            ("try_end",),
+            ("try_end",),
+            ("troop_set_slot", TROOP, RESULT_SLOT, result),
+            ("troop_set_slot", TROOP, ACK_SLOT, cmd),
+        ]
+    )
+
+
+def dialogue_lines(states, event_url):
+    reply_state = len(states)
+    condition = compile_ops(
+        [
+            ("troop_get_slot", LOCAL, TROOP, READY_SLOT),
+            ("eq", LOCAL, 1),
+            ("store_conversation_troop", LOCAL + 1),
+            ("troop_get_slot", LOCAL + 2, TROOP, NPC_SLOT),
+            ("eq", LOCAL + 1, LOCAL + 2),
+            ("store_conversation_agent", LOCAL + 3),
+            ("troop_get_slot", LOCAL + 4, TROOP, NPC_AGENT_SLOT),
+            ("eq", LOCAL + 3, LOCAL + 4),
+            ("str_store_string_reg", 60, 126),
+        ]
+    )
+
+    def event(code):
+        return compile_ops(
+            [
+                ("troop_get_slot", REG + 20, TROOP, JOB_SLOT),
+                ("assign", REG + 21, code),
+                ("str_store_string", 127, event_url),
+                ("send_message_to_url", 127, 0),
+                ("troop_set_slot", TROOP, READY_SLOT, 0),
+            ]
+        )
+
+    return [
+        f"dlga_start:mcp_npc_end 4095 {states.index('start')} "
+        f"{condition} {{s60}} {reply_state} {event(1)} NO_VOICEOVER",
+        f"dlga_mcp_npc_end:close_window 69631 {reply_state} 0 "
+        f"Back_to_training. {states.index('close_window')} {event(2)} NO_VOICEOVER",
+    ]
+
+
+def build(native: Path, output: Path, endpoint: str, token: str):
+    native, output = native.resolve(), output.resolve()
+    if native.name != "Native" or not (native / "module.ini").is_file():
+        raise ValueError("Source must be an installed Native module")
+    if output.exists() or output == native or native in output.parents:
+        raise ValueError("Output must be a new directory outside Native")
+    url = urlparse(endpoint)
+    if (
+        url.scheme != "http"
+        or url.hostname != "127.0.0.1"
+        or url.path
+        or url.port not in (None, 80)
+    ):
+        raise ValueError("Vanilla Warband needs loopback HTTP on port 80")
+    if not re.fullmatch(r"[a-f0-9]{64}", token):
+        raise ValueError("Token must be 64 lowercase hexadecimal characters")
+    # Check patch seams before creating any output.
+    scripts = (native / "scripts.txt").read_text()
+    pattern = r"(?m)^(game_receive_url_response -1\s*\n)\s*0\s*\n"
+    if len(re.findall(pattern, scripts)) != 1:
+        raise ValueError("Expected exactly one empty Native URL callback")
+    missions = (native / "mission_templates.txt").read_text().splitlines()
+    start = next(
+        i
+        for i, line in enumerate(missions)
+        if line.startswith("mst_tutorial_training_ground ")
+    )
+    # Format: header, description, blank, spawn-count + first spawn, remaining
+    # spawns, trigger-count, triggers. Read the count, not a hard-coded offset.
+    spawn_line = start + 3
+    spawns = int(missions[spawn_line].split()[0])
+    trigger_line = spawn_line + max(spawns, 1)
+    trigger_count = int(missions[trigger_line].strip())
+    strings = (native / "strings.txt").read_text(encoding="latin-1").splitlines()
+    count = int(strings[1])
+    if len(strings[2:]) != count:
+        raise ValueError("Native string count mismatch")
+    new_strings = []
+    for kind in ("mission", "campaign"):
+        value = (
+            f"{endpoint}/poll?token={token}&v=2&context={kind}"
+            "&ack={reg0}&gold={reg1}&troop={reg2}&hp={reg3}"
+            "&x={reg4}&y={reg5}&z={reg6}&clock={reg7}"
+            "&scene={reg8}&agent={reg9}&result={reg10}&session={reg11}"
+        )
+        new_strings.append(f"str_mcp_{kind}_url {value}")
+    new_strings.extend(
+        [
+            f"str_mcp_agent_url {endpoint}/agent?token={token}&v=2"
+            "&job={reg20}&id={reg21}&troop={reg22}&team={reg23}&hp={reg24}"
+            "&x={reg25}&y={reg26}&z={reg27}&player={reg28}&scene={reg30}"
+            "&session={reg31}",
+        f"str_mcp_agents_end_url {endpoint}/agents-end?token={token}&v=2"
+            "&job={reg20}&count={reg29}&scene={reg30}&session={reg31}",
+            f"str_mcp_dialogue_url {endpoint}/dialogue?token={token}&v=2"
+            "&job={reg20}&event={reg21}",
+        ]
+    )
+    strings[1] = str(count + len(new_strings))
+    strings.extend(new_strings)
+    missions[trigger_line] = str(trigger_count + 2)
+    missions.insert(
+        trigger_line + 1 + trigger_count,
+        "2.000000 0.000000 0.000000 0 " + telemetry(STR + count, True),
+    )
+    missions.insert(
+        trigger_line + 2 + trigger_count,
+        "-19.000000 0.000000 0.000000 0 "
+        + compile_ops(
+            [
+                ("troop_get_slot", LOCAL, TROOP, SESSION_SLOT),
+                ("val_add", LOCAL, 1),
+                ("troop_set_slot", TROOP, SESSION_SLOT, LOCAL),
+                ("troop_set_slot", TROOP, CONTEXT_SLOT, 1),
+                ("troop_set_slot", TROOP, READY_SLOT, 0),
+            ]
+        ),
+    )
+    simple = (native / "simple_triggers.txt").read_text().splitlines()
+    simple[1] = str(int(simple[1]) + 1)
+    simple.append("0.100000 " + telemetry(STR + count + 1, False))
+    states = (native / "dialog_states.txt").read_text().splitlines()
+    if "mcp_npc_end" in states:
+        raise ValueError("Native already contains MCP dialogue state")
+    conversations = (
+        (native / "conversation.txt").read_text(encoding="latin-1").splitlines()
+    )
+    added_dialogue = dialogue_lines(states, STR + count + 4)
+    conversations[1] = str(int(conversations[1]) + 2)
+    conversations.insert(3, added_dialogue[0])
+    conversations.append(added_dialogue[1])
+    shutil.copytree(native, output)
+    (output / "strings.txt").write_text("\n".join(strings) + "\n", encoding="latin-1")
+    (output / "scripts.txt").write_text(
+        re.sub(
+            pattern,
+            lambda m: m[1] + " " + callback(STR + count + 2, STR + count + 3) + "\n",
+            scripts,
+        )
+    )
+    (output / "mission_templates.txt").write_text("\n".join(missions) + "\n")
+    (output / "simple_triggers.txt").write_text("\n".join(simple) + "\n")
+    (output / "dialog_states.txt").write_text(
+        "\n".join([*states, "mcp_npc_end"]) + "\n"
+    )
+    (output / "conversation.txt").write_text(
+        "\n".join(conversations) + "\n", encoding="latin-1"
+    )
+    troop_file = native / "troops.txt"
+    troop_names = (
+        [
+            line.split()[1].replace("_", " ")
+            for line in troop_file.read_text(encoding="latin-1").splitlines()
+            if line.startswith("trp_")
+        ]
+        if troop_file.exists()
+        else []
+    )
+    (output / "mcp-catalog.json").write_text(
+        json.dumps(
+            {
+                "name_source": "module troop definitions, not live renamed agent names",
+                "troops": {str(i): name for i, name in enumerate(troop_names)},
+            },
+            indent=2,
+        )
+    )
+    ini = (output / "module.ini").read_text()
+    ini = re.sub(r"(?m)^module_name\s*=.*$", "module_name = WarbandMCP", ini)
+    (output / "module.ini").write_text(ini)
+    (output / "mcp-build.json").write_text(
+        json.dumps(
+            {
+                "protocol": 2,
+                "source": str(native),
+                "transport": "engine HTTP opcode 380",
+                "modified": [
+                    "strings.txt",
+                    "scripts.txt",
+                    "mission_templates.txt",
+                    "simple_triggers.txt",
+                    "module.ini",
+                    "conversation.txt",
+                    "dialog_states.txt",
+                ],
+                "commands": ["message", "scan_agents", "relocate_player", "npc_say"],
+            },
+            indent=2,
+        )
+    )
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--native", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--endpoint", default="http://127.0.0.1")
+    parser.add_argument("--token-file", type=Path, required=True)
+    args = parser.parse_args()
+    build(args.native, args.output, args.endpoint, args.token_file.read_text().strip())

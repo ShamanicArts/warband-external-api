@@ -1,0 +1,17 @@
+# Dependencies and generated Python files
+.venv/
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.pytest_cache/
+
+# Legacy installed game copy: preserve locally, never publish game assets.
+/module/
+
+# Private runtime data and token-bearing compiled modules
+*.token
+*.sqlite
+*.sqlite-*
+/runtime/
+/dist/
+/build/
