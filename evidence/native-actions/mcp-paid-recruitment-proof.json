@@ -1,0 +1,245 @@
+{
+  "method": "real stdio MCP calls; no desktop automation",
+  "catalog": {
+    "state": {
+      "connected": true,
+      "age_seconds": 0.139,
+      "source": "Warband engine scripts",
+      "protocol": 2,
+      "context": "menu",
+      "received_at": 1791523035.611587,
+      "player_gold": 365,
+      "player_troop_id": 0,
+      "player_hit_points": null,
+      "position": {
+        "x": -97.26,
+        "y": 35.81,
+        "z": 1.22
+      },
+      "clock": 101,
+      "acknowledged_command_id": 1791523019,
+      "scene_id": -1,
+      "mission_session": -1,
+      "player_agent_id": -1,
+      "last_command_result": 0,
+      "integration_revision": 5,
+      "mission_template_id": -1,
+      "mission_template": null,
+      "mission_flags": 0,
+      "menu_id": 90,
+      "menu_session": 8,
+      "menu_name": "recruit_volunteers",
+      "dialogue_active": false,
+      "player_is_captive": false,
+      "native_context": {
+        "last_town_id": 93,
+        "last_encounter_party_id": 93,
+        "caveat": "Prior Native context; not proof of an active menu"
+      }
+    },
+    "actions": [
+      {
+        "id": 5,
+        "menu_id": 90,
+        "menu": "recruit_volunteers",
+        "option": "continue_not_enough_gold",
+        "text_template": "I don't have enough money..."
+      },
+      {
+        "id": 6,
+        "menu_id": 90,
+        "menu": "recruit_volunteers",
+        "option": "continue",
+        "text_template": "Continue..."
+      },
+      {
+        "id": 7,
+        "menu_id": 90,
+        "menu": "recruit_volunteers",
+        "option": "recruit_them",
+        "text_template": "Recruit them ({reg6} denars)."
+      },
+      {
+        "id": 8,
+        "menu_id": 90,
+        "menu": "recruit_volunteers",
+        "option": "forget_it",
+        "text_template": "Forget it."
+      }
+    ],
+    "availability": "Candidates only; Native conditions checked on selection.",
+    "scope": "Exact menu entry; re-entry invalidates queued actions"
+  },
+  "before": {
+    "connected": true,
+    "age_seconds": 0.148,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "menu",
+    "received_at": 1791523035.611587,
+    "player_gold": 365,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -97.26,
+      "y": 35.81,
+      "z": 1.22
+    },
+    "clock": 101,
+    "acknowledged_command_id": 1791523019,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 5,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": 90,
+    "menu_session": 8,
+    "menu_name": "recruit_volunteers",
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 93,
+      "last_encounter_party_id": 93,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "party_before": {
+    "dataset": "party",
+    "offset": 0,
+    "limit": 16,
+    "rows": [
+      {
+        "id": 0,
+        "troop_id": 0,
+        "count": 1,
+        "name": "Player",
+        "wounded": 0
+      }
+    ],
+    "expected_count": 1,
+    "total": 1,
+    "complete": true,
+    "command_id": 1791523035,
+    "age_seconds": 0.496,
+    "stale": false,
+    "source": "Warband engine scripts",
+    "name_source": "module definitions, not live renamed parties/items",
+    "next_offset": null,
+    "consistency": "Separate pages are not an atomic game-time snapshot"
+  },
+  "selected": {
+    "id": 7,
+    "menu_id": 90,
+    "menu": "recruit_volunteers",
+    "option": "recruit_them",
+    "text_template": "Recruit them ({reg6} denars)."
+  },
+  "command": {
+    "id": 1791523036,
+    "text": "select_menu",
+    "created": 1791523036.276856,
+    "status": "queued",
+    "kind": "select_menu",
+    "arguments": {
+      "action_id": 7
+    },
+    "scene": 90,
+    "session": 8,
+    "result": null
+  },
+  "status": {
+    "id": 1791523036,
+    "text": "select_menu",
+    "created": 1791523036.276856,
+    "status": "acknowledged",
+    "kind": "select_menu",
+    "arguments": {
+      "action_id": 7
+    },
+    "scene": 90,
+    "session": 8,
+    "result": 0
+  },
+  "after": {
+    "connected": true,
+    "age_seconds": 0.218,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "menu",
+    "received_at": 1791523036.5721626,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -97.26,
+      "y": 35.81,
+      "z": 1.22
+    },
+    "clock": 101,
+    "acknowledged_command_id": 1791523036,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 5,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": 88,
+    "menu_session": 9,
+    "menu_name": "village",
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 93,
+      "last_encounter_party_id": 93,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "party_after": {
+    "dataset": "party",
+    "offset": 0,
+    "limit": 16,
+    "rows": [
+      {
+        "id": 0,
+        "troop_id": 0,
+        "count": 1,
+        "name": "Player",
+        "wounded": 0
+      },
+      {
+        "id": 1,
+        "troop_id": 35,
+        "count": 1,
+        "name": "Swadian Recruit",
+        "wounded": 0
+      }
+    ],
+    "expected_count": 2,
+    "total": 2,
+    "complete": true,
+    "command_id": 1791523037,
+    "age_seconds": 0.48,
+    "stale": false,
+    "source": "Warband engine scripts",
+    "name_source": "module definitions, not live renamed parties/items",
+    "next_offset": null,
+    "consistency": "Separate pages are not an atomic game-time snapshot"
+  },
+  "recruitment_delta": {
+    "members_added": 1,
+    "gold_spent": 10
+  },
+  "visual_verification": {
+    "screenshot": "/tmp/shuvcode/warband-cua/mcp-paid-recruitment-party-proof.png",
+    "method": "independent CUA inspection of Native party UI",
+    "company": "2/49",
+    "recruit": "Swadian Recruit (1)",
+    "money": "355 denars",
+    "matches_engine_export": true
+  }
+}

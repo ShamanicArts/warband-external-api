@@ -89,7 +89,7 @@ class ModuleBuildTests(unittest.TestCase):
             operations.append((opcode, tokens[cursor + 2 : cursor + 2 + arity]))
             cursor += 2 + arity
         self.assertEqual(cursor, len(tokens))
-        for register in range(20):
+        for register in range(21):
             self.assertIn(
                 (OPS["assign"], [(17 << 56) + 32 + register, (1 << 56) + register]),
                 operations,
@@ -100,6 +100,35 @@ class ModuleBuildTests(unittest.TestCase):
             )
         self.assertIn((OPS["copy_position"], [47, 1]), operations)
         self.assertIn((OPS["copy_position"], [1, 47]), operations)
+        for register in range(32):
+            self.assertIn(
+                (
+                    OPS["troop_set_slot"],
+                    [5 << 56, 99940 + register, (1 << 56) + register],
+                ),
+                operations,
+            )
+
+    def test_menu_dispatch_blocks_are_balanced(self):
+        self.assert_balanced(
+            callback(
+                poll_urls=(1, 2, 3),
+                menu_actions=[
+                    {
+                        "id": 0,
+                        "menu_id": 23,
+                        "condition_script": 100,
+                        "consequence_script": 101,
+                    },
+                    {
+                        "id": 1,
+                        "menu_id": 80,
+                        "condition_script": 102,
+                        "consequence_script": 103,
+                    },
+                ],
+            )
+        )
 
     def assert_balanced(self, bytecode):
         tokens = list(map(int, bytecode.split()))

@@ -13,6 +13,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from module_system.campaign_ops import campaign_export
+from module_system.menu_actions import append_actions
 from module_system.menu_hooks import instrument_menus
 from module_system.mission_hooks import instrument_missions
 
@@ -27,6 +28,8 @@ CONTEXT_SLOT, SESSION_SLOT = 99994, 99993
 NPC_AGENT_SLOT = 99992
 MISSION_SLOT, MISSION_FLAGS_SLOT = 99991, 99990
 MENU_SLOT, POLL_NONCE_SLOT, DIALOG_ACTIVE_SLOT = 99989, 99988, 99986
+MENU_SESSION_SLOT, MENU_RESULT_SLOT, MENU_REG_BASE = 99985, 99984, 99940
+SCRIPT = 13 << 56
 
 # Official operation names and values, not the previous prototype's headers.
 OPS = {
@@ -102,6 +105,7 @@ OPS = {
     "not_multiplayer": 0x80000000 | 419,
     "val_and": 2115,
     "copy_position": 700,
+    "call_script": 1,
 }
 
 
@@ -164,6 +168,7 @@ def telemetry_ops(url_string, mission, native_globals=None, context=None):
     ops += [
         ("troop_get_slot", REG + 17, TROOP, MENU_SLOT),
         ("troop_get_slot", REG + 19, TROOP, DIALOG_ACTIVE_SLOT),
+        ("troop_get_slot", REG + 20, TROOP, MENU_SESSION_SLOT),
     ]
     ops += [
         ("assign", REG + register, (native_globals or {}).get(name, -1))
@@ -196,6 +201,7 @@ def callback(
     skill_count=0,
     poll_urls=None,
     native_globals=None,
+    menu_actions=None,
 ):
     cmd, kind, a, b, session, scene, result, tmp, agent, count = [
         LOCAL + i for i in (3, 4, 5, 6, 8, 9, 10, 11, 12, 13)
@@ -275,6 +281,21 @@ def callback(
         ("assign", result, 0),
         ("start_mission_conversation", tmp),
     ]
+    choose_menu = []
+    for index, action in enumerate(menu_actions or []):
+        choose_menu += [
+            ("try_begin",) if index == 0 else ("else_try",),
+            ("eq", a, action["id"]),
+            ("troop_get_slot", tmp, TROOP, MENU_SLOT),
+            ("eq", tmp, action["menu_id"]),
+            *[("troop_get_slot", REG + i, TROOP, MENU_REG_BASE + i) for i in range(32)],
+            ("call_script", SCRIPT + action["condition_script"]),
+            ("troop_get_slot", result, TROOP, MENU_RESULT_SLOT),
+            ("eq", result, 0),
+            ("call_script", SCRIPT + action["consequence_script"]),
+        ]
+    if choose_menu:
+        choose_menu += [("try_end",)]
     return compile_ops(
         [
             ("store_script_param", LOCAL, 1),
@@ -301,6 +322,17 @@ def callback(
             ("eq", kind, 1),
             ("display_message", 0, 0x66FFAA),
             ("assign", result, 0),
+            ("else_try",),
+            ("eq", kind, 6),
+            ("troop_get_slot", tmp, TROOP, CONTEXT_SLOT),
+            ("eq", tmp, 2),
+            ("troop_get_slot", tmp, TROOP, MENU_SESSION_SLOT),
+            ("eq", tmp, session),
+            ("troop_get_slot", tmp, TROOP, MENU_SLOT),
+            ("eq", tmp, scene),
+            ("troop_get_slot", tmp, TROOP, DIALOG_ACTIVE_SLOT),
+            ("eq", tmp, 0),
+            *choose_menu,
             ("else_try",),
             ("troop_get_slot", tmp, TROOP, CONTEXT_SLOT),
             ("eq", tmp, 1),
@@ -339,6 +371,7 @@ def callback(
             ("try_end",),
             *(
                 [
+                    ("try_begin",),
                     ("troop_get_slot", LOCAL + 23, TROOP, POLL_NONCE_SLOT),
                     ("eq", LOCAL + 24, LOCAL + 23),
                     ("troop_get_slot", LOCAL + 22, TROOP, CONTEXT_SLOT),
@@ -352,10 +385,16 @@ def callback(
                     ("eq", LOCAL + 22, 2),
                     *telemetry_ops(poll_urls[2], False, native_globals, context=2),
                     ("try_end",),
+                    ("try_end",),
                 ]
                 if poll_urls
                 else []
             ),
+            ("try_begin",),
+            ("troop_get_slot", LOCAL + 22, TROOP, CONTEXT_SLOT),
+            ("eq", LOCAL + 22, 2),
+            *[("troop_get_slot", REG + i, TROOP, MENU_REG_BASE + i) for i in range(32)],
+            ("try_end",),
         ]
     )
 
@@ -430,7 +469,8 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             "&x={reg4}&y={reg5}&z={reg6}&clock={reg7}"
             "&scene={reg8}&agent={reg9}&result={reg10}&session={reg11}"
             "&mission={reg12}&flags={reg13}&captive={reg14}&town={reg15}"
-            "&encounter={reg16}&menu={reg17}&pulse={reg18}&dialogue={reg19}&build=4"
+            "&encounter={reg16}&menu={reg17}&pulse={reg18}&dialogue={reg19}"
+            "&menu-session={reg20}&build=5"
         )
         new_strings.append(f"str_mcp_{kind}_url {value}")
     new_strings.extend(
@@ -500,13 +540,15 @@ def build(native: Path, output: Path, endpoint: str, token: str):
     # Bootstrap must not replace those values with gold/coordinates. Native does
     # not use s123 or pos47; these are reserved scratch in this isolated module.
     menu_bootstrap = [
-        *[("assign", LOCAL + 32 + i, REG + i) for i in range(20)],
-        ("str_store_string_reg", 123, 127), ("copy_position", 47, 1),
+        *[("assign", LOCAL + 32 + i, REG + i) for i in range(21)],
+        ("str_store_string_reg", 123, 127),
+        ("copy_position", 47, 1),
         ("try_begin",),
         *telemetry_ops(STR + count + 7, False, native_globals, context=2),
         ("try_end",),
-        *[("assign", REG + i, LOCAL + 32 + i) for i in range(20)],
-        ("str_store_string_reg", 127, 123), ("copy_position", 1, 47),
+        *[("assign", REG + i, LOCAL + 32 + i) for i in range(21)],
+        ("str_store_string_reg", 127, 123),
+        ("copy_position", 1, 47),
     ]
     menus, menu_names = instrument_menus(
         (native / "menus.txt").read_text(encoding="latin-1").splitlines(),
@@ -516,7 +558,9 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                 ("troop_set_slot", TROOP, CONTEXT_SLOT, 2),
                 ("troop_set_slot", TROOP, READY_SLOT, 0),
                 ("troop_set_slot", TROOP, DIALOG_ACTIVE_SLOT, 0),
-                *menu_bootstrap,
+                ("troop_get_slot", LOCAL + 31, TROOP, MENU_SESSION_SLOT),
+                ("val_add", LOCAL + 31, 1),
+                ("troop_set_slot", TROOP, MENU_SESSION_SLOT, LOCAL + 31),
             ]
         ),
         on_return=compile_ops(
@@ -525,7 +569,22 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                 ("troop_set_slot", TROOP, MENU_SLOT, -1),
             ]
         ),
+        make_suffix=lambda menu_id: compile_ops(
+            [
+                *[
+                    ("troop_set_slot", TROOP, MENU_REG_BASE + i, REG + i)
+                    for i in range(32)
+                ],
+                *menu_bootstrap,
+            ]
+        ),
     )
+    script_lines = scripts.splitlines()
+    extra_scripts, menu_actions = append_actions(
+        menus, int(script_lines[1]), compile_ops, MENU_RESULT_SLOT
+    )
+    script_lines[1] = str(int(script_lines[1]) + len(extra_scripts) // 2)
+    scripts = "\n".join([*script_lines, *extra_scripts]) + "\n"
     simple = (native / "simple_triggers.txt").read_text().splitlines()
     simple[1] = str(int(simple[1]) + 1)
     simple.append("0.100000 " + telemetry(STR + count + 1, False, native_globals))
@@ -580,6 +639,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     len(skills),
                     (STR + count, STR + count + 1, STR + count + 7),
                     native_globals,
+                    menu_actions,
                 )
                 + "\n"
             ),
@@ -639,6 +699,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                 },
                 "instrumented_missions": mission_names,
                 "menus": {str(i): name for i, name in enumerate(menu_names)},
+                "menu_actions": menu_actions,
             },
             indent=2,
         )
@@ -650,7 +711,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         json.dumps(
             {
                 "protocol": 2,
-                "integration_revision": 4,
+                "integration_revision": 5,
                 "source": str(native),
                 "transport": "engine HTTP opcode 380",
                 "instrumented_missions": mission_names,
@@ -670,6 +731,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     "relocate_player",
                     "npc_say",
                     "scan_campaign",
+                    "select_menu",
                 ],
             },
             indent=2,

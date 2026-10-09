@@ -17,7 +17,7 @@ def operation_end(fields, start):
     return cursor
 
 
-def instrument_menus(lines, make_prefix, on_return=None):
+def instrument_menus(lines, make_prefix, on_return=None, make_suffix=None):
     result = list(lines)
     names = []
     for index, line in enumerate(lines):
@@ -30,8 +30,17 @@ def instrument_menus(lines, make_prefix, on_return=None):
             if cursor != len(fields) - 1 or int(fields[cursor]) < 0:
                 raise ValueError("Invalid option count seam")
             prefix = make_prefix(len(names)).split()
-            fields[4] = str(count + int(prefix[0]))
-            result[index] = " ".join([*fields[:5], *prefix[1:], *fields[5:]])
+            suffix = make_suffix(len(names)).split() if make_suffix else ["0"]
+            fields[4] = str(count + int(prefix[0]) + int(suffix[0]))
+            result[index] = " ".join(
+                [
+                    *fields[:5],
+                    *prefix[1:],
+                    *fields[5:-1],
+                    *suffix[1:],
+                    fields[-1],
+                ]
+            )
         except (ValueError, IndexError) as exc:
             raise ValueError(f"Invalid Native menu seam: {fields[0]}") from exc
         names.append(fields[0][5:])

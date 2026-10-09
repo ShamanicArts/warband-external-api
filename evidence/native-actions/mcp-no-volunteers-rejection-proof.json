@@ -1,0 +1,178 @@
+{
+  "method": "real stdio MCP calls; no desktop automation",
+  "catalog": {
+    "state": {
+      "connected": true,
+      "age_seconds": 0.137,
+      "source": "Warband engine scripts",
+      "protocol": 2,
+      "context": "menu",
+      "received_at": 1791522804.1375551,
+      "player_gold": 365,
+      "player_troop_id": 0,
+      "player_hit_points": null,
+      "position": {
+        "x": -86.46,
+        "y": 12.16,
+        "z": 1.45
+      },
+      "clock": 96,
+      "acknowledged_command_id": 1791522787,
+      "scene_id": -1,
+      "mission_session": -1,
+      "player_agent_id": -1,
+      "last_command_result": 0,
+      "integration_revision": 5,
+      "mission_template_id": -1,
+      "mission_template": null,
+      "mission_flags": 0,
+      "menu_id": 90,
+      "menu_session": 5,
+      "menu_name": "recruit_volunteers",
+      "dialogue_active": false,
+      "player_is_captive": false,
+      "native_context": {
+        "last_town_id": 155,
+        "last_encounter_party_id": 155,
+        "caveat": "Prior Native context; not proof of an active menu"
+      }
+    },
+    "actions": [
+      {
+        "id": 5,
+        "menu_id": 90,
+        "menu": "recruit_volunteers",
+        "option": "continue_not_enough_gold",
+        "text_template": "I don't have enough money..."
+      },
+      {
+        "id": 6,
+        "menu_id": 90,
+        "menu": "recruit_volunteers",
+        "option": "continue",
+        "text_template": "Continue..."
+      },
+      {
+        "id": 7,
+        "menu_id": 90,
+        "menu": "recruit_volunteers",
+        "option": "recruit_them",
+        "text_template": "Recruit them ({reg6} denars)."
+      },
+      {
+        "id": 8,
+        "menu_id": 90,
+        "menu": "recruit_volunteers",
+        "option": "forget_it",
+        "text_template": "Forget it."
+      }
+    ],
+    "availability": "Candidates only; Native conditions checked on selection.",
+    "scope": "Exact menu entry; re-entry invalidates queued actions"
+  },
+  "before": {
+    "connected": true,
+    "age_seconds": 0.142,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "menu",
+    "received_at": 1791522804.1375551,
+    "player_gold": 365,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -86.46,
+      "y": 12.16,
+      "z": 1.45
+    },
+    "clock": 96,
+    "acknowledged_command_id": 1791522787,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": 0,
+    "integration_revision": 5,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": 90,
+    "menu_session": 5,
+    "menu_name": "recruit_volunteers",
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 155,
+      "last_encounter_party_id": 155,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "selected": {
+    "id": 7,
+    "menu_id": 90,
+    "menu": "recruit_volunteers",
+    "option": "recruit_them",
+    "text_template": "Recruit them ({reg6} denars)."
+  },
+  "command": {
+    "id": 1791522804,
+    "text": "select_menu",
+    "created": 1791522804.2829113,
+    "status": "queued",
+    "kind": "select_menu",
+    "arguments": {
+      "action_id": 7
+    },
+    "scene": 90,
+    "session": 5,
+    "result": null
+  },
+  "status": {
+    "id": 1791522804,
+    "text": "select_menu",
+    "created": 1791522804.2829113,
+    "status": "rejected",
+    "kind": "select_menu",
+    "arguments": {
+      "action_id": 7
+    },
+    "scene": 90,
+    "session": 5,
+    "result": -3
+  },
+  "after": {
+    "connected": true,
+    "age_seconds": 0.226,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "menu",
+    "received_at": 1791522804.5656748,
+    "player_gold": 365,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": -86.46,
+      "y": 12.16,
+      "z": 1.45
+    },
+    "clock": 96,
+    "acknowledged_command_id": 1791522804,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": -3,
+    "integration_revision": 5,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": 90,
+    "menu_session": 5,
+    "menu_name": "recruit_volunteers",
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 155,
+      "last_encounter_party_id": 155,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  }
+}

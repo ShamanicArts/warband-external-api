@@ -53,7 +53,9 @@ contains installed game assets, not the authoritative readable integration sourc
 - `ntypolot`: verified transport/scene/NPC baseline (29 tests).
 - `wyuutpxx`: campaign observation and honest capability discovery (41 tests).
 - `tmnokvyk`: 41 single-player mission hooks; village dialogue/save reload (47 tests).
-- Current change: pause-independent HTTP callback loop and Native menu context.
+- `ykylzmpt`: pause-independent callback polling and 217 menu hooks (57 tests).
+- Current change: actual reviewed Native menu actions, session-scoped dispatch,
+  register-preserving Native conditions and recruitment acceptance checks.
 
 ## Live campaign notes
 
@@ -101,3 +103,33 @@ telemetry before opening camp, fresh menu telemetry afterwards with clock 93.
 all 36 world pages: 562 unique active parties, clock 93 throughout, final cursor
 null. CUA `bootstrap-camp-proof.png` / `menu-return-map-proof.png` verify menu and
 return to the paused map; MCP context returned to `campaign` with menu fields null.
+
+Revision 5 (under live acceptance): 15 reviewed menu actions use the actual compiled
+Native conditions/consequences. Each block has a separate script-local namespace;
+Native script/menu/scene IDs remain unchanged. Menu initialization snapshots reg0–31
+into reserved player troop slots 99940–99971; callbacks restore those values before
+evaluating menu conditions and after telemetry. Conditions can refer to initialized
+registers, notably recruitment reg5/reg7, so treating them as free-standing booleans
+would be wrong. Choices are tied to both menu ID and menu-entry session. Bridge and
+game reject mismatches. No arbitrary bytecode or cheat option is exposed.
+
+Live Native actions: camp→camp_action and camp→map passed through MCP, followed by
+village→recruit_volunteers in Iyindah. No volunteers were available; trying
+`recruit_them` was rejected by game-side Native conditions (result -3), gold unchanged
+at 365. Returning recruitment→village→map also passed through MCP. Travel to test
+villages still uses CUA (not proof of MCP campaign travel). Positive recruitment
+and Native scene entry subsequently passed (below). Artifacts are named
+`mcp-*-proof.json` / `mcp-recruit-offer-proof.png` under the isolated runtime.
+
+Paid recruitment acceptance: Azgad, one Swadian Recruit, gold 365→355 and party
+1→2. Actual stdio MCP calls, Native cost/capacity/supply script, acknowledgement
+and complete before/after party export. Independent CUA party screenshot shows
+Swadian Recruit (1), company 2/49 and 355 denars. Evidence:
+`mcp-paid-recruitment-proof.json`, `mcp-paid-recruitment-party-proof.png`.
+MCP Native `village_center` selection entered Azgad scene 376, template 3,
+player agent 15, HP 49; CUA confirmed the rendered village.
+`mcp-native-village-entry-proof.json` / `.png`. 67 tests pass.
+
+Original JSON/capture proof is now persisted and versioned in
+`evidence/native-actions/` (10 artifacts plus README), not solely in temporary
+runtime storage. Files were checked for the private bridge token before copying.

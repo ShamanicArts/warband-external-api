@@ -8,6 +8,7 @@ OPERATIONS = {
     "relocate_player": 3,
     "npc_say": 4,
     "scan_campaign": 5,
+    "select_menu": 6,
 }
 DATASETS = {
     "party": 1,
@@ -24,7 +25,13 @@ def validate_operation(kind, payload, state):
         raise ValueError("Unknown game operation or malformed arguments")
     if not state.get("connected"):
         raise ValueError("Game telemetry is stale or disconnected")
-    context = "campaign" if kind == "scan_campaign" else "mission"
+    context = (
+        "menu"
+        if kind == "select_menu"
+        else "campaign"
+        if kind == "scan_campaign"
+        else "mission"
+    )
     if kind != "message" and (
         state.get("protocol") != 2
         or (
@@ -39,9 +46,22 @@ def validate_operation(kind, payload, state):
         "relocate_player": {"x", "y"},
         "npc_say": {"agent_id", "text"},
         "scan_campaign": {"dataset", "offset", "limit"},
+        "select_menu": {"action_id"},
     }[kind]
     if set(payload) != expected:
         raise ValueError("Unexpected or missing operation arguments")
+    if kind == "select_menu":
+        if state.get("integration_revision", 0) < 5:
+            raise ValueError("Menu control needs integration revision 5")
+        if type(state.get("menu_session")) is not int or state["menu_session"] <= 0:
+            raise ValueError("Menu control needs a valid menu-entry session")
+        if (
+            type(payload["action_id"]) is not int
+            or not 0 <= payload["action_id"] < 10000
+        ):
+            raise ValueError("Expected a valid catalog menu action ID")
+        if state.get("dialogue_active"):
+            raise ValueError("Cannot select a menu during dialogue")
     if kind == "scan_campaign":
         if (
             not isinstance(payload["dataset"], str)
@@ -89,6 +109,8 @@ def validate_operation(kind, payload, state):
 
 
 def wire_arguments(kind, payload):
+    if kind == "select_menu":
+        return [payload["action_id"], 0, 0, 0]
     if kind == "scan_campaign":
         return [DATASETS[payload["dataset"]], payload["offset"], payload["limit"], 0]
     if kind == "relocate_player":

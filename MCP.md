@@ -63,7 +63,7 @@ menus; return/map consequences clear the active menu context. Legacy triggers
 remain as recovery seeds. If HTTP fails while paused, opening a menu or advancing
 time is still needed to restart the loop; this is not automatic outage recovery.
 State older than 15 seconds is marked disconnected. Commands expire after
-30 seconds and are replayed until acknowledged. Player troop slots 99986–99999
+30 seconds and are replayed until acknowledged. Player troop slots 99940–99999
 are reserved for deduplication, result codes, mission sessions and NPC targeting.
 Do not reuse these slots in other mods. Mission actions are scoped to scene and
 mission session and revalidated in game code. Bridge restart or mission-clock
@@ -309,3 +309,40 @@ clock fixed at 93 and final cursor null. `bootstrap-camp-proof.png` and
 
 57 automated tests cover parser seams, nonce echo, paused exports, long-poll
 wakeup, Native register preservation, and dialogue mutation guards.
+
+## Native-action live proof (revision 5)
+
+`warband_menu_options` lists reviewed menu-action candidates, not claims of
+visibility. `warband_select_menu` rechecks the actual Native conditions in game
+and runs Native's original consequence, each in a separate script-local namespace.
+Menu ID **and entry session** guard against stale/revisited menu actions. Conditions
+can depend on initialized integer registers; reg0–31 are snapshotted/restored.
+Acknowledgement means consequence dispatch; check resulting state for its effect.
+
+15 reviewed choices currently cover camp navigation, village recruitment/entry/
+leave, town street/tavern/castle/arena/marketplace entry and recruitment replies.
+They do not include cheat options or arbitrary script execution. Broader options,
+trade transactions and campaign destination control are still unfinished.
+
+Actual stdio MCP proof, with files under `/tmp/shuvcode/warband-cua/`:
+
+- Camp→actions menu and camp→map: `mcp-camp-action-proof.json`,
+  `mcp-camp-return-proof.json`; CUA confirmed the actions menu.
+- Iyindah had no volunteers. Selecting `recruit_them` was rejected by Native
+  conditions with result **-3**, gold unchanged at **365**:
+  `mcp-no-volunteers-rejection-proof.json`, `mcp-recruit-offer-proof.png`.
+- Azgad offered one Swadian Recruit for 10 denars. MCP recruited him using Native
+  rules: **gold 365→355; party 1→2**, all commands acknowledged. See
+  `mcp-paid-recruitment-proof.json` and `mcp-azgad-recruit-offer-proof.png`.
+  Independent CUA Party-screen proof `mcp-paid-recruitment-party-proof.png` shows
+  **Swadian Recruit (1), company 2/49, money 355 denars**.
+- MCP entered Azgad's actual village scene by selecting Native `village_center`:
+  scene **376**, template **3/village_center**, player agent **15**, HP **49**.
+  `mcp-native-village-entry-proof.json` and `mcp-native-village-entry-proof.png`
+  record engine state and independent CUA rendering.
+- Travel to these villages was done with CUA; **this is not MCP travel proof**.
+
+The reproducible one-action MCP acceptance harness is
+`bridge/smoke_native_menu_mcp.py`. `--party-proof` asserts a real recruitment
+delta and Native's 10-denar/man cost; `--expect-rejected` checks Native rejection.
+67 automated tests pass; Ruff and Pyright are clean for the active suite.

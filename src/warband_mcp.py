@@ -62,6 +62,29 @@ async def warband_capabilities() -> dict:
 
 
 @mcp.tool()
+async def warband_menu_options() -> dict:
+    """List reviewed Native menu action candidates for the current menu.
+
+    Labels can be unexpanded templates. These are not claims of availability:
+    Native conditions are checked in game on selection. No cheats or arbitrary
+    script execution. Mutating commands use the exact current menu-entry session.
+    """
+    return await anyio.to_thread.run_sync(lambda: request("/api/menu-options"))
+
+
+@mcp.tool()
+async def warband_select_menu(action_id: int) -> dict:
+    """Execute an allowlisted Native menu choice using its real conditions/action.
+
+    Obtain action_id from warband_menu_options, then check command status AND
+    resulting state. Recruitment costs gold and obeys Native capacity/supply.
+    Acknowledgement means the Native consequence was dispatched, not that every
+    inner branch succeeded. It may enter a scene or change menus. No rollback.
+    """
+    return await operation("select_menu", {"action_id": action_id})
+
+
+@mcp.tool()
 async def warband_refresh_campaign(
     dataset: Literal[
         "party", "prisoners", "inventory", "character", "world_parties", "quests"

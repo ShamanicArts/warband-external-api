@@ -99,6 +99,17 @@ class Store:
         with self.lock:
             state = self.snapshot()
             validate_operation(kind, arguments, state)
+            if kind == "select_menu":
+                actions = self.menu_options()["actions"]
+                if arguments["action_id"] not in {action["id"] for action in actions}:
+                    raise ValueError(
+                        "This action is not allowlisted for the current menu"
+                    )
+                state = {
+                    **state,
+                    "scene_id": state["menu_id"],
+                    "mission_session": state["menu_session"],
+                }
             if kind == "npc_say":
                 candidates = [
                     scan
@@ -164,6 +175,7 @@ class Store:
                         "menu",
                         "dialogue",
                         "pulse",
+                        "menu-session",
                     )
                     if field in query
                 }
@@ -203,6 +215,9 @@ class Store:
                 ),
                 "mission_flags": values.get("flags"),
                 "menu_id": values.get("menu") if query["context"] == "menu" else None,
+                "menu_session": values.get("menu-session")
+                if query["context"] == "menu"
+                else None,
                 "menu_name": self.module_catalog.get("menus", {}).get(
                     str(values.get("menu"))
                 )
@@ -247,7 +262,14 @@ class Store:
                         and query["v"] == "2"
                     )
                     or (
-                        row["kind"] != "scan_campaign"
+                        row["kind"] == "select_menu"
+                        and query["context"] == "menu"
+                        and values.get("build", 0) >= 5
+                        and row["scene"] == values.get("menu")
+                        and row["session"] == values.get("menu-session")
+                    )
+                    or (
+                        row["kind"] not in ("scan_campaign", "select_menu")
                         and query["v"] == "2"
                         and row["scene"] == values.get("scene")
                         and row["session"] == values.get("session")
@@ -413,6 +435,7 @@ class Store:
                 "scene_agents": "single-player missions; 64 living humans max",
                 "relocate_player": "debug teleport <=10m, not walking",
                 "npc_say": "one non-battle dialogue line; no free-text reply yet",
+                "select_menu": "reviewed Native choices; fresh menu; Native conditions",
                 "campaign_exports": [
                     "party",
                     "prisoners",
@@ -425,7 +448,7 @@ class Store:
             "unimplemented": [
                 "campaign travel orders",
                 "trade",
-                "recruitment",
+                "mercenary/prisoner recruitment outside reviewed village menus",
                 "quest actions",
                 "combat orders",
                 "multi-turn NPC dialogue",
@@ -435,7 +458,7 @@ class Store:
             "module_instrumented_missions": self.module_catalog.get(
                 "instrumented_missions", []
             ),
-            "expected_integration_revision": 4,
+            "expected_integration_revision": 5,
             "polling": "revision 4 chains HTTP long-polls in paused game time",
             "caveats": [
                 "Before revision 4, campaign polling pauses with game time",
@@ -443,6 +466,20 @@ class Store:
                 "World census includes hidden parties (omniscient debug data)",
                 "Labels come from module definitions, not live renamed entities",
             ],
+        }
+
+    def menu_options(self):
+        state = self.snapshot()
+        return {
+            "state": state,
+            "actions": [
+                {k: v for k, v in action.items() if not k.endswith("_script")}
+                for action in self.module_catalog.get("menu_actions", [])
+                if state.get("context") == "menu"
+                and action["menu_id"] == state.get("menu_id")
+            ],
+            "availability": "Candidates only; Native conditions checked on selection.",
+            "scope": "Exact menu entry; re-entry invalidates queued actions",
         }
 
 
@@ -490,7 +527,9 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                         raise ValueError("Duplicate protocol field")
                     result = store.poll(
                         {k: v[0] for k, v in query.items()},
-                        wait_seconds=0.25 if query.get("build") == ["4"] else 0,
+                        wait_seconds=0.25
+                        if query.get("build") in (["4"], ["5"])
+                        else 0,
                     )
                     self.reply(200, result, "text/plain")
                 elif url.path in (
@@ -509,6 +548,8 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                     self.reply(200, store.snapshot())
                 elif url.path == "/api/capabilities":
                     self.reply(200, store.capabilities())
+                elif url.path == "/api/menu-options":
+                    self.reply(200, store.menu_options())
                 elif url.path.startswith("/api/campaign/"):
                     with store.lock:
                         self.reply(
