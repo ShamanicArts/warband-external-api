@@ -13,6 +13,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from module_system.campaign_ops import campaign_export
+from module_system.menu_hooks import instrument_menus
 from module_system.mission_hooks import instrument_missions
 
 REG = 1 << 56
@@ -25,6 +26,7 @@ RESULT_SLOT, NPC_SLOT, READY_SLOT, JOB_SLOT = 99998, 99997, 99996, 99995
 CONTEXT_SLOT, SESSION_SLOT = 99994, 99993
 NPC_AGENT_SLOT = 99992
 MISSION_SLOT, MISSION_FLAGS_SLOT = 99991, 99990
+MENU_SLOT, POLL_NONCE_SLOT, DIALOG_ACTIVE_SLOT = 99989, 99988, 99986
 
 # Official operation names and values, not the previous prototype's headers.
 OPS = {
@@ -99,6 +101,7 @@ OPS = {
     "quest_get_slot": 526,
     "not_multiplayer": 0x80000000 | 419,
     "val_and": 2115,
+    "copy_position": 700,
 }
 
 
@@ -113,11 +116,20 @@ def compile_ops(operations):
     )
 
 
-def telemetry(url_string, mission, native_globals=None):
+def telemetry_ops(url_string, mission, native_globals=None, context=None):
     ops = [
         ("not_multiplayer",),
+        *(([("party_is_active", PARTY)]) if not mission else []),
         ("set_fixed_point_multiplier", 100),
-        ("troop_set_slot", TROOP, CONTEXT_SLOT, int(mission)),
+        (
+            "troop_set_slot",
+            TROOP,
+            CONTEXT_SLOT,
+            int(mission) if context is None else context,
+        ),
+        ("troop_get_slot", REG + 18, TROOP, POLL_NONCE_SLOT),
+        ("val_add", REG + 18, 1),
+        ("troop_set_slot", TROOP, POLL_NONCE_SLOT, REG + 18),
         ("troop_get_slot", REG + 0, TROOP, ACK_SLOT),
         ("store_troop_gold", REG + 1, TROOP),
         ("troop_get_slot", REG + 10, TROOP, RESULT_SLOT),
@@ -150,6 +162,10 @@ def telemetry(url_string, mission, native_globals=None):
             ("assign", REG + 13, 0),
         ]
     ops += [
+        ("troop_get_slot", REG + 17, TROOP, MENU_SLOT),
+        ("troop_get_slot", REG + 19, TROOP, DIALOG_ACTIVE_SLOT),
+    ]
+    ops += [
         ("assign", REG + register, (native_globals or {}).get(name, -1))
         for register, name in (
             (14, "g_player_is_captive"),
@@ -164,7 +180,11 @@ def telemetry(url_string, mission, native_globals=None):
         ("str_store_string", 127, url_string),
         ("send_message_to_url", 127, 0),
     ]
-    return compile_ops(ops)
+    return ops
+
+
+def telemetry(url_string, mission, native_globals=None, context=None):
+    return compile_ops(telemetry_ops(url_string, mission, native_globals, context))
 
 
 def callback(
@@ -174,6 +194,8 @@ def callback(
     campaign_end_url=0,
     quest_count=0,
     skill_count=0,
+    poll_urls=None,
+    native_globals=None,
 ):
     cmd, kind, a, b, session, scene, result, tmp, agent, count = [
         LOCAL + i for i in (3, 4, 5, 6, 8, 9, 10, 11, 12, 13)
@@ -212,6 +234,8 @@ def callback(
         ("assign", result, 0),
     ]
     relocate = [
+        ("troop_get_slot", tmp, TROOP, DIALOG_ACTIVE_SLOT),
+        ("eq", tmp, 0),
         ("get_player_agent_no", agent),
         ("ge", agent, 0),
         ("agent_is_active", agent),
@@ -232,6 +256,8 @@ def callback(
         ("assign", result, 0),
     ]
     npc = [
+        ("troop_get_slot", tmp, TROOP, DIALOG_ACTIVE_SLOT),
+        ("eq", tmp, 0),
         ("troop_get_slot", tmp, TROOP, MISSION_FLAGS_SLOT),
         ("val_and", tmp, 2),
         ("eq", tmp, 0),
@@ -253,11 +279,13 @@ def callback(
         [
             ("store_script_param", LOCAL, 1),
             ("not_multiplayer",),
-            ("ge", LOCAL, 9),
+            ("ge", LOCAL, 10 if poll_urls else 9),
             ("store_script_param", LOCAL + 2, 2),
             ("ge", LOCAL + 2, 1),
             ("eq", REG, 741731),
             ("eq", REG + 1, 2),
+            ("assign", LOCAL + 24, REG + 9),
+            ("try_begin",),
             ("troop_get_slot", LOCAL + 1, TROOP, ACK_SLOT),
             ("gt", REG + 2, LOCAL + 1),
             ("assign", cmd, REG + 2),
@@ -293,7 +321,7 @@ def callback(
             ("else_try",),
             ("eq", kind, 5),
             ("troop_get_slot", tmp, TROOP, CONTEXT_SLOT),
-            ("eq", tmp, 0),
+            ("neq", tmp, 1),
             ("eq", scene, -1),
             ("eq", session, -1),
             ("ge", a, 1),
@@ -308,6 +336,26 @@ def callback(
             ("try_end",),
             ("troop_set_slot", TROOP, RESULT_SLOT, result),
             ("troop_set_slot", TROOP, ACK_SLOT, cmd),
+            ("try_end",),
+            *(
+                [
+                    ("troop_get_slot", LOCAL + 23, TROOP, POLL_NONCE_SLOT),
+                    ("eq", LOCAL + 24, LOCAL + 23),
+                    ("troop_get_slot", LOCAL + 22, TROOP, CONTEXT_SLOT),
+                    ("try_begin",),
+                    ("eq", LOCAL + 22, 1),
+                    *telemetry_ops(poll_urls[0], True, native_globals),
+                    ("else_try",),
+                    ("eq", LOCAL + 22, 0),
+                    *telemetry_ops(poll_urls[1], False, native_globals),
+                    ("else_try",),
+                    ("eq", LOCAL + 22, 2),
+                    *telemetry_ops(poll_urls[2], False, native_globals, context=2),
+                    ("try_end",),
+                ]
+                if poll_urls
+                else []
+            ),
         ]
     )
 
@@ -336,6 +384,7 @@ def dialogue_lines(states, event_url):
                 ("str_store_string", 127, event_url),
                 ("send_message_to_url", 127, 0),
                 ("troop_set_slot", TROOP, READY_SLOT, 0),
+                ("troop_set_slot", TROOP, DIALOG_ACTIVE_SLOT, 1 if code == 1 else 0),
             ]
         )
 
@@ -381,7 +430,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             "&x={reg4}&y={reg5}&z={reg6}&clock={reg7}"
             "&scene={reg8}&agent={reg9}&result={reg10}&session={reg11}"
             "&mission={reg12}&flags={reg13}&captive={reg14}&town={reg15}"
-            "&encounter={reg16}&build=3"
+            "&encounter={reg16}&menu={reg17}&pulse={reg18}&dialogue={reg19}&build=4"
         )
         new_strings.append(f"str_mcp_{kind}_url {value}")
     new_strings.extend(
@@ -400,6 +449,11 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             f"str_mcp_campaign_end {endpoint}/campaign-end?token={token}&v=2"
             "&job={reg20}&dataset={reg21}&count={reg29}&total={reg30}",
         ]
+    )
+    new_strings.append(
+        new_strings[1]
+        .replace("str_mcp_campaign_url", "str_mcp_menu_url")
+        .replace("context=campaign", "context=menu")
     )
     strings[1] = str(count + len(new_strings))
     strings.extend(new_strings)
@@ -426,6 +480,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     ("troop_set_slot", TROOP, SESSION_SLOT, LOCAL),
                     ("troop_set_slot", TROOP, CONTEXT_SLOT, 1),
                     ("troop_set_slot", TROOP, READY_SLOT, 0),
+                    ("troop_set_slot", TROOP, DIALOG_ACTIVE_SLOT, 0),
                     ("troop_set_slot", TROOP, MISSION_SLOT, mission_id),
                     ("troop_set_slot", TROOP, MISSION_FLAGS_SLOT, flags),
                 ]
@@ -441,6 +496,36 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         ]
 
     missions, mission_names = instrument_missions(missions, mission_triggers)
+    # Menu entry can consume registers populated by the preceding consequence.
+    # Bootstrap must not replace those values with gold/coordinates. Native does
+    # not use s123 or pos47; these are reserved scratch in this isolated module.
+    menu_bootstrap = [
+        *[("assign", LOCAL + 32 + i, REG + i) for i in range(20)],
+        ("str_store_string_reg", 123, 127), ("copy_position", 47, 1),
+        ("try_begin",),
+        *telemetry_ops(STR + count + 7, False, native_globals, context=2),
+        ("try_end",),
+        *[("assign", REG + i, LOCAL + 32 + i) for i in range(20)],
+        ("str_store_string_reg", 127, 123), ("copy_position", 1, 47),
+    ]
+    menus, menu_names = instrument_menus(
+        (native / "menus.txt").read_text(encoding="latin-1").splitlines(),
+        lambda menu_id: compile_ops(
+            [
+                ("troop_set_slot", TROOP, MENU_SLOT, menu_id),
+                ("troop_set_slot", TROOP, CONTEXT_SLOT, 2),
+                ("troop_set_slot", TROOP, READY_SLOT, 0),
+                ("troop_set_slot", TROOP, DIALOG_ACTIVE_SLOT, 0),
+                *menu_bootstrap,
+            ]
+        ),
+        on_return=compile_ops(
+            [
+                ("troop_set_slot", TROOP, CONTEXT_SLOT, 0),
+                ("troop_set_slot", TROOP, MENU_SLOT, -1),
+            ]
+        ),
+    )
     simple = (native / "simple_triggers.txt").read_text().splitlines()
     simple[1] = str(int(simple[1]) + 1)
     simple.append("0.100000 " + telemetry(STR + count + 1, False, native_globals))
@@ -493,6 +578,8 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     STR + count + 6,
                     len(quests),
                     len(skills),
+                    (STR + count, STR + count + 1, STR + count + 7),
+                    native_globals,
                 )
                 + "\n"
             ),
@@ -501,6 +588,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
     )
     (output / "mission_templates.txt").write_text("\n".join(missions) + "\n")
     (output / "simple_triggers.txt").write_text("\n".join(simple) + "\n")
+    (output / "menus.txt").write_text("\n".join(menus) + "\n", encoding="latin-1")
     (output / "dialog_states.txt").write_text(
         "\n".join([*states, "mcp_npc_end"]) + "\n"
     )
@@ -550,6 +638,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     )
                 },
                 "instrumented_missions": mission_names,
+                "menus": {str(i): name for i, name in enumerate(menu_names)},
             },
             indent=2,
         )
@@ -561,7 +650,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         json.dumps(
             {
                 "protocol": 2,
-                "integration_revision": 3,
+                "integration_revision": 4,
                 "source": str(native),
                 "transport": "engine HTTP opcode 380",
                 "instrumented_missions": mission_names,
@@ -573,6 +662,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     "module.ini",
                     "conversation.txt",
                     "dialog_states.txt",
+                    "menus.txt",
                 ],
                 "commands": [
                     "message",

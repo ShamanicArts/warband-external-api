@@ -26,7 +26,11 @@ def validate_operation(kind, payload, state):
         raise ValueError("Game telemetry is stale or disconnected")
     context = "campaign" if kind == "scan_campaign" else "mission"
     if kind != "message" and (
-        state.get("protocol") != 2 or state.get("context") != context
+        state.get("protocol") != 2
+        or (
+            state.get("context") != context
+            and not (kind == "scan_campaign" and state.get("context") == "menu")
+        )
     ):
         raise ValueError(f"This operation requires protocol-2 {context} telemetry")
     expected = {
@@ -60,6 +64,8 @@ def validate_operation(kind, payload, state):
                 "Text needs 1–200 printable characters without | or braces"
             )
     if kind == "npc_say":
+        if state.get("dialogue_active"):
+            raise ValueError("A conversation is already active")
         if (
             state.get("mission_flags", 0) is not None
             and state.get("mission_flags", 0) & 2
@@ -71,6 +77,8 @@ def validate_operation(kind, payload, state):
         if agent_id == state.get("player_agent_id"):
             raise ValueError("NPC speech cannot target the player")
     if kind == "relocate_player":
+        if state.get("dialogue_active"):
+            raise ValueError("Cannot relocate the player during dialogue")
         for key in ("x", "y"):
             value = payload[key]
             if type(value) not in (float, int) or not math.isfinite(value):

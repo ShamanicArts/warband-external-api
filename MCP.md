@@ -56,9 +56,14 @@ Training-yard and village integration are live-verified; every other mission
 has not individually been exercised. Telemetry includes mission template, flags,
 captivity and prior Native town/encounter globals. Prior globals are not proof
 of an active menu. NPC speech is prohibited in battle-mode missions.
-Campaign polling is a simple trigger every 0.1 game hours; paused game time won't
-poll. State older than 15 seconds is marked disconnected. Commands expire after
-30 seconds and are replayed until acknowledged. Player troop slots 99990–99999
+Revision 4 chains asynchronous HTTP responses with a 250ms bridge wait, keeping
+campaign/menu telemetry fresh without advancing time. Poll nonces stop superseded
+responses from creating duplicate callback loops. Native entry hooks cover all 217
+menus; return/map consequences clear the active menu context. Legacy triggers
+remain as recovery seeds. If HTTP fails while paused, opening a menu or advancing
+time is still needed to restart the loop; this is not automatic outage recovery.
+State older than 15 seconds is marked disconnected. Commands expire after
+30 seconds and are replayed until acknowledged. Player troop slots 99986–99999
 are reserved for deduplication, result codes, mission sessions and NPC targeting.
 Do not reuse these slots in other mods. Mission actions are scoped to scene and
 mission session and revalidated in game code. Bridge restart or mission-clock
@@ -283,3 +288,24 @@ game. A delayed acknowledgement can replace an expired status.
   outside training; fixing that and multi-turn dialogue remain open work.
 - 47 automated tests pass; Ruff/Pyright are clean. Broader battle/tavern coverage
   and actual campaign/combat controls are not yet proven or implemented.
+
+## Paused campaign/menu live proof (revision 4)
+
+`paused-campaign-proof.json` and `paused-menu-proof.json` each record nine complete,
+acknowledged pages: party, all inventory slots, all character stats, active quests.
+The engine clock remained **93** before and after both runs. The second ran in
+Native's camp menu; MCP reported menu ID 23/name `camp`, independently verified
+by CUA in `pulse-camp.png`. Files are in `/tmp/shuvcode/warband-cua/`.
+
+All 217 Native menu IDs/options are preserved. Added entry hooks track context;
+existing return/map operations clear it. Menu bootstrap preserves reg0–reg19,
+s127 and pos1 using reserved Native-unused scratch s123/pos47. Native conditions
+and consequences still execute normally; MCP cannot yet select menu options.
+Fresh paused save reload/bootstrap and menu→map context clearing also passed.
+Opening camp started the loop without advancing time. `paused-full-world-proof.json`
+records all **562 unique active parties** over 36 complete acknowledged pages,
+clock fixed at 93 and final cursor null. `bootstrap-camp-proof.png` and
+`menu-return-map-proof.png` provide independent CUA context verification.
+
+57 automated tests cover parser seams, nonce echo, paused exports, long-poll
+wakeup, Native register preservation, and dialogue mutation guards.

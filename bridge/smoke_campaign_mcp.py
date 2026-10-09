@@ -32,7 +32,10 @@ async def run(args):
 
             proof["capabilities"] = await call("warband_capabilities")
             state = await call("warband_get_state")
-            if not state.get("connected") or state.get("context") != "campaign":
+            if not state.get("connected") or state.get("context") not in (
+                "campaign",
+                "menu",
+            ):
                 raise RuntimeError(f"Need a running isolated campaign: {state}")
             proof["before"] = state
             for dataset in args.datasets:

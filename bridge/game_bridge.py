@@ -18,6 +18,7 @@ from bridge.protocol import OPERATIONS, validate_operation, wire_arguments
 class Store:
     def __init__(self, database: Path, catalog=None):
         self.lock = threading.RLock()
+        self.wakeup = threading.Condition(self.lock)
         self.db = sqlite3.connect(database, check_same_thread=False)
         self.db.row_factory = sqlite3.Row
         self.db.execute(
@@ -91,6 +92,7 @@ class Store:
                 ),
             )
             self.db.commit()
+            self.wakeup.notify_all()
             return self.command(command_id)
 
     def enqueue_operation(self, kind, arguments):
@@ -133,11 +135,12 @@ class Store:
             data["arguments"] = json.loads(data["arguments"])
             return data
 
-    def poll(self, query):
+    def poll(self, query, wait_seconds=0):
         fields = ("ack", "gold", "troop", "hp", "x", "y", "z", "clock")
         if query.get("v") not in ("1", "2") or query.get("context") not in (
             "mission",
             "campaign",
+            "menu",
         ):
             raise ValueError("Unsupported game protocol/context")
         values = {field: int(query[field]) for field in fields}
@@ -158,6 +161,9 @@ class Store:
                         "town",
                         "encounter",
                         "build",
+                        "menu",
+                        "dialogue",
+                        "pulse",
                     )
                     if field in query
                 }
@@ -196,6 +202,13 @@ class Store:
                     str(values.get("mission"))
                 ),
                 "mission_flags": values.get("flags"),
+                "menu_id": values.get("menu") if query["context"] == "menu" else None,
+                "menu_name": self.module_catalog.get("menus", {}).get(
+                    str(values.get("menu"))
+                )
+                if query["context"] == "menu"
+                else None,
+                "dialogue_active": bool(values.get("dialogue", 0)),
                 "player_is_captive": bool(values["captive"])
                 if values.get("captive") in (0, 1)
                 else None,
@@ -215,17 +228,22 @@ class Store:
                 ),
             )
             self._expire(now)
+            waited = False
             while True:
                 row = self.db.execute(
                     "SELECT * FROM commands WHERE status IN ('queued', 'dispatched') "
                     "ORDER BY id LIMIT 1"
                 ).fetchone()
+                if row is None and wait_seconds and not waited:
+                    self.wakeup.wait(timeout=min(max(wait_seconds, 0), 2))
+                    waited = True
+                    continue
                 if (
                     row is None
                     or row["kind"] == "message"
                     or (
                         row["kind"] == "scan_campaign"
-                        and query["context"] == "campaign"
+                        and query["context"] in ("campaign", "menu")
                         and query["v"] == "2"
                     )
                     or (
@@ -253,7 +271,11 @@ class Store:
                     else "741731|1|0|0|0|idle"
                 )
             if not row:
-                return "741731|2|0|0|0|0|0|0|0|idle"
+                return (
+                    f"741731|2|0|0|0|0|0|0|0|{values['pulse']}|idle"
+                    if "pulse" in values
+                    else "741731|2|0|0|0|0|0|0|0|idle"
+                )
             args = wire_arguments(row["kind"], json.loads(row["arguments"]))
             args[3] = row["session"] if row["session"] is not None else -1
             fields = [
@@ -264,6 +286,8 @@ class Store:
                 *args,
                 row["scene"] if row["scene"] is not None else -1,
             ]
+            if "pulse" in values:
+                fields.append(values["pulse"])
             return "|".join(map(str, [*fields, row["text"]]))
 
     def event(self, path, query):
@@ -411,9 +435,11 @@ class Store:
             "module_instrumented_missions": self.module_catalog.get(
                 "instrumented_missions", []
             ),
-            "expected_integration_revision": 3,
+            "expected_integration_revision": 4,
+            "polling": "revision 4 chains HTTP long-polls in paused game time",
             "caveats": [
-                "Campaign polling pauses with game time",
+                "Before revision 4, campaign polling pauses with game time",
+                "HTTP failure stops the loop; game-time/mission triggers retry",
                 "World census includes hidden parties (omniscient debug data)",
                 "Labels come from module definitions, not live renamed entities",
             ],
@@ -462,7 +488,10 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                 if url.path == "/poll":
                     if any(len(v) != 1 for v in query.values()):
                         raise ValueError("Duplicate protocol field")
-                    result = store.poll({k: v[0] for k, v in query.items()})
+                    result = store.poll(
+                        {k: v[0] for k, v in query.items()},
+                        wait_seconds=0.25 if query.get("build") == ["4"] else 0,
+                    )
                     self.reply(200, result, "text/plain")
                 elif url.path in (
                     "/agent",

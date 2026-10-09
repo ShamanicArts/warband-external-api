@@ -52,7 +52,8 @@ contains installed game assets, not the authoritative readable integration sourc
 
 - `ntypolot`: verified transport/scene/NPC baseline (29 tests).
 - `wyuutpxx`: campaign observation and honest capability discovery (41 tests).
-- Current change: expanded mission hooks and Native context telemetry.
+- `tmnokvyk`: 41 single-player mission hooks; village dialogue/save reload (47 tests).
+- Current change: pause-independent HTTP callback loop and Native menu context.
 
 ## Live campaign notes
 
@@ -79,3 +80,24 @@ and `village-dialogue-proof.png`. Battle/tavern transitions still unverified.
 NPC replies are rejected in battle-mode missions in both bridge and game code.
 Exit wording still says "Back to training" in other scenes: fix as part of real
 multi-turn dialogue rather than present the current dialogue UX as finished.
+
+Revision 4: 217 Native menu entry hooks plus return/map-context clearing;
+asynchronous callback long-poll with a 250ms idle wait and poll nonce echo.
+Superseded polls may still deliver commands, whose game-side scope/deduplication
+remains authoritative, but cannot spawn duplicate callback loops. Read-only
+campaign exports are permitted from menu context. Scene mutations are refused
+during MCP dialogue. Bootstrap preserves integer registers 0–19, s127 and pos1;
+reserved scratch registers s123/pos47 are unused by the pinned Native source.
+An HTTP outage while paused still requires a menu entry or advancing time to
+reseed polling; automatic error-callback recovery remains pending.
+
+Live proof: nine complete acknowledged pages each on paused campaign and paused
+camp menu, with clock unchanged at hour 93 (`paused-campaign-proof.json`,
+`paused-menu-proof.json`). CUA `pulse-camp.png` verifies the camp menu; MCP reports
+menu ID 23/name `camp`. Bootstrap after a fresh paused save reload passed: no
+telemetry before opening camp, fresh menu telemetry afterwards with clock 93.
+`bootstrap-full-campaign-proof.json` covers all dataset types after bootstrap
+(world limited to 32 pages in that run). `paused-full-world-proof.json` completes
+all 36 world pages: 562 unique active parties, clock 93 throughout, final cursor
+null. CUA `bootstrap-camp-proof.png` / `menu-return-map-proof.png` verify menu and
+return to the paused map; MCP context returned to `campaign` with menu fields null.

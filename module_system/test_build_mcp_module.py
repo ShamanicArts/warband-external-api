@@ -24,6 +24,8 @@ class ModuleBuildTests(unittest.TestCase):
                 "Description.\n\n1 0 0 0\n1\n0.000000 0.000000 0.000000 0 0\n"
             ),
             "simple_triggers.txt": "simple_triggers_file version 1\n1\n1.000000 0\n",
+            "menus.txt": "menusfile version 1\n1\nmenu_test 0 Test. none 0 1\n"
+            " mno_leave 0 Leave. 1 2040 0 .\n",
             "untouched.bin": "assets",
             "dialog_states.txt": "start\nparty_encounter\nprisoner_liberated\n"
             "enemy_defeated\nparty_relieved\nevent_triggered\nclose_window\n",
@@ -57,7 +59,7 @@ class ModuleBuildTests(unittest.TestCase):
         dialogue = (output / "conversation.txt").read_text(encoding="latin-1")
         self.assertIn("{s60}", dialogue)
         self.assertNotIn("{s126}", dialogue)
-        self.assertEqual((output / "strings.txt").read_bytes().splitlines()[1], b"9")
+        self.assertEqual((output / "strings.txt").read_bytes().splitlines()[1], b"10")
         self.assertEqual(
             (output / "simple_triggers.txt").read_text().splitlines()[1], "2"
         )
@@ -68,7 +70,39 @@ class ModuleBuildTests(unittest.TestCase):
         )
 
     def test_callback_control_blocks_are_balanced(self):
-        tokens = list(map(int, callback().split()))
+        self.assert_balanced(callback())
+
+    def test_actual_poll_chain_blocks_are_balanced(self):
+        self.assert_balanced(
+            callback(poll_urls=(1, 2, 3), quest_count=91, skill_count=42)
+        )
+
+    def test_menu_bootstrap_preserves_native_register_inputs(self):
+        output = self.root / "MenuGuard"
+        build(self.native, output, "http://127.0.0.1", "a" * 64)
+        menu = (output / "menus.txt").read_text().splitlines()[2].split()
+        tokens = list(map(int, menu[4:-1]))
+        operations = []
+        cursor = 1
+        for _ in range(tokens[0]):
+            opcode, arity = tokens[cursor : cursor + 2]
+            operations.append((opcode, tokens[cursor + 2 : cursor + 2 + arity]))
+            cursor += 2 + arity
+        self.assertEqual(cursor, len(tokens))
+        for register in range(20):
+            self.assertIn(
+                (OPS["assign"], [(17 << 56) + 32 + register, (1 << 56) + register]),
+                operations,
+            )
+            self.assertIn(
+                (OPS["assign"], [(1 << 56) + register, (17 << 56) + 32 + register]),
+                operations,
+            )
+        self.assertIn((OPS["copy_position"], [47, 1]), operations)
+        self.assertIn((OPS["copy_position"], [1, 47]), operations)
+
+    def assert_balanced(self, bytecode):
+        tokens = list(map(int, bytecode.split()))
         cursor, depth = 1, 0
         while cursor < len(tokens):
             opcode, arity = tokens[cursor : cursor + 2]

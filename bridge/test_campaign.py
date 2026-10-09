@@ -1,4 +1,5 @@
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 
@@ -116,6 +117,49 @@ class CampaignTests(unittest.TestCase):
         self.assertTrue(state["player_is_captive"])
         self.assertEqual(state["integration_revision"], 3)
         self.assertEqual(state["native_context"]["last_encounter_party_id"], 401)
+
+    def test_paused_menu_allows_readonly_campaign_export(self):
+        self.query.update(context="menu", menu="32", pulse="10", build="4")
+        self.store.poll(self.query)
+        cmd = self.store.enqueue_operation(
+            "scan_campaign", {"dataset": "party", "offset": 0, "limit": 16}
+        )
+        response = self.store.poll(self.query).split("|")
+        self.assertEqual(response[2], str(cmd["id"]))
+        self.assertEqual(response[9], "10")
+        self.assertEqual(self.store.snapshot()["menu_id"], 32)
+
+    def test_poll_echoes_nonce_on_idle_and_keeps_clock_paused(self):
+        self.query.update(pulse="44", build="4")
+        response = self.store.poll(self.query, wait_seconds=0.01)
+        self.assertEqual(response, "741731|2|0|0|0|0|0|0|0|44|idle")
+        self.assertEqual(self.store.snapshot()["clock"], int(self.query["clock"]))
+
+    def test_long_poll_wakes_when_command_is_enqueued(self):
+        ready = threading.Event()
+        result = []
+
+        def poll():
+            with self.store.lock:
+                ready.set()
+                result.append(self.store.poll(self.query, wait_seconds=1))
+
+        thread = threading.Thread(target=poll)
+        thread.start()
+        self.assertTrue(ready.wait(timeout=1))
+        command = self.store.enqueue_operation(
+            "scan_campaign", {"dataset": "party", "offset": 0, "limit": 16}
+        )
+        thread.join(timeout=2)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(result[0].split("|")[2], str(command["id"]))
+
+    def test_active_dialogue_blocks_unrelated_scene_mutations(self):
+        self.store.poll({**mission_telemetry(), "dialogue": "1", "build": "4"})
+        with self.assertRaisesRegex(ValueError, "conversation"):
+            self.store.enqueue_operation("npc_say", {"agent_id": 1, "text": "Hello"})
+        with self.assertRaisesRegex(ValueError, "dialogue"):
+            self.store.enqueue_operation("relocate_player", {"x": 14, "y": -5})
 
     def test_battle_npc_speech_rejected_before_queueing(self):
         self.store.poll({**mission_telemetry(), "flags": "2", "build": "3"})

@@ -13,6 +13,7 @@ from bridge.game_bridge import load_token
 
 mcp = FastMCP(
     "Warband",
+    log_level="WARNING",
     instructions=(
         "These tools connect to actual Warband game scripts, not desktop automation. "
         "Check connected and telemetry age before using state. Commands are queued, "
@@ -70,8 +71,9 @@ async def warband_refresh_campaign(
 ) -> dict:
     """Request a game-code campaign snapshot page (at most 16 rows).
 
-    Read it with warband_campaign_result. Campaign time must be running for the
-    game to poll. Inventory includes empty/equipment slots; world data includes
+    Read it with warband_campaign_result. Revision 4 services paused campaigns
+    and Native menus; older modules need advancing game time. Inventory includes
+    empty/equipment slots; world data includes
     all active parties, including hidden parties, so this is an omniscient debug
     view, not player-visible scouting. Quest titles are definition templates,
     not rendered journal text. A page is atomic only at its own export time.
