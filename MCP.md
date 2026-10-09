@@ -50,10 +50,15 @@ Campaign action tools remain unimplemented.
 Acknowledgement means the game executed the operation, not screenshot proof.
 CUA supplies independent visual proof during development.
 
-Mission polling is installed only in the free-play tutorial training ground.
+Revision 3 installs polling in 41 single-player mission templates, excludes
+multiplayer templates and guards game operations against multiplayer execution.
+Training-yard and village integration are live-verified; every other mission
+has not individually been exercised. Telemetry includes mission template, flags,
+captivity and prior Native town/encounter globals. Prior globals are not proof
+of an active menu. NPC speech is prohibited in battle-mode missions.
 Campaign polling is a simple trigger every 0.1 game hours; paused game time won't
 poll. State older than 15 seconds is marked disconnected. Commands expire after
-30 seconds and are replayed until acknowledged. Player troop slots 99992–99999
+30 seconds and are replayed until acknowledged. Player troop slots 99990–99999
 are reserved for deduplication, result codes, mission sessions and NPC targeting.
 Do not reuse these slots in other mods. Mission actions are scoped to scene and
 mission session and revalidated in game code. Bridge restart or mission-clock
@@ -257,8 +262,24 @@ integration yet. Inventory `amount` is the engine's raw slot amount (including
 special negative horse values), not a universal item count.
 
 The isolated test campaign is saved to a new WarbandMCP `sg00.sav` slot under
-the copied Proton prefix. Native/Pendor saves were not touched. Source now also
-guards empty inventory slots; that small post-proof change will be revalidated
-in the next module deployment. See `IMPLEMENTATION.md` for the remaining suite.
+the copied Proton prefix. Native/Pendor saves were not touched. Source also guards
+empty inventory slots; that change was revalidated on revision 3 in
+`inventory-guard-proof.json`. See `IMPLEMENTATION.md` for the remaining suite.
 Expiry stops further delivery; it cannot undo a command already executed by the
 game. A delayed acknowledgement can replace an expired status.
+
+## Expanded mission live proof (revision 3)
+
+- Reloaded the isolated module-specific save through CUA; revision 3 campaign
+  telemetry reported gold 365 and `player_is_captive=false` after normal release.
+- Inventory first page completed and acknowledged with the empty-slot guard.
+- Entered Aldelen's village centre through CUA, not a mod teleport. Game telemetry
+  reported scene 434, mission template 3 (`village_center`), session 1, flags 0.
+- Actual MCP census returned 10 living human agents including the player,
+  villagers and village elder. A supplied line rendered in a villager's real
+  dialogue screen, then closed and acknowledged with mission telemetry resumed.
+- Evidence: `/tmp/shuvcode/warband-cua/village-gameplay-proof.json` and
+  `village-dialogue-proof.png`. The current exit line still says "Back to training"
+  outside training; fixing that and multi-turn dialogue remain open work.
+- 47 automated tests pass; Ruff/Pyright are clean. Broader battle/tavern coverage
+  and actual campaign/combat controls are not yet proven or implemented.

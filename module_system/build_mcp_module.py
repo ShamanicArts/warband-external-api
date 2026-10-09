@@ -13,6 +13,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from module_system.campaign_ops import campaign_export
+from module_system.mission_hooks import instrument_missions
 
 REG = 1 << 56
 STR = 3 << 56
@@ -23,6 +24,7 @@ ACK_SLOT = 99999  # Reserved by this isolated mod on trp_player.
 RESULT_SLOT, NPC_SLOT, READY_SLOT, JOB_SLOT = 99998, 99997, 99996, 99995
 CONTEXT_SLOT, SESSION_SLOT = 99994, 99993
 NPC_AGENT_SLOT = 99992
+MISSION_SLOT, MISSION_FLAGS_SLOT = 99991, 99990
 
 # Official operation names and values, not the previous prototype's headers.
 OPS = {
@@ -95,6 +97,8 @@ OPS = {
     "party_get_num_companions": 1601,
     "check_quest_active": 200,
     "quest_get_slot": 526,
+    "not_multiplayer": 0x80000000 | 419,
+    "val_and": 2115,
 }
 
 
@@ -109,8 +113,9 @@ def compile_ops(operations):
     )
 
 
-def telemetry(url_string, mission):
+def telemetry(url_string, mission, native_globals=None):
     ops = [
+        ("not_multiplayer",),
         ("set_fixed_point_multiplier", 100),
         ("troop_set_slot", TROOP, CONTEXT_SLOT, int(mission)),
         ("troop_get_slot", REG + 0, TROOP, ACK_SLOT),
@@ -122,12 +127,15 @@ def telemetry(url_string, mission):
         ops += [
             ("get_player_agent_no", LOCAL),
             ("ge", LOCAL, 0),
+            ("agent_is_active", LOCAL),
             ("agent_get_troop_id", REG + 2, LOCAL),
             ("store_agent_hit_points", REG + 3, LOCAL, 1),
             ("agent_get_position", 1, LOCAL),
             ("store_mission_timer_a", REG + 7),
             ("store_current_scene", REG + 8),
             ("assign", REG + 9, LOCAL),
+            ("troop_get_slot", REG + 12, TROOP, MISSION_SLOT),
+            ("troop_get_slot", REG + 13, TROOP, MISSION_FLAGS_SLOT),
         ]
     else:
         ops += [
@@ -138,7 +146,17 @@ def telemetry(url_string, mission):
             ("assign", REG + 8, -1),
             ("assign", REG + 9, -1),
             ("assign", REG + 11, -1),
+            ("assign", REG + 12, -1),
+            ("assign", REG + 13, 0),
         ]
+    ops += [
+        ("assign", REG + register, (native_globals or {}).get(name, -1))
+        for register, name in (
+            (14, "g_player_is_captive"),
+            (15, "current_town"),
+            (16, "g_encountered_party"),
+        )
+    ]
     ops += [
         ("position_get_x", REG + 4, 1),
         ("position_get_y", REG + 5, 1),
@@ -214,6 +232,9 @@ def callback(
         ("assign", result, 0),
     ]
     npc = [
+        ("troop_get_slot", tmp, TROOP, MISSION_FLAGS_SLOT),
+        ("val_and", tmp, 2),
+        ("eq", tmp, 0),
         ("agent_is_active", a),
         ("agent_is_alive", a),
         ("agent_is_human", a),
@@ -231,6 +252,7 @@ def callback(
     return compile_ops(
         [
             ("store_script_param", LOCAL, 1),
+            ("not_multiplayer",),
             ("ge", LOCAL, 9),
             ("store_script_param", LOCAL + 2, 2),
             ("ge", LOCAL + 2, 1),
@@ -347,17 +369,6 @@ def build(native: Path, output: Path, endpoint: str, token: str):
     if len(re.findall(pattern, scripts)) != 1:
         raise ValueError("Expected exactly one empty Native URL callback")
     missions = (native / "mission_templates.txt").read_text().splitlines()
-    start = next(
-        i
-        for i, line in enumerate(missions)
-        if line.startswith("mst_tutorial_training_ground ")
-    )
-    # Format: header, description, blank, spawn-count + first spawn, remaining
-    # spawns, trigger-count, triggers. Read the count, not a hard-coded offset.
-    spawn_line = start + 3
-    spawns = int(missions[spawn_line].split()[0])
-    trigger_line = spawn_line + max(spawns, 1)
-    trigger_count = int(missions[trigger_line].strip())
     strings = (native / "strings.txt").read_text(encoding="latin-1").splitlines()
     count = int(strings[1])
     if len(strings[2:]) != count:
@@ -369,6 +380,8 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             "&ack={reg0}&gold={reg1}&troop={reg2}&hp={reg3}"
             "&x={reg4}&y={reg5}&z={reg6}&clock={reg7}"
             "&scene={reg8}&agent={reg9}&result={reg10}&session={reg11}"
+            "&mission={reg12}&flags={reg13}&captive={reg14}&town={reg15}"
+            "&encounter={reg16}&build=3"
         )
         new_strings.append(f"str_mcp_{kind}_url {value}")
     new_strings.extend(
@@ -390,27 +403,47 @@ def build(native: Path, output: Path, endpoint: str, token: str):
     )
     strings[1] = str(count + len(new_strings))
     strings.extend(new_strings)
-    missions[trigger_line] = str(trigger_count + 2)
-    missions.insert(
-        trigger_line + 1 + trigger_count,
-        "2.000000 0.000000 0.000000 0 " + telemetry(STR + count, True),
+    variables_path = native / "variables.txt"
+    native_globals = (
+        {
+            name: (2 << 56) + i
+            for i, name in enumerate(variables_path.read_text().splitlines())
+        }
+        if variables_path.exists()
+        else {}
     )
-    missions.insert(
-        trigger_line + 2 + trigger_count,
-        "-19.000000 0.000000 0.000000 0 "
-        + compile_ops(
-            [
-                ("troop_get_slot", LOCAL, TROOP, SESSION_SLOT),
-                ("val_add", LOCAL, 1),
-                ("troop_set_slot", TROOP, SESSION_SLOT, LOCAL),
-                ("troop_set_slot", TROOP, CONTEXT_SLOT, 1),
-                ("troop_set_slot", TROOP, READY_SLOT, 0),
-            ]
-        ),
-    )
+
+    def mission_triggers(mission_id, flags):
+        return [
+            "2.000000 0.000000 0.000000 0 "
+            + telemetry(STR + count, True, native_globals),
+            "-19.000000 0.000000 0.000000 0 "
+            + compile_ops(
+                [
+                    ("not_multiplayer",),
+                    ("troop_get_slot", LOCAL, TROOP, SESSION_SLOT),
+                    ("val_add", LOCAL, 1),
+                    ("troop_set_slot", TROOP, SESSION_SLOT, LOCAL),
+                    ("troop_set_slot", TROOP, CONTEXT_SLOT, 1),
+                    ("troop_set_slot", TROOP, READY_SLOT, 0),
+                    ("troop_set_slot", TROOP, MISSION_SLOT, mission_id),
+                    ("troop_set_slot", TROOP, MISSION_FLAGS_SLOT, flags),
+                ]
+            ),
+            "-29.000000 0.000000 0.000000 0 "
+            + compile_ops(
+                [
+                    ("not_multiplayer",),
+                    ("troop_set_slot", TROOP, CONTEXT_SLOT, 0),
+                    ("troop_set_slot", TROOP, READY_SLOT, 0),
+                ]
+            ),
+        ]
+
+    missions, mission_names = instrument_missions(missions, mission_triggers)
     simple = (native / "simple_triggers.txt").read_text().splitlines()
     simple[1] = str(int(simple[1]) + 1)
-    simple.append("0.100000 " + telemetry(STR + count + 1, False))
+    simple.append("0.100000 " + telemetry(STR + count + 1, False, native_globals))
     states = (native / "dialog_states.txt").read_text().splitlines()
     if "mcp_npc_end" in states:
         raise ValueError("Native already contains MCP dialogue state")
@@ -506,6 +539,17 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     str(i): row[1].replace("_", " ") for i, row in enumerate(factions)
                 },
                 "parties": parties,
+                "missions": {
+                    str(i): line.split()[0][4:]
+                    for i, line in enumerate(
+                        line
+                        for line in (native / "mission_templates.txt")
+                        .read_text()
+                        .splitlines()
+                        if line.startswith("mst_")
+                    )
+                },
+                "instrumented_missions": mission_names,
             },
             indent=2,
         )
@@ -517,8 +561,10 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         json.dumps(
             {
                 "protocol": 2,
+                "integration_revision": 3,
                 "source": str(native),
                 "transport": "engine HTTP opcode 380",
+                "instrumented_missions": mission_names,
                 "modified": [
                     "strings.txt",
                     "scripts.txt",

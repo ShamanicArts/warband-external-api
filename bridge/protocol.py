@@ -60,6 +60,11 @@ def validate_operation(kind, payload, state):
                 "Text needs 1–200 printable characters without | or braces"
             )
     if kind == "npc_say":
+        if (
+            state.get("mission_flags", 0) is not None
+            and state.get("mission_flags", 0) & 2
+        ):
+            raise ValueError("NPC dialogue is disabled during battle missions")
         agent_id = payload["agent_id"]
         if type(agent_id) is not int or not 0 <= agent_id < 10000:
             raise ValueError("Expected a valid nonnegative scene agent ID")

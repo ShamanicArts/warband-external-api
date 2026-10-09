@@ -101,6 +101,27 @@ class CampaignTests(unittest.TestCase):
         self.assertEqual(row["members"], 100)
         self.assertIsNone(row["name"])
 
+    def test_new_context_telemetry_and_old_native_globals_caveat(self):
+        query = {
+            **self.query,
+            "build": "3",
+            "mission": "-1",
+            "flags": "0",
+            "captive": "1",
+            "town": "32",
+            "encounter": "401",
+        }
+        self.store.poll(query)
+        state = self.store.snapshot()
+        self.assertTrue(state["player_is_captive"])
+        self.assertEqual(state["integration_revision"], 3)
+        self.assertEqual(state["native_context"]["last_encounter_party_id"], 401)
+
+    def test_battle_npc_speech_rejected_before_queueing(self):
+        self.store.poll({**mission_telemetry(), "flags": "2", "build": "3"})
+        with self.assertRaisesRegex(ValueError, "battle missions"):
+            self.store.enqueue_operation("npc_say", {"agent_id": 1, "text": "Hello"})
+
     def test_character_attribute_and_skill_indices(self):
         v = dict(id=0, a=12, b=0, c=0, d=0, e=0, f=0)
         self.assertEqual(self.store.campaign.decode("character", v)["stat"], "level")

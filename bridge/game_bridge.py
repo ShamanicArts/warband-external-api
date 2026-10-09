@@ -41,6 +41,7 @@ class Store:
         self.scans = {}
         self.dialogues = {}
         self.catalog = (catalog or {}).get("troops", {})
+        self.module_catalog = catalog or {}
         self.campaign = CampaignExports(self.db, catalog or {})
 
     def _interrupt_mission_commands(self):
@@ -147,6 +148,20 @@ class Store:
                     for field in ("scene", "agent", "result", "session")
                 }
             )
+            values.update(
+                {
+                    field: int(query[field])
+                    for field in (
+                        "mission",
+                        "flags",
+                        "captive",
+                        "town",
+                        "encounter",
+                        "build",
+                    )
+                    if field in query
+                }
+            )
         if any(abs(v) > 2**53 for v in values.values()):
             raise ValueError("State value out of bounds")
         now = time.time()
@@ -175,6 +190,20 @@ class Store:
                 "mission_session": values.get("session"),
                 "player_agent_id": values.get("agent"),
                 "last_command_result": values.get("result", 0),
+                "integration_revision": values.get("build", 2),
+                "mission_template_id": values.get("mission"),
+                "mission_template": self.module_catalog.get("missions", {}).get(
+                    str(values.get("mission"))
+                ),
+                "mission_flags": values.get("flags"),
+                "player_is_captive": bool(values["captive"])
+                if values.get("captive") in (0, 1)
+                else None,
+                "native_context": {
+                    "last_town_id": values.get("town"),
+                    "last_encounter_party_id": values.get("encounter"),
+                    "caveat": "Prior Native context; not proof of an active menu",
+                },
             }
             self.db.execute(
                 "UPDATE commands SET status=?, result=? "
@@ -357,9 +386,9 @@ class Store:
             "state": self.snapshot(),
             "implemented": {
                 "message": "mission or campaign",
-                "scene_agents": "instrumented training yard only; 64 living humans max",
+                "scene_agents": "single-player missions; 64 living humans max",
                 "relocate_player": "debug teleport <=10m, not walking",
-                "npc_say": "one supplied line in real dialogue; no free-text reply yet",
+                "npc_say": "one non-battle dialogue line; no free-text reply yet",
                 "campaign_exports": [
                     "party",
                     "prisoners",
@@ -377,9 +406,12 @@ class Store:
                 "combat orders",
                 "multi-turn NPC dialogue",
                 "free-text player input",
-                "all-mission instrumentation",
             ],
             "campaign_page_limit": 16,
+            "module_instrumented_missions": self.module_catalog.get(
+                "instrumented_missions", []
+            ),
+            "expected_integration_revision": 3,
             "caveats": [
                 "Campaign polling pauses with game time",
                 "World census includes hidden parties (omniscient debug data)",

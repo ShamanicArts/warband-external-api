@@ -22,7 +22,8 @@ No arbitrary bytecode, memory injection, blind save changes, or mocked state.
    parties. Make exports complete/out-of-order safe, provenance-labelled and stale-aware.
    All six first pages and complete inventory/character pagination verified;
    CUA character stats match. Prisoner export has only been checked with zero prisoners.
-4. **Integration breadth** — instrument actual single-player missions, not just
+4. **Integration breadth** — 41 single-player missions instrumented, village live-verified;
+   instrument actual single-player missions, not just
    the training yard; verify town, tavern, battle and campaign/mission transitions.
 5. **Campaign control** — guarded destination orders and stop; inspect native
    economic, recruitment, quest, encounter, trade and party-management interfaces
@@ -50,7 +51,8 @@ contains installed game assets, not the authoritative readable integration sourc
 ## JJ checkpoints
 
 - `ntypolot`: verified transport/scene/NPC baseline (29 tests).
-- Current change: campaign observation and honest capability discovery.
+- `wyuutpxx`: campaign observation and honest capability discovery (41 tests).
+- Current change: expanded mission hooks and Native context telemetry.
 
 ## Live campaign notes
 
@@ -63,5 +65,17 @@ Declaration-of-war menu and looter encounter paused polling. Menu/context events
 and pause-safe read/command handling are required, not optional packaging polish.
 Artifacts: `/tmp/shuvcode/warband-cua/campaign-proof.json`,
 `campaign-pagination-proof.json`, and `campaign-character-proof.png`.
-Inventory empty-slot guard was added after the first live build; revalidate it
-with the next deployment rather than claiming that exact change is live-proven.
+Inventory empty-slot guard was revalidated on integration revision 3 after reload:
+`/tmp/shuvcode/warband-cua/inventory-guard-proof.json`.
+
+Revision 3 instruments 41 single-player mission templates, excludes `multiplayer*`
+templates and additionally guards execution with vanilla `game_in_multiplayer_mode`.
+Native zero-spawn templates encode spawn-count/trigger-count together (`0 2`);
+the parser has a regression fixture for the actual `camera_test` seam.
+Village live proof: scene 434, template 3 `village_center`, session 1, 10 living
+humans. Supplied text rendered by a villager, opening and closing observed,
+command acknowledged; `/tmp/shuvcode/warband-cua/village-gameplay-proof.json`
+and `village-dialogue-proof.png`. Battle/tavern transitions still unverified.
+NPC replies are rejected in battle-mode missions in both bridge and game code.
+Exit wording still says "Back to training" in other scenes: fix as part of real
+multi-turn dialogue rather than present the current dialogue UX as finished.

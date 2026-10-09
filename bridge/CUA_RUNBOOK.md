@@ -96,3 +96,17 @@ This display uses software OpenGL rendering in the tested launch. Gameplay
 performance and GPU acceleration are not established by launcher input success.
 The X server uses local access without an Xauthority cookie (`-ac`); TCP is
 disabled, but other local users could access it. This is not a security sandbox.
+# Exact-coordinate verification note (2026-10-09)
+
+The isolated `:97` Warband capture can be composited with an InputOnly popup
+(`4194305`, depth 0). Capturing that popup fails; window-relative actions on the
+composited image can be offset, especially for small world-map targets. Use
+`get_desktop_state` and `click` with `scope: "desktop"` for exact screen pixels
+in this isolated X11 session. This is still CUA, not direct X11/Hyprland automation.
+The CUA daemon owns display `:97`; desktop scope here does not target the user's
+normal desktop. Always inspect the current screenshot before choosing coordinates.
+
+`get_desktop_state` accepts `screenshot_out_file`, not `include_accessibility_tree`.
+Its CLI-returned capture IDs currently fail action lookup, so screen-absolute clicks
+use the freshly observed pixels without attaching that ID. Verify each effect.
+Single key taps can miss under software rendering; repeat deliberately and inspect.
