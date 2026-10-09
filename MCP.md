@@ -369,3 +369,31 @@ Original proof: `evidence/battle-orders/`. Reproduce with
 argument guards but are **not yet live-verified**. No claim of enemy control,
 individual agent combat AI, player attacks or campaign-battle acceptance.
 72 tests pass for the active suite; 79 opcodes checked against official ModSys.
+
+## Individual scene controls (revision 7)
+
+- `warband_place_formation`: bounded Native hold-point placement, own team.
+- `warband_agent_wield`: select an actually equipped item, never spawn one.
+- `warband_move_npc`: scripted NPC walking within scene bounds, not teleport.
+- `warband_release_npc`: clear NPC scripted mode and request AI rethink.
+- `warband_agent_combat`: directional attacks/blocks, explicitly requiring fresh
+  engine read-back. NPC combat takes scripted control; release afterwards.
+
+Default actor authority is the player's team. Explicit `world_control=True`
+permits other teams, as a world intervention (override still unverified).
+Commands are living-agent, dialogue, scene and session guarded. Fresh census
+includes equipped weapon slots, wielded item, attack/defend/direction and walking
+destination. An acknowledgement alone is not evidence of movement or damage.
+
+Live: nine matching hold points, NPC walking 1.75m closer, equipped Sword upward
+ready state (attack 1/direction 3), shield block (defend 2/direction 5), player
+weapon selection. **Player held attacks were ineffective with throwing and melee
+weapons. Player attack/block/movement input is not established by these tools.**
+The actual failures and successes are retained in `evidence/scene-control/`.
+The acceptance harness fails on player input unless `--npc-acceptance` explicitly
+limits acceptance to NPC/formation controls; player failure stays in the evidence.
+
+Late callbacks previously accessed unloaded troop slots at the main menu. An
+additive lifecycle global now stops callbacks before troop access, and quit hooks
+clear it before unloading. Live main-menu exit had zero script errors, stopped
+heartbeat and correctly stale/disconnected MCP. 86 tests; 96 official opcodes.

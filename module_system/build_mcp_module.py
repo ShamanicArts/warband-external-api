@@ -17,6 +17,7 @@ from module_system.campaign_ops import campaign_export
 from module_system.menu_actions import append_actions
 from module_system.menu_hooks import instrument_menus
 from module_system.mission_hooks import instrument_missions
+from module_system.scene_ops import agent_combat, agent_move, agent_release, agent_wield
 
 REG = 1 << 56
 STR = 3 << 56
@@ -113,6 +114,23 @@ OPS = {
     "team_get_weapon_usage_order": 1787,
     "team_give_order": 1790,
     "team_get_order_position": 1794,
+    "team_set_order_position": 1791,
+    "get_scene_boundaries": 1799,
+    "val_sub": 2106,
+    "agent_set_attack_action": 1745,
+    "agent_set_defend_action": 1746,
+    "agent_get_attack_action": 1763,
+    "agent_get_defend_action": 1764,
+    "agent_get_action_dir": 1767,
+    "agent_get_wielded_item": 1726,
+    "agent_get_scripted_destination": 1731,
+    "agent_set_scripted_destination": 1730,
+    "agent_clear_scripted_mode": 1735,
+    "agent_force_rethink": 1732,
+    "agent_has_item_equipped": 1729,
+    "agent_set_wielded_item": 1747,
+    "agent_get_item_slot": 1804,
+    "agent_set_scripted_destination_no_attack": 1748,
 }
 
 
@@ -131,6 +149,11 @@ def telemetry_ops(url_string, mission, native_globals=None, context=None):
     ops = [
         ("not_multiplayer",),
         *(([("party_is_active", PARTY)]) if not mission else []),
+        *(
+            [("assign", native_globals["mcp_http_active"], 1)]
+            if native_globals and "mcp_http_active" in native_globals
+            else []
+        ),
         ("set_fixed_point_multiplier", 100),
         (
             "troop_set_slot",
@@ -210,6 +233,7 @@ def callback(
     native_globals=None,
     menu_actions=None,
     battle_result_url=0,
+    item_count=0,
 ):
     cmd, kind, a, b, session, scene, result, tmp, agent, count = [
         LOCAL + i for i in (3, 4, 5, 6, 8, 9, 10, 11, 12, 13)
@@ -234,6 +258,14 @@ def callback(
         ("position_get_x", REG + 25, 2),
         ("position_get_y", REG + 26, 2),
         ("position_get_z", REG + 27, 2),
+        ("agent_get_attack_action", REG + 32, agent),
+        ("agent_get_defend_action", REG + 33, agent),
+        ("agent_get_action_dir", REG + 34, agent),
+        ("agent_get_wielded_item", REG + 35, agent, 0),
+        ("agent_get_scripted_destination", 2, agent),
+        ("position_get_x", REG + 36, 2),
+        ("position_get_y", REG + 37, 2),
+        *[("agent_get_item_slot", REG + 38 + i, agent, i) for i in range(4)],
         ("assign", REG + 28, 0),
         ("try_begin",),
         ("eq", agent, LOCAL + 14),
@@ -306,6 +338,11 @@ def callback(
         choose_menu += [("try_end",)]
     return compile_ops(
         [
+            *(
+                [("eq", native_globals["mcp_http_active"], 1)]
+                if native_globals and "mcp_http_active" in native_globals
+                else []
+            ),
             ("store_script_param", LOCAL, 1),
             ("not_multiplayer",),
             ("ge", LOCAL, 10 if poll_urls else 9),
@@ -360,6 +397,26 @@ def callback(
             ("else_try",),
             ("eq", kind, 7),
             *battle_order(battle_result_url, MISSION_FLAGS_SLOT, DIALOG_ACTIVE_SLOT),
+            ("else_try",),
+            ("eq", kind, 8),
+            *battle_order(
+                battle_result_url,
+                MISSION_FLAGS_SLOT,
+                DIALOG_ACTIVE_SLOT,
+                placement=True,
+            ),
+            ("else_try",),
+            ("eq", kind, 9),
+            *agent_combat(DIALOG_ACTIVE_SLOT),
+            ("else_try",),
+            ("eq", kind, 10),
+            *agent_move(DIALOG_ACTIVE_SLOT),
+            ("else_try",),
+            ("eq", kind, 11),
+            *agent_release(DIALOG_ACTIVE_SLOT),
+            ("else_try",),
+            ("eq", kind, 12),
+            *agent_wield(DIALOG_ACTIVE_SLOT, item_count),
             ("try_end",),
             ("else_try",),
             ("eq", kind, 5),
@@ -481,7 +538,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             "&scene={reg8}&agent={reg9}&result={reg10}&session={reg11}"
             "&mission={reg12}&flags={reg13}&captive={reg14}&town={reg15}"
             "&encounter={reg16}&menu={reg17}&pulse={reg18}&dialogue={reg19}"
-            "&menu-session={reg20}&build=6"
+            "&menu-session={reg20}&build=7"
         )
         new_strings.append(f"str_mcp_{kind}_url {value}")
     new_strings.extend(
@@ -489,7 +546,9 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             f"str_mcp_agent_url {endpoint}/agent?token={token}&v=2"
             "&job={reg20}&id={reg21}&troop={reg22}&team={reg23}&hp={reg24}"
             "&x={reg25}&y={reg26}&z={reg27}&player={reg28}&scene={reg30}"
-            "&session={reg31}",
+            "&session={reg31}&attack={reg32}&defend={reg33}&direction={reg34}"
+            "&weapon={reg35}&destination-x={reg36}&destination-y={reg37}"
+            "&slot0={reg38}&slot1={reg39}&slot2={reg40}&slot3={reg41}",
             f"str_mcp_agents_end_url {endpoint}/agents-end?token={token}&v=2"
             "&job={reg20}&count={reg29}&scene={reg30}&session={reg31}",
             f"str_mcp_dialogue_url {endpoint}/dialogue?token={token}&v=2"
@@ -523,6 +582,12 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         if variables_path.exists()
         else {}
     )
+    if "mcp_http_active" in native_globals:
+        raise ValueError("Native already uses reserved MCP lifecycle global")
+    native_globals["mcp_http_active"] = (2 << 56) + len(native_globals)
+    variable_names = (
+        variables_path.read_text().splitlines() if variables_path.exists() else []
+    )
 
     def mission_triggers(mission_id, flags):
         return [
@@ -532,6 +597,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             + compile_ops(
                 [
                     ("not_multiplayer",),
+                    ("assign", native_globals["mcp_http_active"], 1),
                     ("troop_get_slot", LOCAL, TROOP, SESSION_SLOT),
                     ("val_add", LOCAL, 1),
                     ("troop_set_slot", TROOP, SESSION_SLOT, LOCAL),
@@ -571,6 +637,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         (native / "menus.txt").read_text(encoding="latin-1").splitlines(),
         lambda menu_id: compile_ops(
             [
+                ("assign", native_globals["mcp_http_active"], 1),
                 ("troop_set_slot", TROOP, MENU_SLOT, menu_id),
                 ("troop_set_slot", TROOP, CONTEXT_SLOT, 2),
                 ("troop_set_slot", TROOP, READY_SLOT, 0),
@@ -595,6 +662,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                 *menu_bootstrap,
             ]
         ),
+        on_shutdown=compile_ops([("assign", native_globals["mcp_http_active"], 0)]),
     )
     script_lines = scripts.splitlines()
     extra_scripts, menu_actions = append_actions(
@@ -640,6 +708,9 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         if len(fields) > 4 and fields[3].startswith("p_"):
             parties[fields[1]] = fields[4].replace("_", " ")
     shutil.copytree(native, output)
+    (output / "variables.txt").write_text(
+        "\n".join([*variable_names, "mcp_http_active"]) + "\n"
+    )
     (output / "strings.txt").write_text("\n".join(strings) + "\n", encoding="latin-1")
     (output / "scripts.txt").write_text(
         re.sub(
@@ -658,6 +729,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     native_globals,
                     menu_actions,
                     STR + count + 8,
+                    len(items),
                 )
                 + "\n"
             ),
@@ -729,7 +801,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         json.dumps(
             {
                 "protocol": 2,
-                "integration_revision": 6,
+                "integration_revision": 7,
                 "source": str(native),
                 "transport": "engine HTTP opcode 380",
                 "instrumented_missions": mission_names,
@@ -751,6 +823,11 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     "scan_campaign",
                     "select_menu",
                     "battle_order",
+                    "formation_position",
+                    "agent_combat",
+                    "agent_move",
+                    "agent_release",
+                    "agent_wield",
                 ],
             },
             indent=2,

@@ -43,6 +43,13 @@ class MenuHookTests(unittest.TestCase):
         output, _ = instrument_menus(lines, lambda mid: "0", "1 500 3 0 99994 0")
         self.assertIn("2 500 3 0 99994 0 2040 0 Door_to_the_town_center.", output[1])
 
+    def test_quit_clears_lifecycle_before_troops_are_unloaded(self):
+        lines = ["menu_test 0 Test. none 0 1", " mno_quit 0 Continue. 1 2055 0 ."]
+        output, _ = instrument_menus(
+            lines, lambda mid: "0", on_shutdown="1 2133 2 144115188075855872 0"
+        )
+        self.assertIn("2 2133 2 144115188075855872 0 2055 0 .", output[1])
+
 
 if __name__ == "__main__":
     unittest.main()

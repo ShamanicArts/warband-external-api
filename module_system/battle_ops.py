@@ -1,9 +1,11 @@
 """Player-team-only Native orders with per-formation engine read-back."""
 
+from module_system.scene_ops import bounded_destination
+
 REG, LOCAL, TROOP = 1 << 56, 17 << 56, 5 << 56
 
 
-def battle_order(result_url, mission_flags_slot, dialogue_slot):
+def battle_order(result_url, mission_flags_slot, dialogue_slot, placement=False):
     # Same callback argument locals as the other allowlisted operations.
     job, group, order, result = LOCAL + 3, LOCAL + 5, LOCAL + 6, LOCAL + 10
     team, start, end, index = LOCAL + 25, LOCAL + 26, LOCAL + 27, LOCAL + 28
@@ -15,16 +17,24 @@ def battle_order(result_url, mission_flags_slot, dialogue_slot):
         ("eq", team, 0),
         ("ge", group, 0),
         ("le", group, 9),
-        ("ge", order, 0),
-        ("le", order, 14),
+        *([] if placement else [("ge", order, 0), ("le", order, 14)]),
         ("get_player_agent_no", index),
         ("ge", index, 0),
         ("agent_is_active", index),
         ("agent_is_alive", index),
         ("agent_get_team", team, index),
+        *(
+            [
+                # Boundary checks use scratch locals 26–29, not the team in local25.
+                *bounded_destination(LOCAL + 6, LOCAL + 16, index),
+            ]
+            if placement
+            else []
+        ),
         ("assign", REG + 30, LOCAL + 9),
         ("assign", REG + 31, LOCAL + 8),
-        ("team_give_order", team, group, order),
+        ("team_give_order", team, group, 0 if placement else order),
+        *([("team_set_order_position", team, group, 2)] if placement else []),
         ("assign", start, group),
         ("store_add", end, group, 1),
         ("try_begin",),

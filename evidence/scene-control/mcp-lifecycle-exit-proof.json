@@ -1,0 +1,82 @@
+{
+  "method": "live Custom Battle exit; CUA plus game log counts",
+  "before_errors": 0,
+  "before_log_bytes": 13342,
+  "log_path": "/home/shamanic/.local/share/Steam/steamapps/common/MountBlade Warband/rgl_log.txt",
+  "first_state_after_exit": {
+    "connected": false,
+    "age_seconds": 47.113,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "menu",
+    "received_at": 1791526515.0856235,
+    "player_gold": 0,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": 17.0,
+      "y": 52.5,
+      "z": 0.0
+    },
+    "clock": 0,
+    "acknowledged_command_id": 1791526445,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": -1,
+    "integration_revision": 7,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": 6,
+    "menu_session": 1,
+    "menu_name": "custom_battle_end",
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 0,
+      "last_encounter_party_id": 0,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "state_after_stale_window": {
+    "connected": false,
+    "age_seconds": 63.123,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "menu",
+    "received_at": 1791526515.0856235,
+    "player_gold": 0,
+    "player_troop_id": 0,
+    "player_hit_points": null,
+    "position": {
+      "x": 17.0,
+      "y": 52.5,
+      "z": 0.0
+    },
+    "clock": 0,
+    "acknowledged_command_id": 1791526445,
+    "scene_id": -1,
+    "mission_session": -1,
+    "player_agent_id": -1,
+    "last_command_result": -1,
+    "integration_revision": 7,
+    "mission_template_id": -1,
+    "mission_template": null,
+    "mission_flags": 0,
+    "menu_id": 6,
+    "menu_session": 1,
+    "menu_name": "custom_battle_end",
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 0,
+      "last_encounter_party_id": 0,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "after_errors": 0,
+  "callbacks_stopped": true,
+  "disconnected": true,
+  "main_menu_screenshot": "mcp-lifecycle-exit-proof.png"
+}

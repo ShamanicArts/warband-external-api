@@ -333,7 +333,7 @@ class Store:
                 self.campaign.event(path, query, command)
                 return
             if path == "/battle-order":
-                if command["kind"] != "battle_order":
+                if command["kind"] not in ("battle_order", "formation_position"):
                     raise ValueError("Order read-back requires a battle order command")
                 data = {
                     k: int(query[k])
@@ -419,6 +419,19 @@ class Store:
                     "is_player": bool(data["player"]),
                     "position": {k: data[k] / 100 for k in ("x", "y", "z")},
                 }
+                if "attack" in query:
+                    scan["agents"][data["id"]]["combat"] = {
+                        k: int(query[k])
+                        for k in ("attack", "defend", "direction", "weapon")
+                    }
+                    scan["agents"][data["id"]]["scripted_destination"] = {
+                        axis: int(query[f"destination-{axis}"]) / 100
+                        for axis in ("x", "y")
+                    }
+                    if "slot0" in query:
+                        scan["agents"][data["id"]]["weapon_slots"] = [
+                            int(query[f"slot{i}"]) for i in range(4)
+                        ]
             elif path in ("/agents-end", "/agents_end"):
                 count = int(query["count"])
                 if not 0 <= count <= 64:
@@ -447,7 +460,7 @@ class Store:
     def battle_result(self, job):
         with self.lock:
             command = self.command(job)
-            if command["kind"] != "battle_order":
+            if command["kind"] not in ("battle_order", "formation_position"):
                 raise ValueError("Not a battle order command")
             rows = [
                 json.loads(row[0])
@@ -508,6 +521,14 @@ class Store:
                 "npc_say": "one non-battle dialogue line; no free-text reply yet",
                 "select_menu": "reviewed Native choices; fresh menu; Native conditions",
                 "battle_order": "revision 6; own team; four orders live-verified",
+                "scene_control": {
+                    "agent_wield": "equipped items; player swap live-verified",
+                    "formation_position": "bounded hold point; live-verified",
+                    "agent_move": "NPC walking, not teleport; live-verified",
+                    "agent_release": "clear script mode/rethink; acknowledged live",
+                    "agent_combat": "NPC ready/block verified; player hold ineffective",
+                    "world_control": "explicit other-team intervention; unverified",
+                },
                 "campaign_exports": [
                     "party",
                     "prisoners",
@@ -522,7 +543,7 @@ class Store:
                 "trade",
                 "mercenary/prisoner recruitment outside reviewed village menus",
                 "quest actions",
-                "formation placement, individual combat AI and player combat input",
+                "reliable player combat input beyond equipped weapon selection",
                 "multi-turn NPC dialogue",
                 "free-text player input",
             ],
@@ -530,7 +551,7 @@ class Store:
             "module_instrumented_missions": self.module_catalog.get(
                 "instrumented_missions", []
             ),
-            "expected_integration_revision": 6,
+            "expected_integration_revision": 7,
             "polling": "revision 4 chains HTTP long-polls in paused game time",
             "caveats": [
                 "Before revision 4, campaign polling pauses with game time",
@@ -601,7 +622,7 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                     result = store.poll(
                         {k: v[0] for k, v in query.items()},
                         wait_seconds=0.25
-                        if query.get("build") in (["4"], ["5"], ["6"])
+                        if query.get("build") in (["4"], ["5"], ["6"], ["7"])
                         else 0,
                     )
                     self.reply(200, result, "text/plain")

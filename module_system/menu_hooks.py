@@ -17,7 +17,9 @@ def operation_end(fields, start):
     return cursor
 
 
-def instrument_menus(lines, make_prefix, on_return=None, make_suffix=None):
+def instrument_menus(
+    lines, make_prefix, on_return=None, make_suffix=None, on_shutdown=None
+):
     result = list(lines)
     names = []
     for index, line in enumerate(lines):
@@ -46,8 +48,9 @@ def instrument_menus(lines, make_prefix, on_return=None, make_suffix=None):
         names.append(fields[0][5:])
     if not names:
         raise ValueError("No Native menus found")
-    if on_return:
-        prefix = on_return.split()
+    if on_return or on_shutdown:
+        return_prefix = on_return.split() if on_return else ["0"]
+        shutdown_prefix = on_shutdown.split() if on_shutdown else ["0"]
         for index, line in enumerate(result):
             if not line.lstrip().startswith("mno_"):
                 continue
@@ -68,8 +71,12 @@ def instrument_menus(lines, make_prefix, on_return=None, make_suffix=None):
                     for _ in range(count):
                         opcode, arity = int(fields[cursor]), int(fields[cursor + 1])
                         if opcode in (2040, 2052):  # return / map screen
+                            prefix = return_prefix
                             consequences.extend(prefix[1:])
                             added += int(prefix[0])
+                        if opcode == 2055:  # quit to main menu: runtime troops unload
+                            consequences.extend(shutdown_prefix[1:])
+                            added += int(shutdown_prefix[0])
                         consequences.extend(fields[cursor : cursor + 2 + arity])
                         cursor += 2 + arity
                     if fields[cursor].startswith("mno_"):

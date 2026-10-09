@@ -1,0 +1,3028 @@
+{
+  "method": "actual stdio MCP; Native actor operations",
+  "before": {
+    "connected": true,
+    "age_seconds": 0.308,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "mission",
+    "received_at": 1791525318.8124874,
+    "player_gold": 0,
+    "player_troop_id": 897,
+    "player_hit_points": 50,
+    "position": {
+      "x": 223.85,
+      "y": 191.28,
+      "z": 1.98
+    },
+    "clock": 93,
+    "acknowledged_command_id": 1791525214,
+    "scene_id": 524,
+    "mission_session": 1,
+    "player_agent_id": 15,
+    "last_command_result": 0,
+    "integration_revision": 7,
+    "mission_template_id": 35,
+    "mission_template": "quick_battle_battle",
+    "mission_flags": 2,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 0,
+      "last_encounter_party_id": 0,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "initial_scene": {
+    "command_id": 1791525319,
+    "created": 1791525319.7235408,
+    "complete": true,
+    "scene_id": 524,
+    "mission_session": 1,
+    "agents": [
+      {
+        "agent_id": 8,
+        "troop_id": 41,
+        "name": "Swadian Crossbowman",
+        "team": 0,
+        "hit_points": 44,
+        "is_player": false,
+        "position": {
+          "x": 143.48,
+          "y": 120.98,
+          "z": 4.86
+        },
+        "combat": {
+          "attack": 5,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 557
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          557,
+          155,
+          434,
+          -1
+        ]
+      },
+      {
+        "agent_id": 0,
+        "troop_id": 52,
+        "name": "Vaegir Archer",
+        "team": 1,
+        "hit_points": 39,
+        "is_player": false,
+        "position": {
+          "x": 156.49,
+          "y": 87.18,
+          "z": 6.96
+        },
+        "combat": {
+          "attack": 1,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 550
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          550,
+          151,
+          397,
+          -1
+        ]
+      },
+      {
+        "agent_id": 4,
+        "troop_id": 58,
+        "name": "Vaegir Knight",
+        "team": 1,
+        "hit_points": 1,
+        "is_player": false,
+        "position": {
+          "x": 75.55,
+          "y": 110.67,
+          "z": 15.51
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 427
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          427,
+          400,
+          396,
+          517
+        ]
+      },
+      {
+        "agent_id": 17,
+        "troop_id": 43,
+        "name": "Swadian Man at Arms",
+        "team": 0,
+        "hit_points": 33,
+        "is_player": false,
+        "position": {
+          "x": 150.02,
+          "y": 103.16,
+          "z": 5.57
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 2,
+          "direction": 5,
+          "weapon": 410
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          410,
+          522,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 6,
+        "troop_id": 55,
+        "name": "Vaegir Infantry",
+        "team": 1,
+        "hit_points": 1,
+        "is_player": false,
+        "position": {
+          "x": 133.86,
+          "y": 122.23,
+          "z": 3.84
+        },
+        "combat": {
+          "attack": 2,
+          "defend": 0,
+          "direction": 3,
+          "weapon": 447
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          486,
+          442,
+          514,
+          447
+        ]
+      },
+      {
+        "agent_id": 12,
+        "troop_id": 44,
+        "name": "Swadian Knight",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 122.29,
+          "y": 100.07,
+          "z": 7.74
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 484
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          484,
+          523,
+          379,
+          -1
+        ]
+      },
+      {
+        "agent_id": 2,
+        "troop_id": 57,
+        "name": "Vaegir Horseman",
+        "team": 1,
+        "hit_points": 8,
+        "is_player": false,
+        "position": {
+          "x": 130.98,
+          "y": 117.14,
+          "z": 3.98
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 399
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          399,
+          -1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 7,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 163.29,
+          "y": 153.05,
+          "z": 6.24
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 555
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          555,
+          155,
+          428,
+          368
+        ]
+      },
+      {
+        "agent_id": 15,
+        "troop_id": 897,
+        "name": "Rodrigo de Braganca",
+        "team": 0,
+        "hit_points": 50,
+        "is_player": true,
+        "position": {
+          "x": 223.85,
+          "y": 191.28,
+          "z": 1.98
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 456
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          541,
+          491,
+          456,
+          476
+        ]
+      },
+      {
+        "agent_id": 13,
+        "troop_id": 37,
+        "name": "Swadian Footman",
+        "team": 0,
+        "hit_points": 29,
+        "is_player": false,
+        "position": {
+          "x": 127.5,
+          "y": 109.7,
+          "z": 5.15
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 2,
+          "direction": -1,
+          "weapon": 478
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          478,
+          519,
+          436,
+          377
+        ]
+      },
+      {
+        "agent_id": 22,
+        "troop_id": 57,
+        "name": "Vaegir Horseman",
+        "team": 1,
+        "hit_points": 33,
+        "is_player": false,
+        "position": {
+          "x": 148.78,
+          "y": 156.34,
+          "z": 11.55
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 399
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          399,
+          -1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 43,
+        "troop_id": 51,
+        "name": "Vaegir Skirmisher",
+        "team": 1,
+        "hit_points": 48,
+        "is_player": false,
+        "position": {
+          "x": 125.92,
+          "y": 109.66,
+          "z": 5.39
+        },
+        "combat": {
+          "attack": 2,
+          "defend": 0,
+          "direction": 3,
+          "weapon": 397
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          533,
+          370,
+          533,
+          397
+        ]
+      },
+      {
+        "agent_id": 23,
+        "troop_id": 50,
+        "name": "Vaegir Footman",
+        "team": 1,
+        "hit_points": 12,
+        "is_player": false,
+        "position": {
+          "x": 128.16,
+          "y": 117.29,
+          "z": 4.24
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 2,
+          "direction": 5,
+          "weapon": 395
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          376,
+          513,
+          395,
+          -1
+        ]
+      },
+      {
+        "agent_id": 24,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 173.1,
+          "y": 133.05,
+          "z": 5.44
+        },
+        "combat": {
+          "attack": 1,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 556
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          556,
+          155,
+          368,
+          -1
+        ]
+      },
+      {
+        "agent_id": 26,
+        "troop_id": 43,
+        "name": "Swadian Man at Arms",
+        "team": 0,
+        "hit_points": 9,
+        "is_player": false,
+        "position": {
+          "x": 135.69,
+          "y": 122.7,
+          "z": 3.86
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 410
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          410,
+          522,
+          377,
+          -1
+        ]
+      },
+      {
+        "agent_id": 28,
+        "troop_id": 44,
+        "name": "Swadian Knight",
+        "team": 0,
+        "hit_points": 44,
+        "is_player": false,
+        "position": {
+          "x": 68.08,
+          "y": 103.36,
+          "z": 19.93
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 2,
+          "direction": 5,
+          "weapon": 379
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          379,
+          523,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 31,
+        "troop_id": 51,
+        "name": "Vaegir Skirmisher",
+        "team": 1,
+        "hit_points": 45,
+        "is_player": false,
+        "position": {
+          "x": 132.85,
+          "y": 114.67,
+          "z": 4.01
+        },
+        "combat": {
+          "attack": 2,
+          "defend": 0,
+          "direction": 3,
+          "weapon": 446
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          548,
+          151,
+          446,
+          -1
+        ]
+      },
+      {
+        "agent_id": 18,
+        "troop_id": 37,
+        "name": "Swadian Footman",
+        "team": 0,
+        "hit_points": 27,
+        "is_player": false,
+        "position": {
+          "x": 114.93,
+          "y": 121.85,
+          "z": 6.74
+        },
+        "combat": {
+          "attack": 2,
+          "defend": 0,
+          "direction": 2,
+          "weapon": 434
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          434,
+          519,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 55,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 168.19,
+          "y": 124.89,
+          "z": 7.36
+        },
+        "combat": {
+          "attack": 5,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 556
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          556,
+          155,
+          368,
+          -1
+        ]
+      },
+      {
+        "agent_id": 35,
+        "troop_id": 51,
+        "name": "Vaegir Skirmisher",
+        "team": 1,
+        "hit_points": 40,
+        "is_player": false,
+        "position": {
+          "x": 128.34,
+          "y": 110.92,
+          "z": 4.91
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 397
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          548,
+          151,
+          370,
+          397
+        ]
+      },
+      {
+        "agent_id": 29,
+        "troop_id": 37,
+        "name": "Swadian Footman",
+        "team": 0,
+        "hit_points": 36,
+        "is_player": false,
+        "position": {
+          "x": 132.64,
+          "y": 116.21,
+          "z": 3.91
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 2,
+          "direction": 5,
+          "weapon": 436
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          434,
+          519,
+          436,
+          377
+        ]
+      },
+      {
+        "agent_id": 33,
+        "troop_id": 43,
+        "name": "Swadian Man at Arms",
+        "team": 0,
+        "hit_points": 18,
+        "is_player": false,
+        "position": {
+          "x": 134.89,
+          "y": 114.03,
+          "z": 4.0
+        },
+        "combat": {
+          "attack": 2,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 483
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          483,
+          522,
+          435,
+          -1
+        ]
+      },
+      {
+        "agent_id": 63,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 137.96,
+          "y": 138.74,
+          "z": 6.27
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 555
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          555,
+          155,
+          428,
+          368
+        ]
+      },
+      {
+        "agent_id": 77,
+        "troop_id": 50,
+        "name": "Vaegir Footman",
+        "team": 1,
+        "hit_points": 45,
+        "is_player": false,
+        "position": {
+          "x": 157.63,
+          "y": 102.39,
+          "z": 7.12
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 416
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          416,
+          -1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 42,
+        "troop_id": 37,
+        "name": "Swadian Footman",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 150.38,
+          "y": 156.17,
+          "z": 10.92
+        },
+        "combat": {
+          "attack": 2,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 478
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          478,
+          519,
+          434,
+          -1
+        ]
+      },
+      {
+        "agent_id": 39,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 165.22,
+          "y": 138.8,
+          "z": 6.21
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 556
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          556,
+          155,
+          428,
+          368
+        ]
+      },
+      {
+        "agent_id": 49,
+        "troop_id": 50,
+        "name": "Vaegir Footman",
+        "team": 1,
+        "hit_points": 45,
+        "is_player": false,
+        "position": {
+          "x": 157.77,
+          "y": 100.75,
+          "z": 7.11
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 416
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          478,
+          513,
+          416,
+          376
+        ]
+      },
+      {
+        "agent_id": 45,
+        "troop_id": 57,
+        "name": "Vaegir Horseman",
+        "team": 1,
+        "hit_points": 39,
+        "is_player": false,
+        "position": {
+          "x": 123.6,
+          "y": 99.81,
+          "z": 7.69
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 2,
+          "direction": 5,
+          "weapon": 478
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          478,
+          516,
+          447,
+          -1
+        ]
+      },
+      {
+        "agent_id": 59,
+        "troop_id": 51,
+        "name": "Vaegir Skirmisher",
+        "team": 1,
+        "hit_points": 5,
+        "is_player": false,
+        "position": {
+          "x": 156.65,
+          "y": 100.71,
+          "z": 6.82
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 446
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          548,
+          151,
+          446,
+          -1
+        ]
+      },
+      {
+        "agent_id": 53,
+        "troop_id": 57,
+        "name": "Vaegir Horseman",
+        "team": 1,
+        "hit_points": 27,
+        "is_player": false,
+        "position": {
+          "x": 115.17,
+          "y": 122.89,
+          "z": 6.67
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 399
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          399,
+          -1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 47,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 163.05,
+          "y": 120.44,
+          "z": 8.59
+        },
+        "combat": {
+          "attack": 1,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 556
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          556,
+          155,
+          368,
+          -1
+        ]
+      },
+      {
+        "agent_id": 50,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 5,
+        "is_player": false,
+        "position": {
+          "x": 149.73,
+          "y": 154.72,
+          "z": 10.73
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 368
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          556,
+          155,
+          368,
+          -1
+        ]
+      }
+    ],
+    "expected_count": 32,
+    "name_source": "module definitions; not live renamed agent names",
+    "age_seconds": 0.4238142967224121,
+    "truncated": false
+  },
+  "selected_weapon": {
+    "item_id": 456,
+    "name": "Long Hafted Knobbed Mace"
+  },
+  "wield_command": {
+    "id": 1791525320,
+    "text": "agent_wield",
+    "created": 1791525320.1562798,
+    "status": "acknowledged",
+    "kind": "agent_wield",
+    "arguments": {
+      "agent_id": 15,
+      "item_id": 456,
+      "world_control": false
+    },
+    "scene": 524,
+    "session": 1,
+    "result": 0
+  },
+  "wield_scene": {
+    "command_id": 1791525321,
+    "created": 1791525321.7000933,
+    "complete": true,
+    "scene_id": 524,
+    "mission_session": 1,
+    "agents": [
+      {
+        "agent_id": 0,
+        "troop_id": 52,
+        "name": "Vaegir Archer",
+        "team": 1,
+        "hit_points": 39,
+        "is_player": false,
+        "position": {
+          "x": 156.49,
+          "y": 87.18,
+          "z": 6.96
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 550
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          550,
+          151,
+          397,
+          -1
+        ]
+      },
+      {
+        "agent_id": 63,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 136.2,
+          "y": 138.06,
+          "z": 5.88
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 555
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          555,
+          155,
+          428,
+          368
+        ]
+      },
+      {
+        "agent_id": 2,
+        "troop_id": 57,
+        "name": "Vaegir Horseman",
+        "team": 1,
+        "hit_points": 8,
+        "is_player": false,
+        "position": {
+          "x": 131.86,
+          "y": 116.3,
+          "z": 3.93
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 399
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          399,
+          -1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 17,
+        "troop_id": 43,
+        "name": "Swadian Man at Arms",
+        "team": 0,
+        "hit_points": 33,
+        "is_player": false,
+        "position": {
+          "x": 144.95,
+          "y": 105.24,
+          "z": 4.91
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 2,
+          "direction": 5,
+          "weapon": 410
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          410,
+          522,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 6,
+        "troop_id": 55,
+        "name": "Vaegir Infantry",
+        "team": 1,
+        "hit_points": 1,
+        "is_player": false,
+        "position": {
+          "x": 135.36,
+          "y": 122.56,
+          "z": 3.86
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 447
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          486,
+          442,
+          514,
+          447
+        ]
+      },
+      {
+        "agent_id": 15,
+        "troop_id": 897,
+        "name": "Rodrigo de Braganca",
+        "team": 0,
+        "hit_points": 50,
+        "is_player": true,
+        "position": {
+          "x": 223.85,
+          "y": 191.28,
+          "z": 1.98
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 456
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          541,
+          491,
+          456,
+          476
+        ]
+      },
+      {
+        "agent_id": 7,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 163.29,
+          "y": 153.05,
+          "z": 6.24
+        },
+        "combat": {
+          "attack": 5,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 555
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          555,
+          155,
+          428,
+          368
+        ]
+      },
+      {
+        "agent_id": 4,
+        "troop_id": 58,
+        "name": "Vaegir Knight",
+        "team": 1,
+        "hit_points": 1,
+        "is_player": false,
+        "position": {
+          "x": 74.39,
+          "y": 110.06,
+          "z": 15.9
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 427
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          427,
+          400,
+          396,
+          517
+        ]
+      },
+      {
+        "agent_id": 45,
+        "troop_id": 57,
+        "name": "Vaegir Horseman",
+        "team": 1,
+        "hit_points": 39,
+        "is_player": false,
+        "position": {
+          "x": 123.99,
+          "y": 99.05,
+          "z": 7.72
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 2,
+          "direction": 5,
+          "weapon": 478
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          478,
+          516,
+          447,
+          -1
+        ]
+      },
+      {
+        "agent_id": 18,
+        "troop_id": 37,
+        "name": "Swadian Footman",
+        "team": 0,
+        "hit_points": 27,
+        "is_player": false,
+        "position": {
+          "x": 114.93,
+          "y": 121.85,
+          "z": 6.74
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 434
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          434,
+          519,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 49,
+        "troop_id": 50,
+        "name": "Vaegir Footman",
+        "team": 1,
+        "hit_points": 45,
+        "is_player": false,
+        "position": {
+          "x": 155.72,
+          "y": 101.52,
+          "z": 6.62
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 416
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          478,
+          513,
+          416,
+          376
+        ]
+      },
+      {
+        "agent_id": 28,
+        "troop_id": 44,
+        "name": "Swadian Knight",
+        "team": 0,
+        "hit_points": 44,
+        "is_player": false,
+        "position": {
+          "x": 64.01,
+          "y": 104.25,
+          "z": 20.65
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 2,
+          "direction": 5,
+          "weapon": 379
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          379,
+          523,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 77,
+        "troop_id": 50,
+        "name": "Vaegir Footman",
+        "team": 1,
+        "hit_points": 45,
+        "is_player": false,
+        "position": {
+          "x": 155.48,
+          "y": 102.93,
+          "z": 6.61
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 416
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          416,
+          -1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 47,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 162.75,
+          "y": 119.56,
+          "z": 8.65
+        },
+        "combat": {
+          "attack": 5,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 556
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          556,
+          155,
+          368,
+          -1
+        ]
+      },
+      {
+        "agent_id": 50,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 5,
+        "is_player": false,
+        "position": {
+          "x": 150.14,
+          "y": 153.17,
+          "z": 10.24
+        },
+        "combat": {
+          "attack": 1,
+          "defend": 0,
+          "direction": 2,
+          "weapon": 368
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          556,
+          155,
+          368,
+          -1
+        ]
+      },
+      {
+        "agent_id": 13,
+        "troop_id": 37,
+        "name": "Swadian Footman",
+        "team": 0,
+        "hit_points": 19,
+        "is_player": false,
+        "position": {
+          "x": 128.8,
+          "y": 108.68,
+          "z": 5.11
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 478
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          478,
+          519,
+          436,
+          377
+        ]
+      },
+      {
+        "agent_id": 53,
+        "troop_id": 57,
+        "name": "Vaegir Horseman",
+        "team": 1,
+        "hit_points": 27,
+        "is_player": false,
+        "position": {
+          "x": 114.9,
+          "y": 123.47,
+          "z": 6.79
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 399
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          399,
+          -1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 22,
+        "troop_id": 57,
+        "name": "Vaegir Horseman",
+        "team": 1,
+        "hit_points": 25,
+        "is_player": false,
+        "position": {
+          "x": 149.44,
+          "y": 154.88,
+          "z": 10.86
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 399
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          399,
+          -1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 42,
+        "troop_id": 37,
+        "name": "Swadian Footman",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 149.96,
+          "y": 155.55,
+          "z": 10.84
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 478
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          478,
+          519,
+          434,
+          -1
+        ]
+      },
+      {
+        "agent_id": 55,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 166.33,
+          "y": 125.37,
+          "z": 7.56
+        },
+        "combat": {
+          "attack": 5,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 556
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          556,
+          155,
+          368,
+          -1
+        ]
+      },
+      {
+        "agent_id": 12,
+        "troop_id": 44,
+        "name": "Swadian Knight",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 122.15,
+          "y": 95.16,
+          "z": 8.22
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 484
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          484,
+          523,
+          379,
+          -1
+        ]
+      },
+      {
+        "agent_id": 39,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 164.45,
+          "y": 140.56,
+          "z": 6.22
+        },
+        "combat": {
+          "attack": 1,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 556
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          556,
+          155,
+          428,
+          368
+        ]
+      },
+      {
+        "agent_id": 8,
+        "troop_id": 41,
+        "name": "Swadian Crossbowman",
+        "team": 0,
+        "hit_points": 44,
+        "is_player": false,
+        "position": {
+          "x": 143.48,
+          "y": 120.98,
+          "z": 4.86
+        },
+        "combat": {
+          "attack": 5,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 557
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          557,
+          155,
+          434,
+          -1
+        ]
+      },
+      {
+        "agent_id": 35,
+        "troop_id": 51,
+        "name": "Vaegir Skirmisher",
+        "team": 1,
+        "hit_points": 40,
+        "is_player": false,
+        "position": {
+          "x": 128.06,
+          "y": 109.32,
+          "z": 5.15
+        },
+        "combat": {
+          "attack": 2,
+          "defend": 0,
+          "direction": 1,
+          "weapon": 397
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          548,
+          151,
+          370,
+          397
+        ]
+      },
+      {
+        "agent_id": 59,
+        "troop_id": 51,
+        "name": "Vaegir Skirmisher",
+        "team": 1,
+        "hit_points": 5,
+        "is_player": false,
+        "position": {
+          "x": 154.88,
+          "y": 101.44,
+          "z": 6.44
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 446
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          548,
+          151,
+          446,
+          -1
+        ]
+      },
+      {
+        "agent_id": 43,
+        "troop_id": 51,
+        "name": "Vaegir Skirmisher",
+        "team": 1,
+        "hit_points": 48,
+        "is_player": false,
+        "position": {
+          "x": 127.21,
+          "y": 108.58,
+          "z": 5.35
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 397
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          533,
+          370,
+          533,
+          397
+        ]
+      },
+      {
+        "agent_id": 29,
+        "troop_id": 37,
+        "name": "Swadian Footman",
+        "team": 0,
+        "hit_points": 36,
+        "is_player": false,
+        "position": {
+          "x": 131.03,
+          "y": 115.18,
+          "z": 4.11
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 2,
+          "direction": 5,
+          "weapon": 436
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          434,
+          519,
+          436,
+          377
+        ]
+      },
+      {
+        "agent_id": 33,
+        "troop_id": 43,
+        "name": "Swadian Man at Arms",
+        "team": 0,
+        "hit_points": 18,
+        "is_player": false,
+        "position": {
+          "x": 140.4,
+          "y": 114.03,
+          "z": 4.26
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 483
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          483,
+          522,
+          435,
+          -1
+        ]
+      },
+      {
+        "agent_id": 24,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 173.04,
+          "y": 133.29,
+          "z": 5.43
+        },
+        "combat": {
+          "attack": 1,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 556
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          556,
+          155,
+          368,
+          -1
+        ]
+      },
+      {
+        "agent_id": 23,
+        "troop_id": 50,
+        "name": "Vaegir Footman",
+        "team": 1,
+        "hit_points": 12,
+        "is_player": false,
+        "position": {
+          "x": 126.6,
+          "y": 116.69,
+          "z": 4.46
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 2,
+          "direction": 5,
+          "weapon": 395
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          376,
+          513,
+          395,
+          -1
+        ]
+      },
+      {
+        "agent_id": 31,
+        "troop_id": 51,
+        "name": "Vaegir Skirmisher",
+        "team": 1,
+        "hit_points": 45,
+        "is_player": false,
+        "position": {
+          "x": 132.3,
+          "y": 114.01,
+          "z": 4.11
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 446
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          548,
+          151,
+          446,
+          -1
+        ]
+      }
+    ],
+    "expected_count": 31,
+    "name_source": "module definitions; not live renamed agent names",
+    "age_seconds": 0.7585053443908691,
+    "truncated": false
+  },
+  "attack_command": {
+    "id": 1791525322,
+    "text": "agent_combat",
+    "created": 1791525322.4695027,
+    "status": "acknowledged",
+    "kind": "agent_combat",
+    "arguments": {
+      "agent_id": 15,
+      "action": "attack_hold",
+      "direction": "up",
+      "duration_ms": 0,
+      "world_control": false
+    },
+    "scene": 524,
+    "session": 1,
+    "result": 0
+  },
+  "attack_scene": {
+    "command_id": 1791525323,
+    "created": 1791525324.1213462,
+    "complete": true,
+    "scene_id": 524,
+    "mission_session": 1,
+    "agents": [
+      {
+        "agent_id": 2,
+        "troop_id": 57,
+        "name": "Vaegir Horseman",
+        "team": 1,
+        "hit_points": 8,
+        "is_player": false,
+        "position": {
+          "x": 131.48,
+          "y": 115.38,
+          "z": 4.04
+        },
+        "combat": {
+          "attack": 2,
+          "defend": 0,
+          "direction": 1,
+          "weapon": 399
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          399,
+          -1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 6,
+        "troop_id": 55,
+        "name": "Vaegir Infantry",
+        "team": 1,
+        "hit_points": 1,
+        "is_player": false,
+        "position": {
+          "x": 135.36,
+          "y": 122.56,
+          "z": 3.86
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 2,
+          "direction": 5,
+          "weapon": 447
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          486,
+          442,
+          514,
+          447
+        ]
+      },
+      {
+        "agent_id": 0,
+        "troop_id": 52,
+        "name": "Vaegir Archer",
+        "team": 1,
+        "hit_points": 39,
+        "is_player": false,
+        "position": {
+          "x": 156.49,
+          "y": 87.18,
+          "z": 6.96
+        },
+        "combat": {
+          "attack": 1,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 550
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          550,
+          151,
+          397,
+          -1
+        ]
+      },
+      {
+        "agent_id": 33,
+        "troop_id": 43,
+        "name": "Swadian Man at Arms",
+        "team": 0,
+        "hit_points": 18,
+        "is_player": false,
+        "position": {
+          "x": 146.56,
+          "y": 111.75,
+          "z": 5.08
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 483
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          483,
+          522,
+          435,
+          -1
+        ]
+      },
+      {
+        "agent_id": 35,
+        "troop_id": 51,
+        "name": "Vaegir Skirmisher",
+        "team": 1,
+        "hit_points": 40,
+        "is_player": false,
+        "position": {
+          "x": 127.98,
+          "y": 109.06,
+          "z": 5.17
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 397
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          548,
+          151,
+          370,
+          397
+        ]
+      },
+      {
+        "agent_id": 42,
+        "troop_id": 37,
+        "name": "Swadian Footman",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 150.72,
+          "y": 153.91,
+          "z": 10.23
+        },
+        "combat": {
+          "attack": 1,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 478
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          478,
+          519,
+          434,
+          -1
+        ]
+      },
+      {
+        "agent_id": 43,
+        "troop_id": 51,
+        "name": "Vaegir Skirmisher",
+        "team": 1,
+        "hit_points": 48,
+        "is_player": false,
+        "position": {
+          "x": 127.86,
+          "y": 108.25,
+          "z": 5.3
+        },
+        "combat": {
+          "attack": 1,
+          "defend": 0,
+          "direction": 2,
+          "weapon": 397
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          533,
+          370,
+          533,
+          397
+        ]
+      },
+      {
+        "agent_id": 18,
+        "troop_id": 37,
+        "name": "Swadian Footman",
+        "team": 0,
+        "hit_points": 27,
+        "is_player": false,
+        "position": {
+          "x": 114.93,
+          "y": 121.85,
+          "z": 6.74
+        },
+        "combat": {
+          "attack": 1,
+          "defend": 0,
+          "direction": 2,
+          "weapon": 434
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          434,
+          519,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 15,
+        "troop_id": 897,
+        "name": "Rodrigo de Braganca",
+        "team": 0,
+        "hit_points": 50,
+        "is_player": true,
+        "position": {
+          "x": 223.85,
+          "y": 191.28,
+          "z": 1.98
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 456
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          541,
+          491,
+          456,
+          476
+        ]
+      },
+      {
+        "agent_id": 22,
+        "troop_id": 57,
+        "name": "Vaegir Horseman",
+        "team": 1,
+        "hit_points": 25,
+        "is_player": false,
+        "position": {
+          "x": 150.07,
+          "y": 153.43,
+          "z": 10.32
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 399
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          399,
+          -1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 7,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 163.29,
+          "y": 153.05,
+          "z": 6.24
+        },
+        "combat": {
+          "attack": 5,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 555
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          555,
+          155,
+          428,
+          368
+        ]
+      },
+      {
+        "agent_id": 17,
+        "troop_id": 43,
+        "name": "Swadian Man at Arms",
+        "team": 0,
+        "hit_points": 33,
+        "is_player": false,
+        "position": {
+          "x": 141.29,
+          "y": 106.51,
+          "z": 4.59
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 410
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          410,
+          522,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 39,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 164.41,
+          "y": 141.25,
+          "z": 6.18
+        },
+        "combat": {
+          "attack": 1,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 556
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          556,
+          155,
+          428,
+          368
+        ]
+      },
+      {
+        "agent_id": 50,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 5,
+        "is_player": false,
+        "position": {
+          "x": 150.64,
+          "y": 151.51,
+          "z": 9.71
+        },
+        "combat": {
+          "attack": 2,
+          "defend": 0,
+          "direction": 2,
+          "weapon": 368
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          556,
+          155,
+          368,
+          -1
+        ]
+      },
+      {
+        "agent_id": 55,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 166.28,
+          "y": 125.38,
+          "z": 7.56
+        },
+        "combat": {
+          "attack": 5,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 556
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          556,
+          155,
+          368,
+          -1
+        ]
+      },
+      {
+        "agent_id": 31,
+        "troop_id": 51,
+        "name": "Vaegir Skirmisher",
+        "team": 1,
+        "hit_points": 45,
+        "is_player": false,
+        "position": {
+          "x": 130.91,
+          "y": 112.78,
+          "z": 4.37
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 446
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          548,
+          151,
+          446,
+          -1
+        ]
+      },
+      {
+        "agent_id": 28,
+        "troop_id": 44,
+        "name": "Swadian Knight",
+        "team": 0,
+        "hit_points": 44,
+        "is_player": false,
+        "position": {
+          "x": 63.57,
+          "y": 106.34,
+          "z": 20.08
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 2,
+          "direction": 5,
+          "weapon": 379
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          379,
+          523,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 29,
+        "troop_id": 37,
+        "name": "Swadian Footman",
+        "team": 0,
+        "hit_points": 36,
+        "is_player": false,
+        "position": {
+          "x": 128.7,
+          "y": 115.75,
+          "z": 4.31
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 2,
+          "direction": 5,
+          "weapon": 436
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          434,
+          519,
+          436,
+          377
+        ]
+      },
+      {
+        "agent_id": 8,
+        "troop_id": 41,
+        "name": "Swadian Crossbowman",
+        "team": 0,
+        "hit_points": 44,
+        "is_player": false,
+        "position": {
+          "x": 143.48,
+          "y": 120.98,
+          "z": 4.86
+        },
+        "combat": {
+          "attack": 5,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 557
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          557,
+          155,
+          434,
+          -1
+        ]
+      },
+      {
+        "agent_id": 45,
+        "troop_id": 57,
+        "name": "Vaegir Horseman",
+        "team": 1,
+        "hit_points": 39,
+        "is_player": false,
+        "position": {
+          "x": 124.8,
+          "y": 99.34,
+          "z": 7.54
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 2,
+          "direction": 5,
+          "weapon": 478
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          478,
+          516,
+          447,
+          -1
+        ]
+      },
+      {
+        "agent_id": 63,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 134.2,
+          "y": 137.19,
+          "z": 5.57
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 555
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          555,
+          155,
+          428,
+          368
+        ]
+      },
+      {
+        "agent_id": 23,
+        "troop_id": 50,
+        "name": "Vaegir Footman",
+        "team": 1,
+        "hit_points": 12,
+        "is_player": false,
+        "position": {
+          "x": 126.96,
+          "y": 116.3,
+          "z": 4.43
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 376
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          376,
+          513,
+          395,
+          -1
+        ]
+      },
+      {
+        "agent_id": 59,
+        "troop_id": 51,
+        "name": "Vaegir Skirmisher",
+        "team": 1,
+        "hit_points": 5,
+        "is_player": false,
+        "position": {
+          "x": 156.11,
+          "y": 100.91,
+          "z": 6.69
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 446
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          548,
+          151,
+          446,
+          -1
+        ]
+      },
+      {
+        "agent_id": 13,
+        "troop_id": 37,
+        "name": "Swadian Footman",
+        "team": 0,
+        "hit_points": 3,
+        "is_player": false,
+        "position": {
+          "x": 128.98,
+          "y": 108.61,
+          "z": 5.12
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 478
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          478,
+          519,
+          436,
+          377
+        ]
+      },
+      {
+        "agent_id": 12,
+        "troop_id": 44,
+        "name": "Swadian Knight",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 127.19,
+          "y": 91.32,
+          "z": 7.45
+        },
+        "combat": {
+          "attack": 1,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 484
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          484,
+          523,
+          379,
+          -1
+        ]
+      },
+      {
+        "agent_id": 24,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 171.63,
+          "y": 135.13,
+          "z": 5.47
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 556
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          556,
+          155,
+          368,
+          -1
+        ]
+      },
+      {
+        "agent_id": 53,
+        "troop_id": 57,
+        "name": "Vaegir Horseman",
+        "team": 1,
+        "hit_points": 27,
+        "is_player": false,
+        "position": {
+          "x": 114.9,
+          "y": 123.47,
+          "z": 6.79
+        },
+        "combat": {
+          "attack": 1,
+          "defend": 0,
+          "direction": 3,
+          "weapon": 399
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          399,
+          -1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 4,
+        "troop_id": 58,
+        "name": "Vaegir Knight",
+        "team": 1,
+        "hit_points": 1,
+        "is_player": false,
+        "position": {
+          "x": 72.2,
+          "y": 109.62,
+          "z": 16.33
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 427
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          427,
+          400,
+          396,
+          517
+        ]
+      },
+      {
+        "agent_id": 47,
+        "troop_id": 40,
+        "name": "Swadian Skirmisher",
+        "team": 0,
+        "hit_points": 49,
+        "is_player": false,
+        "position": {
+          "x": 162.75,
+          "y": 119.56,
+          "z": 8.65
+        },
+        "combat": {
+          "attack": 5,
+          "defend": 0,
+          "direction": 0,
+          "weapon": 556
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          556,
+          155,
+          368,
+          -1
+        ]
+      },
+      {
+        "agent_id": 77,
+        "troop_id": 50,
+        "name": "Vaegir Footman",
+        "team": 1,
+        "hit_points": 45,
+        "is_player": false,
+        "position": {
+          "x": 154.14,
+          "y": 104.47,
+          "z": 6.36
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 416
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          416,
+          -1,
+          -1,
+          -1
+        ]
+      },
+      {
+        "agent_id": 49,
+        "troop_id": 50,
+        "name": "Vaegir Footman",
+        "team": 1,
+        "hit_points": 45,
+        "is_player": false,
+        "position": {
+          "x": 154.14,
+          "y": 102.41,
+          "z": 6.32
+        },
+        "combat": {
+          "attack": 0,
+          "defend": 0,
+          "direction": -1,
+          "weapon": 416
+        },
+        "scripted_destination": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "weapon_slots": [
+          478,
+          513,
+          416,
+          376
+        ]
+      }
+    ],
+    "expected_count": 31,
+    "name_source": "module definitions; not live renamed agent names",
+    "age_seconds": 0.15491914749145508,
+    "truncated": false
+  },
+  "clear_attack": {
+    "id": 1791525324,
+    "text": "agent_combat",
+    "created": 1791525324.2801974,
+    "status": "acknowledged",
+    "kind": "agent_combat",
+    "arguments": {
+      "agent_id": 15,
+      "action": "clear_attack",
+      "direction": "up",
+      "duration_ms": 0,
+      "world_control": false
+    },
+    "scene": 524,
+    "session": 1,
+    "result": 0
+  },
+  "player_attack_verified": false,
+  "placement_command": {
+    "id": 1791525325,
+    "text": "formation_position",
+    "created": 1791525324.4976053,
+    "status": "acknowledged",
+    "kind": "formation_position",
+    "arguments": {
+      "formation": 9,
+      "x": 226.85,
+      "y": 194.28
+    },
+    "scene": 524,
+    "session": 1,
+    "result": 0
+  },
+  "placement_result": {
+    "command_id": 1791525325,
+    "command": {
+      "id": 1791525325,
+      "text": "formation_position",
+      "created": 1791525324.4976053,
+      "status": "acknowledged",
+      "kind": "formation_position",
+      "arguments": {
+        "formation": 9,
+        "x": 226.85,
+        "y": 194.28
+      },
+      "scene": 524,
+      "session": 1,
+      "result": 0
+    },
+    "complete": true,
+    "source": "Warband team_get_*_order engine operations",
+    "enums": {
+      "fire": {
+        "0": "fire_at_will",
+        "1": "hold_fire"
+      },
+      "riding": {
+        "0": "free",
+        "1": "mount",
+        "2": "dismount"
+      },
+      "weapon": {
+        "0": "any",
+        "1": "blunt",
+        "2": "melee",
+        "3": "ranged"
+      },
+      "movement": {
+        "0": "hold",
+        "1": "follow",
+        "2": "charge",
+        "11": "stand_ground",
+        "14": "retreat"
+      }
+    },
+    "formations": [
+      {
+        "team": 0,
+        "formation": 0,
+        "movement": 0,
+        "fire": 0,
+        "riding": 0,
+        "weapon": 0,
+        "x": 22385,
+        "y": 19128,
+        "scene": 524,
+        "session": 1
+      },
+      {
+        "team": 0,
+        "formation": 1,
+        "movement": 0,
+        "fire": 0,
+        "riding": 0,
+        "weapon": 0,
+        "x": 22385,
+        "y": 19128,
+        "scene": 524,
+        "session": 1
+      },
+      {
+        "team": 0,
+        "formation": 2,
+        "movement": 0,
+        "fire": 0,
+        "riding": 0,
+        "weapon": 0,
+        "x": 22385,
+        "y": 19128,
+        "scene": 524,
+        "session": 1
+      },
+      {
+        "team": 0,
+        "formation": 3,
+        "movement": 0,
+        "fire": 0,
+        "riding": 0,
+        "weapon": 0,
+        "x": 22385,
+        "y": 19128,
+        "scene": 524,
+        "session": 1
+      },
+      {
+        "team": 0,
+        "formation": 4,
+        "movement": 0,
+        "fire": 0,
+        "riding": 0,
+        "weapon": 0,
+        "x": 22385,
+        "y": 19128,
+        "scene": 524,
+        "session": 1
+      },
+      {
+        "team": 0,
+        "formation": 5,
+        "movement": 0,
+        "fire": 0,
+        "riding": 0,
+        "weapon": 0,
+        "x": 22385,
+        "y": 19128,
+        "scene": 524,
+        "session": 1
+      },
+      {
+        "team": 0,
+        "formation": 6,
+        "movement": 0,
+        "fire": 0,
+        "riding": 0,
+        "weapon": 0,
+        "x": 22385,
+        "y": 19128,
+        "scene": 524,
+        "session": 1
+      },
+      {
+        "team": 0,
+        "formation": 7,
+        "movement": 0,
+        "fire": 0,
+        "riding": 0,
+        "weapon": 0,
+        "x": 22385,
+        "y": 19128,
+        "scene": 524,
+        "session": 1
+      },
+      {
+        "team": 0,
+        "formation": 8,
+        "movement": 0,
+        "fire": 0,
+        "riding": 0,
+        "weapon": 0,
+        "x": 22385,
+        "y": 19128,
+        "scene": 524,
+        "session": 1
+      }
+    ],
+    "caveat": "Orders read back; not proof troops moved or won combat"
+  }
+}

@@ -72,6 +72,49 @@ class ModuleBuildTests(unittest.TestCase):
     def test_callback_control_blocks_are_balanced(self):
         self.assert_balanced(callback())
 
+    def test_callback_checks_lifecycle_before_accessing_troops(self):
+        guard = (2 << 56) + 100
+        compiled = callback(native_globals={"mcp_http_active": guard})
+        self.assertTrue(compiled.split(" ", 1)[1].startswith(f"31 2 {guard} 1 "))
+        self.assert_balanced(compiled)
+
+    def test_lifecycle_global_is_additive_and_preserves_native_variable_ids(self):
+        (self.native / "variables.txt").write_text("current_town\nplayers_kingdom\n")
+        output = self.root / "Lifecycle"
+        build(self.native, output, "http://127.0.0.1", "a" * 64)
+        self.assertEqual(
+            (output / "variables.txt").read_text().splitlines(),
+            ["current_town", "players_kingdom", "mcp_http_active"],
+        )
+        self.assertEqual(
+            (self.native / "variables.txt").read_text().splitlines(),
+            ["current_town", "players_kingdom"],
+        )
+
+    def test_scene_controls_use_validated_native_actor_operations(self):
+        compiled = callback()
+        for name in (
+            "agent_set_attack_action",
+            "agent_set_defend_action",
+            "agent_set_scripted_destination",
+            "agent_clear_scripted_mode",
+            "get_scene_boundaries",
+            "team_set_order_position",
+        ):
+            self.assertIn(f"{OPS[name]} ", compiled)
+
+    def test_formation_position_is_set_after_hold_resets_it(self):
+        from module_system.battle_ops import battle_order
+
+        operations = battle_order(123, 99990, 99986, placement=True)
+        names = [op[0] for op in operations]
+        self.assertLess(
+            names.index("team_give_order"), names.index("team_set_order_position")
+        )
+        self.assertLess(
+            names.index("agent_get_position"), names.index("position_get_x")
+        )
+
     def test_battle_dispatch_contains_engine_readbacks_and_own_team(self):
         compiled = callback(battle_result_url=123)
         self.assert_balanced(compiled)

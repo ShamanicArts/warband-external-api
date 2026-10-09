@@ -10,6 +10,11 @@ OPERATIONS = {
     "scan_campaign": 5,
     "select_menu": 6,
     "battle_order": 7,
+    "formation_position": 8,
+    "agent_combat": 9,
+    "agent_move": 10,
+    "agent_release": 11,
+    "agent_wield": 12,
 }
 DATASETS = {
     "party": 1,
@@ -35,6 +40,14 @@ ORDERS = {
     "hold_fire": 12,
     "fire_at_will": 13,
     "retreat": 14,
+}
+DIRECTIONS = {"down": 0, "right": 1, "left": 2, "up": 3}
+SCENE_CONTROLS = {
+    "formation_position",
+    "agent_combat",
+    "agent_move",
+    "agent_release",
+    "agent_wield",
 }
 
 
@@ -66,10 +79,72 @@ def validate_operation(kind, payload, state):
         "scan_campaign": {"dataset", "offset", "limit"},
         "select_menu": {"action_id"},
         "battle_order": {"formation", "order"},
+        "formation_position": {"formation", "x", "y"},
+        "agent_combat": {
+            "agent_id",
+            "action",
+            "direction",
+            "duration_ms",
+            "world_control",
+        },
+        "agent_move": {"agent_id", "x", "y", "world_control"},
+        "agent_release": {"agent_id", "world_control"},
+        "agent_wield": {"agent_id", "item_id", "world_control"},
     }[kind]
     if set(payload) != expected:
         raise ValueError("Unexpected or missing operation arguments")
-    if kind == "battle_order":
+    if kind in SCENE_CONTROLS:
+        if state.get("integration_revision", 0) < 7:
+            raise ValueError("Scene control needs integration revision 7")
+        if (
+            state.get("dialogue_active")
+            or not (state.get("player_hit_points") or 0) > 0
+        ):
+            raise ValueError("Scene control requires a living player outside dialogue")
+        if "agent_id" in payload:
+            if (
+                type(payload["agent_id"]) is not int
+                or not 0 <= payload["agent_id"] < 10000
+            ):
+                raise ValueError("Expected a valid scene agent ID")
+            if type(payload["world_control"]) is not bool:
+                raise ValueError("world_control must be an explicit boolean")
+        if kind in ("agent_move", "agent_release") and payload["agent_id"] == state.get(
+            "player_agent_id"
+        ):
+            raise ValueError(
+                "Scripted walking controls NPC AI, not player movement input"
+            )
+        if "x" in payload:
+            for key in ("x", "y"):
+                value = payload[key]
+                if (
+                    type(value) not in (int, float)
+                    or not math.isfinite(value)
+                    or abs(value) > 10000
+                ):
+                    raise ValueError(
+                        "Scene coordinates must be finite within +/-10000m"
+                    )
+        if kind == "agent_combat":
+            if (
+                not isinstance(payload["action"], str)
+                or payload["action"]
+                not in {"attack", "attack_hold", "clear_attack", "block", "clear_block"}
+                or not isinstance(payload["direction"], str)
+                or payload["direction"] not in DIRECTIONS
+            ):
+                raise ValueError("Unknown combat action/direction")
+            if (
+                type(payload["duration_ms"]) is not int
+                or not 0 <= payload["duration_ms"] <= 10000
+            ):
+                raise ValueError("Block duration must be 0–10000ms")
+        if kind == "agent_wield" and (
+            type(payload["item_id"]) is not int or not 0 <= payload["item_id"] < 10000
+        ):
+            raise ValueError("Expected a valid equipped item ID")
+    if kind in ("battle_order", "formation_position"):
         if state.get("integration_revision", 0) < 6:
             raise ValueError("Battle orders need integration revision 6")
         if not (state.get("mission_flags") or 0) & 2:
@@ -81,7 +156,9 @@ def validate_operation(kind, payload, state):
             raise ValueError("Battle orders require a living player outside dialogue")
         if type(payload["formation"]) is not int or not 0 <= payload["formation"] <= 9:
             raise ValueError("Formation must be 0–8, or 9 for everyone")
-        if not isinstance(payload["order"], str) or payload["order"] not in ORDERS:
+        if kind == "battle_order" and (
+            not isinstance(payload["order"], str) or payload["order"] not in ORDERS
+        ):
             raise ValueError("Unknown Native battle order")
     if kind == "select_menu":
         if state.get("integration_revision", 0) < 5:
@@ -142,6 +219,31 @@ def validate_operation(kind, payload, state):
 
 
 def wire_arguments(kind, payload):
+    if kind == "formation_position":
+        return [
+            payload["formation"],
+            round(payload["x"] * 100),
+            round(payload["y"] * 100),
+            0,
+        ]
+    if kind in ("agent_combat", "agent_move", "agent_release", "agent_wield"):
+        actor = payload["agent_id"] + (10000 if payload["world_control"] else 0)
+        if kind == "agent_wield":
+            return [actor, payload["item_id"], 0, 0]
+        if kind == "agent_move":
+            return [actor, round(payload["x"] * 100), round(payload["y"] * 100), 0]
+        if kind == "agent_combat":
+            code = {
+                "attack": 0,
+                "attack_hold": 4,
+                "clear_attack": 8,
+                "block": 12,
+                "clear_block": 16,
+            }[payload["action"]]
+            if payload["action"] not in ("clear_attack", "clear_block"):
+                code += DIRECTIONS[payload["direction"]]
+            return [actor, code, payload["duration_ms"], 0]
+        return [actor, 0, 0, 0]
     if kind == "battle_order":
         return [payload["formation"], ORDERS[payload["order"]], 0, 0]
     if kind == "select_menu":

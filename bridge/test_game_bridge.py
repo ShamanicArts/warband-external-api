@@ -238,6 +238,42 @@ class GameOperationTests(unittest.TestCase):
         self.assertEqual(len(result["agents"]), 2)
         self.assertEqual(result["agents"][1]["position"]["x"], 12.34)
 
+    def test_actual_combat_and_equipment_census_fields_are_decoded(self):
+        command = self.census()
+        self.store.event(
+            "/agent",
+            {
+                "v": "2",
+                "job": str(command["id"]),
+                "scene": "42",
+                "session": "1",
+                "id": "1",
+                "troop": "1",
+                "team": "0",
+                "hp": "50",
+                "x": "1234",
+                "y": "-500",
+                "z": "0",
+                "player": "0",
+                "attack": "1",
+                "defend": "0",
+                "direction": "3",
+                "weapon": "400",
+                "destination-x": "1734",
+                "destination-y": "-500",
+                "slot0": "400",
+                "slot1": "410",
+                "slot2": "-1",
+                "slot3": "-1",
+            },
+        )
+        actor = self.store.scan_result(command["id"])["agents"][1]
+        self.assertEqual(
+            actor["combat"], {"attack": 1, "defend": 0, "direction": 3, "weapon": 400}
+        )
+        self.assertEqual(actor["weapon_slots"], [400, 410, -1, -1])
+        self.assertEqual(actor["scripted_destination"], {"x": 17.34, "y": -5})
+
     def test_npc_requires_current_census_and_nonplayer_target(self):
         self.store.poll(mission_telemetry())
         with self.assertRaisesRegex(ValueError, "Refresh scene agents"):

@@ -123,6 +123,108 @@ async def warband_battle_order_result(command_id: int) -> dict:
 
 
 @mcp.tool()
+async def warband_place_formation(formation: int, x: float, y: float) -> dict:
+    """Move the player's division's hold point to an in-scene position (metres).
+
+    Native pathfinding/obstacles still apply. No teleport: team_set_order_position
+    plus hold order. Formation 0–8, or 9 for everyone. Read back with
+    warband_battle_order_result and verify actual troop positions separately.
+    """
+    return await operation(
+        "formation_position", {"formation": formation, "x": x, "y": y}
+    )
+
+
+@mcp.tool()
+async def warband_agent_wield(
+    agent_id: int, item_id: int, world_control: bool = False
+) -> dict:
+    """Select an actually equipped weapon for a living player/NPC; no item spawning.
+
+    Obtain item IDs from a fresh scene agent's weapon_slots. Native checks that
+    the actor really has it equipped. Read back combat.weapon afterwards.
+    Default restricts to the player's team; world_control explicitly permits others.
+    """
+    return await operation(
+        "agent_wield",
+        {
+            "agent_id": agent_id,
+            "item_id": item_id,
+            "world_control": world_control,
+        },
+    )
+
+
+@mcp.tool()
+async def warband_agent_combat(
+    agent_id: int,
+    action: Literal["attack", "attack_hold", "clear_attack", "block", "clear_block"],
+    direction: Literal["down", "right", "left", "up"] = "up",
+    duration_ms: int = 1000,
+    world_control: bool = False,
+) -> dict:
+    """Drive real player/NPC attack/block actions, not keyboard simulation.
+
+    Uses Native agent_set_attack_action/agent_set_defend_action. Actor must be a
+    living human in this scene. Default restricts to the player's team;
+    world_control=True is an explicit world intervention permitting other teams.
+    attack releases immediately, attack_hold readies, block lasts 0–10000ms.
+    Check acknowledgement AND fresh scene combat read-back; equipment, timing,
+    animation and engine restrictions can prevent the requested action.
+    Player attack_hold was ineffective in current live tests, even with a melee
+    weapon; do not treat this as verified player input. NPC combat takes scripted
+    control at the actor's current location; release_npc afterwards restores AI.
+    """
+    return await operation(
+        "agent_combat",
+        {
+            "agent_id": agent_id,
+            "action": action,
+            "direction": direction,
+            "duration_ms": duration_ms,
+            "world_control": world_control,
+        },
+    )
+
+
+@mcp.tool()
+async def warband_move_npc(
+    agent_id: int,
+    x: float,
+    y: float,
+    world_control: bool = False,
+) -> dict:
+    """Give a living NPC a scripted walking destination inside scene bounds.
+
+    Not teleport and not player movement input. Native AI/pathfinding moves the
+    NPC; obstacles/combat can interfere. Default permits the player's team only;
+    world_control=True explicitly intervenes in other teams. Fresh scene census
+    reads destination and actual position. Release afterwards to restore AI.
+    """
+    return await operation(
+        "agent_move",
+        {
+            "agent_id": agent_id,
+            "x": x,
+            "y": y,
+            "world_control": world_control,
+        },
+    )
+
+
+@mcp.tool()
+async def warband_release_npc(agent_id: int, world_control: bool = False) -> dict:
+    """Clear an NPC's scripted movement and request normal Native AI rethink."""
+    return await operation(
+        "agent_release",
+        {
+            "agent_id": agent_id,
+            "world_control": world_control,
+        },
+    )
+
+
+@mcp.tool()
 async def warband_refresh_campaign(
     dataset: Literal[
         "party", "prisoners", "inventory", "character", "world_parties", "quests"

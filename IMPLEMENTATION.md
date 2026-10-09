@@ -11,6 +11,16 @@ validation, explicit result/acknowledgement, automated regression coverage and
 recorded live evidence. Unsupported capabilities must be discoverable, not implied.
 No arbitrary bytecode, memory injection, blind save changes, or mocked state.
 
+The user's explicit scope is **everything that can be exposed through real game
+code**: campaign travel/time, trade/equipment/party management, quests/politics,
+player combat input, individual NPC control, multi-turn conversations, faction
+and world control. Checkpoints are progress boundaries, not permission to stop.
+Separate normal-rule actions from explicitly named world/debug interventions;
+do not silently substitute CUA or raw state edits for normal gameplay actions.
+For an engine limitation, record the exact inspected API and failed live test;
+do not label unimplemented work impossible. Images must be shown directly in
+OpenCode, never by opening the browser. Preserve the isolated runtime and JJ flow.
+
 ## Incremental work
 
 1. **Transport foundation** — verified: authenticated HTTP, queued commands,
@@ -39,7 +49,47 @@ No arbitrary bytecode, memory injection, blind save changes, or mocked state.
    event/history queries, module identity/version checks and client configuration.
 9. **Acceptance** — test an entire new isolated campaign journey (travel, town,
    quest, trade/recruit, battle, companion dialogue, save/reload). Record actual
-   MCP calls and independent CUA screenshots; never overwrite existing saves.
+    MCP calls and independent CUA screenshots; never overwrite existing saves.
+
+## Full-control coverage backlog (not optional)
+
+Each subdomain needs observation, typed validated actions, game acknowledgement,
+live state-change proof, and discoverable capability/limitations. A broad tool
+name or a successful queue insertion does not establish domain coverage.
+
+- **Campaign/map/time:** player destination/stop/arrival/encounter, NPC party
+  travel/patrol/escort/attack/retreat, pause/wait/time advancement, party visibility
+  versus omniscient queries, path and movement read-back.
+- **Trade/economy:** merchant inventories and Native prices, buy/sell/budget/capacity,
+  partial goods/modifiers, village trade, prisoners, businesses, rents/taxes,
+  food/consumption, economic world interventions separately labelled.
+- **Party/characters:** recruit/disband/upgrade, prisoner transfer/recruit/sell,
+  garrisons, companion joining/equipment/orders, skills/attributes/proficiencies,
+  inventory/equipment and item descriptions; progression versus admin changes.
+- **Combat/player input:** equipment selection, attack/block/release, aiming and
+  movement if engine APIs permit, formation placement/orders, individual agent
+  walking/targeting/AI release, siege/arena/tournament, injury/death/mounts/ammo,
+  scene navigation and mission transitions, battle outcome and recovery.
+- **NPC/dialogue:** identity/character/faction/relation/quest context, Native
+  conversation hooks, player choices/free text, real multi-turn agent replies,
+  persistent per-character memory/history, interrupted conversation recovery.
+- **Factions/politics:** faction snapshots/relations, Native war/peace scripts,
+  liege/vassal/mercenary allegiance, fief assignment/capture/ownership, marshal
+  and campaign orders, councils/claims/right-to-rule, courtship/marriage,
+  explicit administrative faction/NPC intervention where normal rules differ.
+- **Quests/encounters:** inspect goals/progress/parties/timers, Native offer/accept/
+  decline/turn-in/fail/abort paths, escort/delivery/rescue/hunt/reputation,
+  map/scene encounters and consequences; no fake completion by bare quest flag.
+- **World/engine controls:** bounded spawn/disable versus unsafe removal,
+  scene props/objects/doors/weather/time, camera/settings/menus/presentations,
+  module identity, event streams, checkpoint/save/load support where available.
+- **Operational completeness:** durable install/runtime, client registration,
+  recovery after game/bridge interruption, cancellation, auditable history,
+  compatibility scope and full isolated campaign acceptance with screenshots.
+
+Do not silently omit a subdomain because a convenient opcode is absent. Inspect
+Native scripts and the official engine API; attempt bounded live tests; document
+confirmed limitations and obtain approval before changing the integration method.
 
 ## Current evidence
 
@@ -54,8 +104,10 @@ contains installed game assets, not the authoritative readable integration sourc
 - `wyuutpxx`: campaign observation and honest capability discovery (41 tests).
 - `tmnokvyk`: 41 single-player mission hooks; village dialogue/save reload (47 tests).
 - `ykylzmpt`: pause-independent callback polling and 217 menu hooks (57 tests).
-- Current change: actual reviewed Native menu actions, session-scoped dispatch,
-  register-preserving Native conditions and recruitment acceptance checks.
+- `oklqlzmr`: reviewed Native menu choices; paid recruitment and village entry.
+- `prvupwmq`: own-team battle orders; four live orders and durable read-backs.
+- Current change: player/NPC combat actions, scripted NPC walking/release and
+  formation placement; campaign navigation/API investigation continues.
 
 ## Live campaign notes
 
@@ -155,3 +207,26 @@ before this test; Native/Pendor files and saves remain untouched.
 Live bridge process restart followed by new stdio MCP result calls recovered
 all four acknowledged order results and exact formation rows. Durable result
 recovery is proven; paused HTTP-outage-loop recovery remains a separate gap.
+
+Revision 7 adds typed formation placement, equipped-weapon selection, individual
+NPC walking/release, and actor attack/block operations. Scene bounds, living
+human actors, dialogue inactivity, and mission/scene scope are validated in
+game. Actor controls default to the player's team; explicit world_control allows
+other teams (override not yet live-tested). This is actual NPC walking, not
+teleport. NPC combat follows Native tutorial's scripted/no-auto-attack mode and
+requires release afterwards to restore AI. Census exports real equipment,
+wielded weapon, attack/defend/direction, and scripted destination.
+
+Live proof retained in `evidence/scene-control/`: player equipped weapon selection,
+nine matching hold points, a Swadian Footman walking 1.75m closer, upward Sword
+ready state (attack 1, direction 3), shield block (defend 2, direction 5), clears
+and release acknowledgements. **Player held attack remains ineffective**, with
+both throwing and melee weapons. Do not call this verified player combat input.
+Failed original attempts are retained alongside positive proof. Initial placement
+ordering was wrong (hold resets the point); set point after hold and retested.
+
+Main-menu lifecycle fix: append mcp_http_active global, set on mission/menu
+entry, clear before Native quit, test before every callback's troop access.
+This fixes late callbacks after troops unload. Live exit: 0 script errors before
+and after, stopped heartbeat, correctly disconnected MCP after stale window.
+86 tests pass; 96 opcode IDs checked against the pinned official header.
