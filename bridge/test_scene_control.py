@@ -4,6 +4,36 @@ from bridge.protocol import validate_operation, wire_arguments
 
 
 class SceneControlTests(unittest.TestCase):
+    def test_native_dialogue_is_scoped_without_injected_text_or_world_override(self):
+        state = {
+            **self.state,
+            "integration_revision": 15,
+            "mission_flags": 0,
+            "mission_template": "village_center",
+        }
+        validate_operation("native_dialogue", {"agent_id": 7}, state)
+        self.assertEqual(
+            wire_arguments("native_dialogue", {"agent_id": 7}), [7, 0, 0, 0]
+        )
+        for change in (
+            {"text": "injected"},
+            {"world_control": True},
+            {"agent_id": True},
+        ):
+            with self.assertRaises(ValueError):
+                validate_operation("native_dialogue", {"agent_id": 7, **change}, state)
+        for change in (
+            {"integration_revision": 14},
+            {"mission_flags": 2},
+            {"mission_template": "tutorial_training_ground"},
+            {"dialogue_active": True},
+            {"player_hit_points": 0},
+        ):
+            with self.assertRaises(ValueError):
+                validate_operation(
+                    "native_dialogue", {"agent_id": 7}, {**state, **change}
+                )
+
     def setUp(self):
         self.state = {
             "connected": True,

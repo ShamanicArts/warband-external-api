@@ -27,6 +27,7 @@ from module_system.mission_departure import (
     village_permission,
 )
 from module_system.mission_hooks import instrument_missions
+from module_system.native_dialogue import dialogue_sampler, native_entry
 from module_system.scene_ops import agent_combat, agent_move, agent_release, agent_wield
 from module_system.world_ops import diplomacy, party_order, world_encounter
 from module_system.world_ops import query as world_query
@@ -175,6 +176,8 @@ OPS = {
     "not_check_quest_succeeded": 202 | 0x80000000,
     "not_check_quest_failed": 203 | 0x80000000,
     "quest_slot_eq": 546,
+    "conversation_screen_is_active": 42,
+    "get_distance_between_positions": 710,
 }
 
 
@@ -291,6 +294,7 @@ def callback(
     street_departure_id=None,
     village_departure_id=None,
     village_quest_effects=None,
+    native_dialogue_missions=None,
 ):
     cmd, kind, a, b, session, scene, result, tmp, agent, count = [
         LOCAL + i for i in (3, 4, 5, 6, 8, 9, 10, 11, 12, 13)
@@ -527,6 +531,24 @@ def callback(
                 MISSION_FLAGS_SLOT,
                 DIALOG_ACTIVE_SLOT,
             ),
+            ("else_try",),
+            ("eq", kind, 22),
+            ("troop_get_slot", tmp, TROOP, MISSION_SLOT),
+            *(
+                [
+                    (
+                        "or_eq" if i < len(native_dialogue_missions) - 1 else "eq",
+                        tmp,
+                        mission_id,
+                    )
+                    for i, mission_id in enumerate(native_dialogue_missions)
+                ]
+                if native_dialogue_missions
+                else [("eq", 0, 1)]
+            ),
+            *native_entry(
+                DIALOG_ACTIVE_SLOT, READY_SLOT, MISSION_FLAGS_SLOT, troop_count
+            ),
             ("try_end",),
             ("else_try",),
             ("eq", kind, 5),
@@ -712,7 +734,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             "&scene={reg8}&agent={reg9}&result={reg10}&session={reg11}"
             "&mission={reg12}&flags={reg13}&captive={reg14}&town={reg15}"
             "&encounter={reg16}&menu={reg17}&pulse={reg18}&dialogue={reg19}"
-            "&menu-session={reg20}&build=14"
+            "&menu-session={reg20}&build=15"
         )
         new_strings.append(f"str_mcp_{kind}_url {value}")
     new_strings.extend(
@@ -810,7 +832,12 @@ def build(native: Path, output: Path, endpoint: str, token: str):
     def mission_triggers(mission_id, flags):
         return [
             "2.000000 0.000000 0.000000 0 "
-            + telemetry(STR + count, True, native_globals),
+            + compile_ops(
+                [
+                    *dialogue_sampler(DIALOG_ACTIVE_SLOT),
+                    *telemetry_ops(STR + count, True, native_globals),
+                ]
+            ),
             "-19.000000 0.000000 0.000000 0 "
             + compile_ops(
                 [
@@ -1022,6 +1049,14 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     street_departure_id,
                     village_departure_id,
                     village_quest_effects,
+                    [
+                        *departure_ids,
+                        *(
+                            []
+                            if village_departure_id is None
+                            else [village_departure_id]
+                        ),
+                    ],
                 )
                 + "\n"
             ),
@@ -1088,7 +1123,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         json.dumps(
             {
                 "protocol": 2,
-                "integration_revision": 14,
+                "integration_revision": 15,
                 "scene_departure_missions": departure_ids,
                 "source": str(native),
                 "transport": "engine HTTP opcode 380",
@@ -1125,6 +1160,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     "world_encounter",
                     "leave_scene",
                     "leave_village",
+                    "native_dialogue",
                 ],
             },
             indent=2,

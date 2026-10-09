@@ -1,0 +1,14 @@
+{
+  "id": 1791540509,
+  "text": "agent_release",
+  "created": 1791540509.7589545,
+  "status": "acknowledged",
+  "kind": "agent_release",
+  "arguments": {
+    "agent_id": 13,
+    "world_control": true
+  },
+  "scene": 376,
+  "session": 2,
+  "result": 0
+}

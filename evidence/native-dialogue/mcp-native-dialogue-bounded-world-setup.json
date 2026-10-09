@@ -1,0 +1,114 @@
+{
+  "method": "explicit world test setup in permitted <=10m relocation steps; NOT normal walking",
+  "commands": [
+    {
+      "queued": {
+        "id": 1791540405,
+        "text": "relocate_player",
+        "created": 1791540405.2184777,
+        "status": "queued",
+        "kind": "relocate_player",
+        "arguments": {
+          "x": 152.0,
+          "y": 195.5
+        },
+        "scene": 376,
+        "session": 2,
+        "result": null
+      },
+      "result": {
+        "id": 1791540405,
+        "text": "relocate_player",
+        "created": 1791540405.2184777,
+        "status": "acknowledged",
+        "kind": "relocate_player",
+        "arguments": {
+          "x": 152.0,
+          "y": 195.5
+        },
+        "scene": 376,
+        "session": 2,
+        "result": 0
+      }
+    },
+    {
+      "queued": {
+        "id": 1791540406,
+        "text": "relocate_player",
+        "created": 1791540405.327931,
+        "status": "queued",
+        "kind": "relocate_player",
+        "arguments": {
+          "x": 150.0,
+          "y": 186.5
+        },
+        "scene": 376,
+        "session": 2,
+        "result": null
+      },
+      "result": {
+        "id": 1791540406,
+        "text": "relocate_player",
+        "created": 1791540405.327931,
+        "status": "rejected",
+        "kind": "relocate_player",
+        "arguments": {
+          "x": 150.0,
+          "y": 186.5
+        },
+        "scene": 376,
+        "session": 2,
+        "result": -1
+      }
+    }
+  ],
+  "before": {
+    "connected": true,
+    "age_seconds": 0.169,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "mission",
+    "received_at": 1791540405.0395079,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": 49,
+    "position": {
+      "x": 152.45,
+      "y": 204.03,
+      "z": 8.67
+    },
+    "clock": 83,
+    "acknowledged_command_id": 1791540361,
+    "scene_id": 376,
+    "mission_session": 2,
+    "player_agent_id": 15,
+    "last_command_result": -1,
+    "integration_revision": 15,
+    "mission_template_id": 3,
+    "mission_template": "village_center",
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 93,
+      "last_encounter_party_id": 93,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "original_distance_rejection": {
+    "id": 1791540360,
+    "text": "native_dialogue",
+    "created": 1791540360.3853428,
+    "status": "rejected",
+    "kind": "native_dialogue",
+    "arguments": {
+      "agent_id": 13
+    },
+    "scene": 376,
+    "session": 2,
+    "result": -1
+  }
+}

@@ -507,3 +507,18 @@ scripts (including journal notes). **Leaving can fail an active hunt.** Request
 explicitly confirms departure; not a generic quest-safe abort. Peaceful Azgad exit
 is live-verified with unchanged money/encounter and real before/after screenshots.
 Active-hunt outcomes are model-tested only, not live-verified. 123 tests;128 opcodes.
+
+## Original Native conversation entry (revision15)
+
+`warband_start_native_conversation` requires unique nearby living NPC/player,
+<=4m, peaceful recognized Native town/village mission, exact scene/session and
+no active dialogue/custom speech. No injected text, teleport, raw script or quest
+editing. Native original greeting/choices verified at Azgad elder. Distinct from
+`warband_npc_say` (custom speech). Duplicate troop targets refused because engine
+entry selects by troop. Mission-trigger-only screen predicate supplies real state.
+
+Elder approached through separately documented explicit world NPC control and
+was released before entry. No player walking/relocation success claimed. Real
+dialogue blocked departure/re-entry/relocation. CUA Leave was cleanup only;
+MCP choice execution, multi-turn dialogue/memory remain unimplemented. Evidence
+in `evidence/native-dialogue/`. 126 tests;130 verified official opcode IDs.

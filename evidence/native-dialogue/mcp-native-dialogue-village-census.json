@@ -1,0 +1,303 @@
+{
+  "command_id": 1791540321,
+  "created": 1791540321.885874,
+  "complete": true,
+  "scene_id": 376,
+  "mission_session": 2,
+  "agents": [
+    {
+      "agent_id": 5,
+      "troop_id": 143,
+      "name": "Villager",
+      "team": 7,
+      "hit_points": 42,
+      "is_player": false,
+      "position": {
+        "x": 147.6,
+        "y": 166.85,
+        "z": 13.62
+      },
+      "combat": {
+        "attack": 0,
+        "defend": 0,
+        "direction": -1,
+        "weapon": -1
+      },
+      "scripted_destination": {
+        "x": 128.2,
+        "y": 198.47
+      },
+      "weapon_slots": [
+        -1,
+        -1,
+        -1,
+        -1
+      ]
+    },
+    {
+      "agent_id": 6,
+      "troop_id": 143,
+      "name": "Villager",
+      "team": 7,
+      "hit_points": 42,
+      "is_player": false,
+      "position": {
+        "x": 150.16,
+        "y": 178.37,
+        "z": 12.54
+      },
+      "combat": {
+        "attack": 0,
+        "defend": 0,
+        "direction": -1,
+        "weapon": -1
+      },
+      "scripted_destination": {
+        "x": 121.08,
+        "y": 145.29
+      },
+      "weapon_slots": [
+        -1,
+        -1,
+        -1,
+        -1
+      ]
+    },
+    {
+      "agent_id": 7,
+      "troop_id": 143,
+      "name": "Villager",
+      "team": 7,
+      "hit_points": 42,
+      "is_player": false,
+      "position": {
+        "x": 146.99,
+        "y": 169.83,
+        "z": 13.54
+      },
+      "combat": {
+        "attack": 0,
+        "defend": 0,
+        "direction": -1,
+        "weapon": -1
+      },
+      "scripted_destination": {
+        "x": 133.95,
+        "y": 186.64
+      },
+      "weapon_slots": [
+        -1,
+        -1,
+        -1,
+        -1
+      ]
+    },
+    {
+      "agent_id": 8,
+      "troop_id": 143,
+      "name": "Villager",
+      "team": 7,
+      "hit_points": 42,
+      "is_player": false,
+      "position": {
+        "x": 139.39,
+        "y": 150.89,
+        "z": 16.42
+      },
+      "combat": {
+        "attack": 0,
+        "defend": 0,
+        "direction": -1,
+        "weapon": -1
+      },
+      "scripted_destination": {
+        "x": 147.84,
+        "y": 168.99
+      },
+      "weapon_slots": [
+        -1,
+        -1,
+        -1,
+        -1
+      ]
+    },
+    {
+      "agent_id": 9,
+      "troop_id": 142,
+      "name": "Villager",
+      "team": 7,
+      "hit_points": 44,
+      "is_player": false,
+      "position": {
+        "x": 120.71,
+        "y": 146.1,
+        "z": 21.14
+      },
+      "combat": {
+        "attack": 0,
+        "defend": 0,
+        "direction": -1,
+        "weapon": -1
+      },
+      "scripted_destination": {
+        "x": 138.32,
+        "y": 150.76
+      },
+      "weapon_slots": [
+        -1,
+        -1,
+        -1,
+        -1
+      ]
+    },
+    {
+      "agent_id": 11,
+      "troop_id": 142,
+      "name": "Villager",
+      "team": 7,
+      "hit_points": 44,
+      "is_player": false,
+      "position": {
+        "x": 127.88,
+        "y": 199.37,
+        "z": 20.19
+      },
+      "combat": {
+        "attack": 0,
+        "defend": 0,
+        "direction": -1,
+        "weapon": -1
+      },
+      "scripted_destination": {
+        "x": 151.87,
+        "y": 187.09
+      },
+      "weapon_slots": [
+        -1,
+        -1,
+        -1,
+        -1
+      ]
+    },
+    {
+      "agent_id": 10,
+      "troop_id": 142,
+      "name": "Villager",
+      "team": 7,
+      "hit_points": 44,
+      "is_player": false,
+      "position": {
+        "x": 112.4,
+        "y": 173.76,
+        "z": 32.35
+      },
+      "combat": {
+        "attack": 0,
+        "defend": 0,
+        "direction": -1,
+        "weapon": -1
+      },
+      "scripted_destination": {
+        "x": 151.19,
+        "y": 178.22
+      },
+      "weapon_slots": [
+        -1,
+        -1,
+        -1,
+        -1
+      ]
+    },
+    {
+      "agent_id": 12,
+      "troop_id": 142,
+      "name": "Villager",
+      "team": 7,
+      "hit_points": 44,
+      "is_player": false,
+      "position": {
+        "x": 128.77,
+        "y": 186.18,
+        "z": 22.92
+      },
+      "combat": {
+        "attack": 0,
+        "defend": 0,
+        "direction": -1,
+        "weapon": -1
+      },
+      "scripted_destination": {
+        "x": 143.76,
+        "y": 150.99
+      },
+      "weapon_slots": [
+        -1,
+        -1,
+        -1,
+        -1
+      ]
+    },
+    {
+      "agent_id": 15,
+      "troop_id": 0,
+      "name": "Player",
+      "team": 0,
+      "hit_points": 49,
+      "is_player": true,
+      "position": {
+        "x": 152.45,
+        "y": 204.03,
+        "z": 8.67
+      },
+      "combat": {
+        "attack": 0,
+        "defend": 0,
+        "direction": -1,
+        "weapon": -1
+      },
+      "scripted_destination": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "weapon_slots": [
+        -1,
+        155,
+        474,
+        -1
+      ]
+    },
+    {
+      "agent_id": 13,
+      "troop_id": 691,
+      "name": "Village Elder",
+      "team": 7,
+      "hit_points": 42,
+      "is_player": false,
+      "position": {
+        "x": 149.86,
+        "y": 179.07,
+        "z": 12.63
+      },
+      "combat": {
+        "attack": 0,
+        "defend": 0,
+        "direction": -1,
+        "weapon": -1
+      },
+      "scripted_destination": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "weapon_slots": [
+        -1,
+        -1,
+        -1,
+        -1
+      ]
+    }
+  ],
+  "expected_count": 10,
+  "name_source": "module definitions; not live renamed agent names",
+  "age_seconds": 0.0932009220123291,
+  "truncated": false
+}

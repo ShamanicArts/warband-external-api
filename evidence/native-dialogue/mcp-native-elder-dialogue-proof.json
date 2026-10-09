@@ -1,0 +1,101 @@
+{
+  "method": "actual MCP Native conversation entry; no choice-success claim",
+  "before": {
+    "connected": true,
+    "age_seconds": 0.155,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "mission",
+    "received_at": 1791540361.7236705,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": 49,
+    "position": {
+      "x": 152.45,
+      "y": 204.03,
+      "z": 8.67
+    },
+    "clock": 40,
+    "acknowledged_command_id": 1791540360,
+    "scene_id": 376,
+    "mission_session": 2,
+    "player_agent_id": 15,
+    "last_command_result": -1,
+    "integration_revision": 15,
+    "mission_template_id": 3,
+    "mission_template": "village_center",
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 93,
+      "last_encounter_party_id": 93,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "queued": {
+    "id": 1791540361,
+    "text": "native_dialogue",
+    "created": 1791540361.8884516,
+    "status": "queued",
+    "kind": "native_dialogue",
+    "arguments": {
+      "agent_id": 13
+    },
+    "scene": 376,
+    "session": 2,
+    "result": null
+  },
+  "command": {
+    "id": 1791540361,
+    "text": "native_dialogue",
+    "created": 1791540361.8884516,
+    "status": "rejected",
+    "kind": "native_dialogue",
+    "arguments": {
+      "agent_id": 13
+    },
+    "scene": 376,
+    "session": 2,
+    "result": -1
+  },
+  "after": {
+    "connected": true,
+    "age_seconds": 0.058,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "mission",
+    "received_at": 1791540361.9441009,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": 49,
+    "position": {
+      "x": 152.45,
+      "y": 204.03,
+      "z": 8.67
+    },
+    "clock": 40,
+    "acknowledged_command_id": 1791540361,
+    "scene_id": 376,
+    "mission_session": 2,
+    "player_agent_id": 15,
+    "last_command_result": -1,
+    "integration_revision": 15,
+    "mission_template_id": 3,
+    "mission_template": "village_center",
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 93,
+      "last_encounter_party_id": 93,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  }
+}

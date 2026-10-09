@@ -24,6 +24,7 @@ OPERATIONS = {
     "world_encounter": 19,
     "leave_scene": 20,
     "leave_village": 21,
+    "native_dialogue": 22,
 }
 DATASETS = {
     "party": 1,
@@ -67,6 +68,7 @@ PARTY_ORDERS = {
     "escort": 10,
 }
 SCENE_CONTROLS = {
+    "native_dialogue",
     "leave_village",
     "leave_scene",
     "formation_position",
@@ -128,9 +130,20 @@ def validate_operation(kind, payload, state):
         "world_encounter": {"party_id", "world_control"},
         "leave_scene": set(),
         "leave_village": set(),
+        "native_dialogue": {"agent_id"},
     }[kind]
     if set(payload) != expected:
         raise ValueError("Unexpected or missing operation arguments")
+    if kind == "native_dialogue":
+        if (
+            state.get("integration_revision", 0) < 15
+            or state.get("mission_template")
+            not in ("town_default", "town_center", "village_center")
+            or state.get("mission_flags", 0) & 2
+        ):
+            raise ValueError(
+                "Native conversation needs revision15 peaceful Native center mission"
+            )
     if kind == "leave_village":
         if (
             state.get("integration_revision", 0) < 14
@@ -252,7 +265,10 @@ def validate_operation(kind, payload, state):
                 or not 0 <= payload["agent_id"] < 10000
             ):
                 raise ValueError("Expected a valid scene agent ID")
-            if type(payload["world_control"]) is not bool:
+            if (
+                "world_control" in payload
+                and type(payload["world_control"]) is not bool
+            ):
                 raise ValueError("world_control must be an explicit boolean")
         if kind in ("agent_move", "agent_release") and payload["agent_id"] == state.get(
             "player_agent_id"
@@ -364,6 +380,8 @@ def validate_operation(kind, payload, state):
 
 
 def wire_arguments(kind, payload):
+    if kind == "native_dialogue":
+        return [payload["agent_id"], 0, 0, 0]
     if kind == "world_encounter":
         return [payload["party_id"], int(payload["world_control"]), 0, 0]
     if kind == "goods_trade":

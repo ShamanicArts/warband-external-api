@@ -359,3 +359,26 @@ no claim of live active-hunt consequences. Recognition and condition-flow model
 tests preserve both hunt branches; actual active-hunt fail/succeed outcomes still
 need acceptance. 123 tests; targeted Ruff clean; Pyright zero errors;128 opcode IDs.
 Current live game at Azgad village menu, clock101; campaign save not written.
+
+Revision15: original Native NPC conversation entry, not custom npc_say. Require
+unique active troop instance, <=4m real engine distance, living human NPC/player,
+no dialogue/custom speech job, no battle, exact recognized town/village mission
+and scene/session. Engine start accepts troop, so duplicate instances refused.
+Actual conversation_screen_is_active is sampled only in mission triggers (its
+documented scope), never assumed usable in HTTP callback. Guard slot set during
+entry dispatch; periodic engine screen sampler clears it after actual closure.
+
+Actual Azgad elder Native greeting and task/supplies/scouting/Leave choices appear
+in independent screenshot after real MCP. Explicit NPC control moved elder from
+23.23m→3.40m; actual scene getters verify movement, then normal AI restored before
+entry. This is explicit NPC world setup, not player walking. Far entry rejected;
+an attempted player relocation setup failed (initial >10m bridge refusal; later
+bounded step acknowledged but player remained at original coords and subsequent
+step engine-rejected). Failures retained, no movement inference from ack.
+
+Real active dialogue refused village departure, repeated entry and relocation.
+CUA clicked original Leave only for cleanup, NOT MCP choice execution; fresh
+engine sampler then reported dialogue=false and screenshot returned to scene.
+Native MCP choices, multi-turn conversation and quest acceptance still absent.
+126 tests; Ruff clean; Pyright zero errors;130 official opcode IDs. Current game
+Azgad scene376/session2, player15, gold355, elder13 nearby, no active dialogue.

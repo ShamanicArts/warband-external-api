@@ -348,6 +348,21 @@ async def warband_leave_village_scene() -> dict:
 
 
 @mcp.tool()
+async def warband_start_native_conversation(agent_id: int) -> dict:
+    """Start original Native dialogue with a unique nearby scene NPC; no custom speech.
+
+    Peaceful Native town/village scene only; living player/NPC, no existing dialogue,
+    no queued custom speech. Maximum distance4m. Duplicate active troop instances
+    rejected because engine start selects by troop, not agent. No teleport, choice
+    execution or quest edits. Native's original dialogue conditions/consequences
+    remain installed. Ack is dispatch, NOT proof of conversation/quest outcome.
+    Revision15 original elder greeting/choices verified independently; MCP choices
+    and multi-turn dialogue remain unimplemented, not implied by entry success.
+    """
+    return await operation("native_dialogue", {"agent_id": agent_id})
+
+
+@mcp.tool()
 async def warband_campaign_wait(hours: int, speed: int = 1) -> dict:
     """Start Native attackable, interactive resting for 1–24 hours (speed 1–5).
 
