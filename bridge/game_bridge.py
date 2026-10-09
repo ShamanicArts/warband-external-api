@@ -34,6 +34,11 @@ class Store:
             "CREATE TABLE IF NOT EXISTS commands "
             "(id INTEGER PRIMARY KEY, text TEXT, created REAL, status TEXT)"
         )
+        self.db.execute(
+            "CREATE TABLE IF NOT EXISTS native_dialogue_events "
+            "(sequence INTEGER PRIMARY KEY AUTOINCREMENT, received REAL NOT NULL, "
+            "event TEXT NOT NULL, entry_id INTEGER NOT NULL, data TEXT NOT NULL)"
+        )
         columns = {row[1] for row in self.db.execute("PRAGMA table_info(commands)")}
         for name, declaration in {
             "kind": "TEXT NOT NULL DEFAULT 'message'",
@@ -52,6 +57,10 @@ class Store:
         self.dialogues = {}
         self.catalog = (catalog or {}).get("troops", {})
         self.module_catalog = catalog or {}
+        self._dialogue_entries = {
+            entry["id"]: entry
+            for entry in self.module_catalog.get("dialogue", {}).get("entries", [])
+        }
         self.campaign = CampaignExports(self.db, catalog or {})
         self.market = MerchantExports(self.db, catalog or {})
 
@@ -608,6 +617,108 @@ class Store:
                 self.dialogues.get(job, {"command_id": job, "event": "not_observed"})
             )
 
+    def native_dialogue_event(self, query):
+        """Persist a catalog-validated event emitted by a Native dialogue entry."""
+        if query.get("v") != "2":
+            raise ValueError("Expected protocol-2 Native dialogue event")
+        fields = (
+            "event",
+            "entry",
+            "input",
+            "output",
+            "speaker",
+            "troop",
+            "agent",
+            "context",
+            "session",
+        )
+        try:
+            values = {field: int(query[field]) for field in fields}
+        except (KeyError, ValueError) as exc:
+            raise ValueError("Invalid Native dialogue event fields") from exc
+        entry = self._dialogue_entries.get(values["entry"])
+        if entry is None:
+            raise ValueError("Unknown Native dialogue entry")
+        expected_event = 2 if entry["player_choice"] else 1
+        if (
+            values["event"] != expected_event
+            or values["input"] != entry["input_state_id"]
+            or values["output"] != entry["output_state_id"]
+            or values["speaker"] != entry["speaker"]
+        ):
+            raise ValueError("Native dialogue event does not match module catalog")
+        if (
+            values["context"] not in (0, 1, 2, 3)
+            or values["session"] < -1
+            or values["troop"] < -1
+            or values["agent"] < -1
+        ):
+            raise ValueError("Native dialogue event scope is invalid")
+        with self.lock:
+            if (
+                values["context"] == 1
+                and self.state
+                and self.state.get("context") == "mission"
+                and values["session"] != self.state.get("mission_session")
+            ):
+                raise ValueError("Native dialogue mission session changed")
+            data = {
+                "source": "Warband conversation consequence",
+                "event": "player_choice" if expected_event == 2 else "npc_line",
+                "entry_id": entry["id"],
+                "symbol": entry["symbol"],
+                "text_template": entry["text_template"],
+                "input_state_id": entry["input_state_id"],
+                "input_state": entry["input_state"],
+                "output_state_id": entry["output_state_id"],
+                "output_state": entry["output_state"],
+                "speaker": entry["speaker"],
+                "conversation_troop_id": values["troop"],
+                "conversation_agent_id": values["agent"],
+                "context": values["context"],
+                "mission_session": values["session"],
+                "received_at": time.time(),
+            }
+            cursor = self.db.execute(
+                "INSERT INTO native_dialogue_events "
+                "(received,event,entry_id,data) VALUES (?,?,?,?)",
+                (
+                    data["received_at"],
+                    data["event"],
+                    data["entry_id"],
+                    json.dumps(data),
+                ),
+            )
+            self.db.commit()
+            data["sequence"] = cursor.lastrowid
+            return data
+
+    def native_dialogue_events(self, after_sequence=0, limit=100):
+        if after_sequence < 0 or not 1 <= limit <= 100:
+            raise ValueError("Invalid Native dialogue event cursor")
+        with self.lock:
+            rows = self.db.execute(
+                "SELECT sequence,data FROM native_dialogue_events "
+                "WHERE sequence>? ORDER BY sequence LIMIT ?",
+                (after_sequence, limit),
+            ).fetchall()
+            events = []
+            for row in rows:
+                event = json.loads(row["data"])
+                event["sequence"] = row["sequence"]
+                events.append(event)
+            return {
+                "events": events,
+                "latest_sequence": events[-1]["sequence"]
+                if events
+                else after_sequence,
+                "durable": True,
+                "caveat": (
+                    "Events prove committed Native entries, not remote choice "
+                    "availability or remote selection."
+                ),
+            }
+
     def snapshot(self):
         with self.lock:
             if self.state is None:
@@ -703,7 +814,10 @@ class Store:
                 "goods_trade": "Full bread buy/sell, price/funds guards verified",
                 "town_scene_departure": "Tavern and normal street departure verified",
                 "village_scene_departure": "Peaceful exit verified; hunt unverified",
-                "native_dialogue": "Elder entry/screen guards verified; choices absent",
+                "native_dialogue": (
+                    "Elder entry/screen guards verified; revision 16 records "
+                    "catalog-validated committed lines and choices"
+                ),
                 "campaign_exports": [
                     "party",
                     "prisoners",
@@ -726,7 +840,7 @@ class Store:
             "module_instrumented_missions": self.module_catalog.get(
                 "instrumented_missions", []
             ),
-            "expected_integration_revision": 15,
+            "expected_integration_revision": 16,
             "polling": "revision 4 chains HTTP long-polls in paused game time",
             "caveats": [
                 "Before revision 4, campaign polling pauses with game time",
@@ -780,6 +894,7 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                 "/agents-end",
                 "/agents_end",
                 "/dialogue",
+                "/native-dialogue",
                 "/campaign-row",
                 "/campaign-end",
                 "/battle-order",
@@ -815,6 +930,7 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                             ["13"],
                             ["14"],
                             ["15"],
+                            ["16"],
                         )
                         else 0,
                     )
@@ -824,6 +940,7 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                     "/agents-end",
                     "/agents_end",
                     "/dialogue",
+                    "/native-dialogue",
                     "/campaign-row",
                     "/campaign-end",
                     "/battle-order",
@@ -834,7 +951,11 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                 ):
                     if any(len(v) != 1 for v in query.values()):
                         raise ValueError("Duplicate protocol field")
-                    store.event(url.path, {k: v[0] for k, v in query.items()})
+                    event_query = {k: v[0] for k, v in query.items()}
+                    if url.path == "/native-dialogue":
+                        store.native_dialogue_event(event_query)
+                    else:
+                        store.event(url.path, event_query)
                     self.reply(200, "0|0|0|0|0|idle", "text/plain")
                 elif url.path == "/api/state":
                     self.reply(200, store.snapshot())
@@ -876,6 +997,16 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                 elif url.path.startswith("/api/dialogue/"):
                     self.reply(
                         200, store.dialogue_result(int(url.path.rsplit("/", 1)[1]))
+                    )
+                elif url.path == "/api/native-dialogue-events":
+                    if any(len(v) != 1 for v in query.values()):
+                        raise ValueError("Duplicate event cursor field")
+                    self.reply(
+                        200,
+                        store.native_dialogue_events(
+                            int(query.get("after", ["0"])[0]),
+                            int(query.get("limit", ["100"])[0]),
+                        ),
                     )
                 else:
                     self.reply(404, {"error": "Unknown endpoint"})

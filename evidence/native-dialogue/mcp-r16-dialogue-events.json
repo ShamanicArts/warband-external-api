@@ -1,0 +1,92 @@
+{
+  "integration_revision": 16,
+  "date": "2026-10-10",
+  "method": "actual stdio MCP, authenticated bridge, Warband engine dialogue consequences, isolated Xvfb CUA for visual validation and the human-equivalent Leave click",
+  "scope": {
+    "scene_id": 376,
+    "mission_session": 3,
+    "mission_template": "village_center",
+    "player_agent_id": 15,
+    "elder_agent_id": 13,
+    "elder_troop_id": 691
+  },
+  "setup": {
+    "npc_approach_operation": "warband_move_npc with explicit world_control=true",
+    "distance_samples_m": [25.4, 24.24, 22.42, 19.88, 17.58, 14.84, 12.32, 9.97, 7.93, 6.68, 5.53, 3.56, 1.94],
+    "released_to_native_ai_before_dialogue": true
+  },
+  "native_entry_command": {
+    "id": 1791610894,
+    "kind": "native_dialogue",
+    "arguments": {"agent_id": 13},
+    "scene": 376,
+    "session": 3,
+    "status": "acknowledged",
+    "result": 0
+  },
+  "events": [
+    {
+      "sequence": 1,
+      "source": "Warband conversation consequence",
+      "event": "npc_line",
+      "entry_id": 2469,
+      "symbol": "start:village_elder_talk.3",
+      "text_template": "Good day, {sir/madam}.",
+      "input_state_id": 0,
+      "input_state": "start",
+      "output_state_id": 1203,
+      "output_state": "village_elder_talk",
+      "speaker": 4095,
+      "conversation_troop_id": 691,
+      "conversation_agent_id": 13,
+      "context": 1,
+      "mission_session": 3,
+      "received_at": 1791610894.4841802
+    },
+    {
+      "sequence": 2,
+      "source": "Warband conversation consequence",
+      "event": "player_choice",
+      "entry_id": 2515,
+      "symbol": "village_elder_talk:close_window",
+      "text_template": "[Leave]",
+      "input_state_id": 1203,
+      "input_state": "village_elder_talk",
+      "output_state_id": 6,
+      "output_state": "close_window",
+      "speaker": 69631,
+      "conversation_troop_id": 691,
+      "conversation_agent_id": 13,
+      "context": 1,
+      "mission_session": 3,
+      "received_at": 1791610931.5346751
+    }
+  ],
+  "visual_validation": {
+    "npc_line_visible": "Good day, sir.",
+    "choices_visible": [
+      "Do you have any tasks I can help you with?",
+      "I want to buy some supplies. I will pay with gold.",
+      "Have you seen any enemies around here recently?",
+      "[Leave]"
+    ],
+    "leave_closed_dialogue": true
+  },
+  "restart_verification": {
+    "bridge_process_restarted": true,
+    "recovered_sequences": [1, 2],
+    "latest_sequence": 2,
+    "state_after_restart": {
+      "connected": true,
+      "integration_revision": 16,
+      "scene_id": 376,
+      "mission_session": 3,
+      "dialogue_active": false
+    }
+  },
+  "limitations": [
+    "The Leave choice was clicked through isolated CUA; remote choice selection is not implemented.",
+    "Committed-entry events do not prove which other static player-choice candidates were available.",
+    "No generated dialogue or voice path is claimed by this evidence."
+  ]
+}

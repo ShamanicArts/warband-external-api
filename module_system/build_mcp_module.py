@@ -14,6 +14,13 @@ from urllib.parse import urlparse
 
 from module_system.battle_ops import battle_order
 from module_system.campaign_ops import campaign_export
+from module_system.dialogue_actions import (
+    dialogue_catalog,
+    instrument_dialogues,
+    parse_dialogue_states,
+    parse_dialogues,
+    player_choice_catalog,
+)
 from module_system.goods_trade import goods_trade
 from module_system.market_ops import market_export
 from module_system.menu_actions import append_actions
@@ -699,6 +706,35 @@ def dialogue_lines(states, event_url):
     ]
 
 
+def dialogue_evidence_ops(entry, event_url):
+    """Report an engine-committed Native line while restoring numeric registers."""
+    saved_registers = range(20, 29)
+    return [
+        *[("assign", LOCAL + 60 + i, REG + i) for i in saved_registers],
+        # s123 is reserved scratch in this isolated module, as in menu bootstrap.
+        ("str_store_string_reg", 123, 127),
+        ("assign", REG + 20, 2 if entry["player_choice"] else 1),
+        ("assign", REG + 21, entry["id"]),
+        ("assign", REG + 22, entry["input_state_id"]),
+        ("assign", REG + 23, entry["output_state_id"]),
+        ("assign", REG + 24, entry["speaker"]),
+        ("assign", REG + 25, -1),
+        ("assign", REG + 26, -1),
+        ("try_begin",),
+        ("store_conversation_troop", REG + 25),
+        ("try_end",),
+        ("try_begin",),
+        ("store_conversation_agent", REG + 26),
+        ("try_end",),
+        ("troop_get_slot", REG + 27, TROOP, CONTEXT_SLOT),
+        ("troop_get_slot", REG + 28, TROOP, SESSION_SLOT),
+        ("str_store_string", 127, event_url),
+        ("send_message_to_url", 127, 0),
+        *[("assign", REG + i, LOCAL + 60 + i) for i in saved_registers],
+        ("str_store_string_reg", 127, 123),
+    ]
+
+
 def build(native: Path, output: Path, endpoint: str, token: str):
     native, output = native.resolve(), output.resolve()
     if native.name != "Native" or not (native / "module.ini").is_file():
@@ -734,7 +770,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             "&scene={reg8}&agent={reg9}&result={reg10}&session={reg11}"
             "&mission={reg12}&flags={reg13}&captive={reg14}&town={reg15}"
             "&encounter={reg16}&menu={reg17}&pulse={reg18}&dialogue={reg19}"
-            "&menu-session={reg20}&build=15"
+            "&menu-session={reg20}&build=16"
         )
         new_strings.append(f"str_mcp_{kind}_url {value}")
     new_strings.extend(
@@ -795,6 +831,13 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         "&player-gold={reg28}&merchant-gold={reg29}&source-item={reg30}"
         "&destination-item={reg31}&source-amount={reg32}&destination-amount={reg33}"
         "&factor={reg34}&can-execute={reg35}"
+    )
+    native_dialogue_event_url = STR + count + len(new_strings)
+    new_strings.append(
+        f"str_mcp_native_dialogue_event {endpoint}/native-dialogue?token={token}&v=2"
+        "&event={reg20}&entry={reg21}&input={reg22}&output={reg23}"
+        "&speaker={reg24}&troop={reg25}&agent={reg26}&context={reg27}"
+        "&session={reg28}"
     )
     strings[1] = str(count + len(new_strings))
     strings.extend(new_strings)
@@ -924,10 +967,19 @@ def build(native: Path, output: Path, endpoint: str, token: str):
     simple[1] = str(int(simple[1]) + 1)
     simple.append("0.100000 " + telemetry(STR + count + 1, False, native_globals))
     states = (native / "dialog_states.txt").read_text().splitlines()
+    state_names = parse_dialogue_states(states)
     if "mcp_npc_end" in states:
         raise ValueError("Native already contains MCP dialogue state")
     conversations = (
         (native / "conversation.txt").read_text(encoding="latin-1").splitlines()
+    )
+    native_dialogues = parse_dialogues(conversations, state_names)
+    conversations = instrument_dialogues(
+        conversations,
+        native_dialogues,
+        lambda entry: compile_ops(
+            dialogue_evidence_ops(entry, native_dialogue_event_url)
+        ),
     )
     added_dialogue = dialogue_lines(states, STR + count + 4)
     conversations[1] = str(int(conversations[1]) + 2)
@@ -1112,6 +1164,21 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                 if village_departure_id is None
                 else [village_departure_id],
                 "menu_actions": menu_actions,
+                "dialogue": {
+                    "entry_count": len(native_dialogues),
+                    "player_choice_count": sum(
+                        entry["player_choice"] for entry in native_dialogues
+                    ),
+                    "player_choice_candidates": player_choice_catalog(
+                        native_dialogues
+                    ),
+                    "entries": dialogue_catalog(native_dialogues),
+                    "availability": (
+                        "Static candidates are not availability claims. Engine events "
+                        "prove lines/choices committed in a live conversation; remote "
+                        "choice selection is not implemented."
+                    ),
+                },
             },
             indent=2,
         )
@@ -1123,7 +1190,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         json.dumps(
             {
                 "protocol": 2,
-                "integration_revision": 15,
+                "integration_revision": 16,
                 "scene_departure_missions": departure_ids,
                 "source": str(native),
                 "transport": "engine HTTP opcode 380",

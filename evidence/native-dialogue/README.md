@@ -49,3 +49,17 @@ paths have structural/model coverage, not comprehensive live acceptance.
 opcode IDs. Original Native conversation lines remain unchanged and installed.
 No campaign save write; Native/Pendor untouched. Current game returned to Azgad
 scene376/session2 with elder nearby, player49hp/gold355 and no active dialogue.
+
+## Revision 16 committed-entry evidence
+
+[`mcp-r16-dialogue-events.json`](mcp-r16-dialogue-events.json) records an actual
+revision-16 elder conversation in scene376/session3. The new consequence suffix
+reported the original NPC greeting entry (`2469`, `start:village_elder_talk.3`)
+as durable sequence 1. Isolated CUA then clicked Native's visible `[Leave]`; the
+engine reported original player-choice entry `2515`
+(`village_elder_talk:close_window`) as sequence 2 and visibly closed the screen.
+
+Both catalog-validated events survived a real bridge process restart and were read
+through the new MCP cursor tool. This proves committed NPC/player entries and the
+durable transport. It still does **not** implement MCP choice selection or claim
+that every static candidate shown in the generated catalog was live-available.

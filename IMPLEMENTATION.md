@@ -382,3 +382,49 @@ engine sampler then reported dialogue=false and screenshot returned to scene.
 Native MCP choices, multi-turn conversation and quest acceptance still absent.
 126 tests; Ruff clean; Pyright zero errors;130 official opcode IDs. Current game
 Azgad scene376/session2, player15, gold355, elder13 nearby, no active dialogue.
+
+## Revision 16 — dialogue choices and agentic-kit foundation (in progress)
+
+The product target is now a releasable, provider-neutral Warband agentic modding
+and scripting kit rather than a flat MCP tool collection. The draft architecture
+is in `docs/design/spec.md`: semantic observations/affordances/actions/events,
+role-filtered perception and control leases, an extension SDK, constrained agent
+interfaces, host-side pluggable voice, dialogue/faction reference applications and
+reproducible multi-faction benchmarks. MCP remains one adapter. Human-equivalent
+twitch player control is explicitly not a release prerequisite.
+
+First implementation seam: `module_system/dialogue_actions.py` parses the complete
+compiled version-2 Native conversation graph with operation-boundary validation.
+Against the installed Native corpus it finds **2,773 entries**, **1,192 static
+player-choice candidates**, **1,354 states**, and **11 elder-choice candidates**
+across `village_elder_talk` / `village_elder_trade_talk`. Generated runtime catalog
+metadata omits raw operation blocks and labels candidates honestly: their original
+conditions have not yet been evaluated in the live dialogue context.
+
+Revision 16 now appends a register-restoring evidence suffix to every original
+Native dialogue consequence without changing its condition, original consequence,
+speaker, states, text or voiceover. When the engine commits an NPC line or player
+choice, the suffix reports its exact catalog entry/state tuple to a dedicated
+loopback endpoint. The bridge validates that tuple against the generated catalog,
+persists it in an ordered SQLite event stream and exposes cursor-based reads through
+`warband_native_dialogue_events`. These events are evidence of committed entries;
+they are deliberately not presented as available choices or remote selection.
+
+The installed Native corpus builds and reparses as **2,775 output entries** (2,773
+original plus the two existing MCP speech entries). The instrumented conversation
+is 4,311,007 bytes and its safe catalog is 1,698,976 bytes. Live revision-16 proof
+then recorded original elder greeting entry 2469 and visible `[Leave]` entry 2515
+as ordered sequences 1 and 2 in scene376/session3. Both events survived a real
+bridge restart. `evidence/native-dialogue/mcp-r16-dialogue-events.json` preserves
+the facts and limitations; the Leave click was isolated CUA, not remote selection.
+
+Static operation review finds conversation start, speaker getters/setters and the
+mission-trigger-only active-screen predicate, but no documented operation that
+selects a displayed player dialogue option. This is not an impossibility claim.
+The current investigation must determine whether the original player-choice
+condition/consequence can be executed with the exact live conversation register
+context and whether the engine can safely advance, close or re-enter the resulting
+state without desktop input. Do not dispatch copied consequences until both the
+state-transition mechanism and required register/global preservation are proven.
+The expanded active suite passes **134 tests**; maintained source and harnesses are
+Ruff-clean. Legacy prototype files remain outside the active lint boundary.

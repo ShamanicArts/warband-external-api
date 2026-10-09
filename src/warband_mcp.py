@@ -22,7 +22,8 @@ mcp = FastMCP(
         "Relocation is a debug teleport, not walking or campaign navigation. "
         "Generate NPC text yourself, grounded in the exported scene and character; "
         "npc_say renders it in the game's actual dialogue UI. Observe the dialogue "
-        "event rather than pretending the player has replied. "
+        "event rather than pretending the player has replied. Native dialogue events "
+        "are committed-entry evidence, not a remote choice-selection interface. "
         "CUA is used separately by the developer for launch and visual validation."
     ),
 )
@@ -557,6 +558,26 @@ async def warband_dialogue_event(command_id: int) -> dict:
         raise ValueError("command_id must be positive")
     return await anyio.to_thread.run_sync(
         lambda: request(f"/api/dialogue/{command_id}")
+    )
+
+
+@mcp.tool()
+async def warband_native_dialogue_events(
+    after_sequence: int = 0, limit: int = 100
+) -> dict:
+    """Read durable engine-reported Native dialogue line and choice events.
+
+    Events are emitted after a catalogued entry's real consequence block commits.
+    They prove which line or player choice the engine used; they do not claim that
+    every static choice was available or permit an agent to select one remotely.
+    Use latest_sequence as the next after_sequence cursor.
+    """
+    if after_sequence < 0 or not 1 <= limit <= 100:
+        raise ValueError("Invalid Native dialogue event cursor")
+    return await anyio.to_thread.run_sync(
+        lambda: request(
+            f"/api/native-dialogue-events?after={after_sequence}&limit={limit}"
+        )
     )
 
 

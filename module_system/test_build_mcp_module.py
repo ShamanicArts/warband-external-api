@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -56,10 +57,12 @@ class ModuleBuildTests(unittest.TestCase):
         ]
         self.assertTrue(all("_" not in value for value in url_lines))
         self.assertTrue(any("/agents-end?" in value for value in url_lines))
+        self.assertTrue(any("/native-dialogue?" in value for value in url_lines))
         dialogue = (output / "conversation.txt").read_text(encoding="latin-1")
         self.assertIn("{s60}", dialogue)
         self.assertNotIn("{s126}", dialogue)
-        self.assertEqual((output / "strings.txt").read_bytes().splitlines()[1], b"16")
+        self.assertIn(f"{OPS['send_message_to_url']} 2 127 0", dialogue)
+        self.assertEqual((output / "strings.txt").read_bytes().splitlines()[1], b"17")
         self.assertEqual(
             (output / "simple_triggers.txt").read_text().splitlines()[1], "2"
         )
@@ -68,13 +71,24 @@ class ModuleBuildTests(unittest.TestCase):
             "2.000000 0.000000 0.000000 0 ",
             (output / "mission_templates.txt").read_text(),
         )
+        catalog = json.loads((output / "mcp-catalog.json").read_text())
+        self.assertEqual(catalog["dialogue"]["entry_count"], 1)
+        self.assertEqual(catalog["dialogue"]["player_choice_count"], 0)
+        self.assertEqual(catalog["dialogue"]["player_choice_candidates"], [])
+        self.assertEqual(catalog["dialogue"]["entries"][0]["id"], 0)
+        self.assertFalse(catalog["dialogue"]["entries"][0]["player_choice"])
+        self.assertNotIn("condition", catalog["dialogue"]["entries"][0])
+        self.assertEqual(
+            json.loads((output / "mcp-build.json").read_text())[
+                "integration_revision"
+            ],
+            16,
+        )
 
     def test_callback_control_blocks_are_balanced(self):
         self.assert_balanced(callback())
 
     def test_recognized_departure_is_exported_to_runtime_catalog(self):
-        import json
-
         (self.native / "variables.txt").write_text("g_main_attacker_agent\n")
         (self.native / "mission_templates.txt").write_text(
             "missionsfile version 1\n1\n"
@@ -91,8 +105,6 @@ class ModuleBuildTests(unittest.TestCase):
             )
 
     def test_native_faction_note_count_seam_preserves_all_ids(self):
-        import json
-
         (self.native / "factions.txt").write_text(
             "factionsfile version 1\n3\nfac_no_faction No_Faction 0 0\n"
             "0 fac_kingdom_1 Kingdom_of_Swadia 0 0\n"

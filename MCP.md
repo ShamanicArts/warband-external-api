@@ -522,3 +522,23 @@ was released before entry. No player walking/relocation success claimed. Real
 dialogue blocked departure/re-entry/relocation. CUA Leave was cleanup only;
 MCP choice execution, multi-turn dialogue/memory remain unimplemented. Evidence
 in `evidence/native-dialogue/`. 126 tests;130 verified official opcode IDs.
+
+## Native dialogue evidence stream (revision16)
+
+Every original Native conversation entry now retains its original condition and
+consequence bytecode, then appends a register-restoring evidence suffix. A committed
+NPC line or player choice reports its entry ID, input/output states, speaker and
+conversation scope to `/native-dialogue`. The bridge validates those values against
+the generated safe catalog and stores them in an ordered SQLite stream exposed as
+`warband_native_dialogue_events(after_sequence, limit)`.
+
+This proves only entries that the engine actually commits. Static candidates remain
+non-claims: revision16 does not expose live choice availability or remotely select a
+choice. The installed Native corpus builds and reparses with 2,773 instrumented
+original entries plus two kit entries.
+
+Live Azgad proof recorded original greeting entry 2469 and Native `[Leave]` entry
+2515 as ordered sequences 1/2 in the same scene/session; the latter was selected
+through isolated CUA, not MCP. Both events survived a real bridge process restart.
+See `evidence/native-dialogue/mcp-r16-dialogue-events.json`. 134 tests; maintained
+active source and harnesses Ruff-clean.

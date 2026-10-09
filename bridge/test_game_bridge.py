@@ -300,6 +300,50 @@ class GameOperationTests(unittest.TestCase):
         self.store.event("/dialogue", {**event, "event": "1"})
         self.assertEqual(self.store.dialogue_result(command["id"])["event"], "closed")
 
+    def test_native_dialogue_events_are_catalog_validated_and_durable(self):
+        entry = {
+            "id": 7,
+            "symbol": "elder_talk:elder_tasks",
+            "speaker": 69631,
+            "player_choice": True,
+            "input_state_id": 10,
+            "input_state": "elder_talk",
+            "output_state_id": 11,
+            "output_state": "elder_tasks",
+            "text_template": "Do you have any tasks?",
+        }
+        catalog = {"dialogue": {"entries": [entry]}}
+        self.store.db.close()
+        database = Path(self.temp.name) / "dialogue.db"
+        self.store = Store(database, catalog)
+        query = {
+            "v": "2",
+            "event": "2",
+            "entry": "7",
+            "input": "10",
+            "output": "11",
+            "speaker": "69631",
+            "troop": "44",
+            "agent": "3",
+            "context": "1",
+            "session": "8",
+        }
+        committed = self.store.native_dialogue_event(query)
+        self.assertEqual(committed["event"], "player_choice")
+        self.assertEqual(committed["text_template"], "Do you have any tasks?")
+        self.assertEqual(committed["sequence"], 1)
+        self.store.db.close()
+
+        self.store = Store(database, catalog)
+        result = self.store.native_dialogue_events()
+        self.assertTrue(result["durable"])
+        self.assertEqual(result["latest_sequence"], 1)
+        self.assertEqual(result["events"][0]["entry_id"], 7)
+        self.assertEqual(self.store.native_dialogue_events(1)["events"], [])
+
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            self.store.native_dialogue_event({**query, "event": "1"})
+
     def test_rejects_arbitrary_ops_and_text_template_injection(self):
         self.store.poll(mission_telemetry())
         for kind, args in (("execute_bytecode", {}), ("message", {"text": "{s0}"})):
@@ -359,6 +403,39 @@ class HttpBoundaryTests(unittest.TestCase):
         self.assertEqual(
             self.api(f"/api/commands/{command['id']}")["status"], "acknowledged"
         )
+
+    def test_native_dialogue_game_event_and_agent_cursor_routes(self):
+        self.store._dialogue_entries[7] = {
+            "id": 7,
+            "symbol": "elder_talk:close_window",
+            "speaker": 69631,
+            "player_choice": True,
+            "input_state_id": 10,
+            "input_state": "elder_talk",
+            "output_state_id": 11,
+            "output_state": "close_window",
+            "text_template": "Leave.",
+        }
+        query = {
+            "token": self.token,
+            "v": "2",
+            "event": "2",
+            "entry": "7",
+            "input": "10",
+            "output": "11",
+            "speaker": "69631",
+            "troop": "44",
+            "agent": "3",
+            "context": "1",
+            "session": "8",
+        }
+        with urlopen(
+            self.url + "/native-dialogue?" + urlencode(query), timeout=2
+        ) as response:
+            self.assertEqual(response.read(), b"0|0|0|0|0|idle")
+        result = self.api("/api/native-dialogue-events?after=0&limit=1")
+        self.assertEqual(result["latest_sequence"], 1)
+        self.assertEqual(result["events"][0]["event"], "player_choice")
 
 
 if __name__ == "__main__":
