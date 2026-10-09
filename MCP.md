@@ -482,3 +482,14 @@ guard probe and intermediate-menu acceptance races are retained alongside the
 successful test in `evidence/world-encounters/`. Castles/villages, pending-action
 cancellation and mobile parties remain unverified/unimplemented as appropriate.
 111 tests; 123 verified official opcode IDs.
+
+## Guarded town_default scene departure (revision 12)
+
+`warband_leave_town_scene` recognizes the installed Native town_default Tab guard
+at build time, refuses changed/unreviewed handlers, and requires no active tavern
+attacker, living player, no dialogue/battle, and exact scene/session scope.
+The explicit request confirms departure; engine teardown returns to Native menus.
+Actual Praven tavern scene103→town return passed; independent screenshot confirms
+it, with unchanged money/encounter. Streets (`town_center`), village quest exits
+and battle retreats remain excluded. Live brawl/death rejection acceptance pending.
+118 tests; 124 verified opcode IDs. Evidence: `evidence/town-departure/`.

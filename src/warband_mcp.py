@@ -319,6 +319,19 @@ async def warband_world_start_encounter(
 
 
 @mcp.tool()
+async def warband_leave_town_scene() -> dict:
+    """Request normal departure from Native town_default scene (town/tavern/castle).
+
+    Explicit request provides departure confirmation. Exact installed Native Tab
+    permission is recognized at build; game retains its no-active-attacker guard.
+    Requires living player, exact mission/session and no dialogue/battle. Not
+    generic mission abort, battle retreat or village departure (quest effects).
+    Uses engine teardown, not desktop input. Verify fresh menu context after ack.
+    """
+    return await operation("leave_scene", {})
+
+
+@mcp.tool()
 async def warband_campaign_wait(hours: int, speed: int = 1) -> dict:
     """Start Native attackable, interactive resting for 1–24 hours (speed 1–5).
 

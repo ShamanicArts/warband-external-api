@@ -315,3 +315,19 @@ Castles/villages/mobile encounters, scheduled cancellation and additional quest
 encounter outcomes need acceptance. CUA tavern Tab exit did not take effect;
 leave-scene API/normal exit acceptance remains unfinished. Current game remains
 in Praven tavern, isolated save unchanged. 111 tests; 123 official opcode IDs.
+
+Revision 12: `warband_leave_town_scene` adapts the exactly recognized installed
+Native town_default Tab permission (no active tavern attacker) plus living-player,
+dialogue, battle and exact scene/session guards. Request provides confirmation;
+engine finish_mission performs teardown, not CUA input or arbitrary mission abort.
+Actual tavern scene103→Praven town menu passed with gold355/encounter26 unchanged;
+independent screenshot verifies returned menu. First request rejected because
+recognized-handler metadata was accidentally only in build manifest; corrected
+runtime catalog after verifying all game-code bytes identical, regression added.
+
+Town streets use town_center, not town_default: attempted additional acceptance
+was wrongly scoped, and correctly rejected. Their Native Tab escape/prison-break/
+mission-mode guards remain unadapted. Village departures have quest consequences
+and stay unsupported. Live active-brawl/dead-player departure rejections still
+need separate acceptance. 118 tests, targeted Ruff clean, Pyright zero errors,
+124 official opcode IDs. Current game is Praven streets scene59, mission session3.

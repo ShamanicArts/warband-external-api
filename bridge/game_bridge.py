@@ -109,6 +109,12 @@ class Store:
         with self.lock:
             state = self.snapshot()
             validate_operation(kind, arguments, state)
+            if kind == "leave_scene" and state.get(
+                "mission_template_id"
+            ) not in self.module_catalog.get("scene_departure_missions", []):
+                raise ValueError(
+                    "No recognized Native departure handler for this mission"
+                )
             if kind == "select_menu":
                 actions = self.menu_options()["actions"]
                 if arguments["action_id"] not in {action["id"] for action in actions}:
@@ -318,6 +324,9 @@ class Store:
                         )
                         and query["v"] == "2"
                         and row["scene"] == values.get("scene")
+                        and (
+                            row["kind"] != "leave_scene" or values.get("build", 0) >= 12
+                        )
                         and row["session"] == values.get("session")
                         and query["context"] == "mission"
                     )
@@ -672,6 +681,7 @@ class Store:
                 },
                 "merchant_inspection": "384 slots/factors verified; not transactions",
                 "goods_trade": "Full bread buy/sell, price/funds guards verified",
+                "town_scene_departure": "Tavern departure verified; streets excluded",
                 "campaign_exports": [
                     "party",
                     "prisoners",
@@ -694,7 +704,7 @@ class Store:
             "module_instrumented_missions": self.module_catalog.get(
                 "instrumented_missions", []
             ),
-            "expected_integration_revision": 11,
+            "expected_integration_revision": 12,
             "polling": "revision 4 chains HTTP long-polls in paused game time",
             "caveats": [
                 "Before revision 4, campaign polling pauses with game time",
@@ -770,7 +780,17 @@ def make_server(store, token, host="127.0.0.1", port=8765):
                         {k: v[0] for k, v in query.items()},
                         wait_seconds=0.25
                         if query.get("build")
-                        in (["4"], ["5"], ["6"], ["7"], ["8"], ["9"], ["10"], ["11"])
+                        in (
+                            ["4"],
+                            ["5"],
+                            ["6"],
+                            ["7"],
+                            ["8"],
+                            ["9"],
+                            ["10"],
+                            ["11"],
+                            ["12"],
+                        )
                         else 0,
                     )
                     self.reply(200, result, "text/plain")

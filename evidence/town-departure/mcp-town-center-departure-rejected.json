@@ -1,0 +1,86 @@
+{
+  "method": "actual MCP rejects unsupported town_center departure",
+  "before": {
+    "connected": true,
+    "age_seconds": 0.082,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "mission",
+    "received_at": 1791536796.1162624,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": 49,
+    "position": {
+      "x": 155.24,
+      "y": 161.03,
+      "z": 7.43
+    },
+    "clock": 274,
+    "acknowledged_command_id": 1791536517,
+    "scene_id": 59,
+    "mission_session": 3,
+    "player_agent_id": 15,
+    "last_command_result": 0,
+    "integration_revision": 12,
+    "mission_template_id": 2,
+    "mission_template": "town_center",
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 26,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  },
+  "rejection": {
+    "is_error": true,
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool warband_leave_town_scene: HTTP Error 400: Bad Request",
+        "annotations": null,
+        "meta": null
+      }
+    ]
+  },
+  "after": {
+    "connected": true,
+    "age_seconds": 0.088,
+    "source": "Warband engine scripts",
+    "protocol": 2,
+    "context": "mission",
+    "received_at": 1791536796.1162624,
+    "player_gold": 355,
+    "player_troop_id": 0,
+    "player_hit_points": 49,
+    "position": {
+      "x": 155.24,
+      "y": 161.03,
+      "z": 7.43
+    },
+    "clock": 274,
+    "acknowledged_command_id": 1791536517,
+    "scene_id": 59,
+    "mission_session": 3,
+    "player_agent_id": 15,
+    "last_command_result": 0,
+    "integration_revision": 12,
+    "mission_template_id": 2,
+    "mission_template": "town_center",
+    "mission_flags": 0,
+    "menu_id": null,
+    "menu_session": null,
+    "menu_name": null,
+    "dialogue_active": false,
+    "player_is_captive": false,
+    "native_context": {
+      "last_town_id": 26,
+      "last_encounter_party_id": 26,
+      "caveat": "Prior Native context; not proof of an active menu"
+    }
+  }
+}

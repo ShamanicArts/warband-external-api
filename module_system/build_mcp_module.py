@@ -18,6 +18,7 @@ from module_system.goods_trade import goods_trade
 from module_system.market_ops import market_export
 from module_system.menu_actions import append_actions
 from module_system.menu_hooks import instrument_menus
+from module_system.mission_departure import leave_town_ops, recognize_town_permission
 from module_system.mission_hooks import instrument_missions
 from module_system.scene_ops import agent_combat, agent_move, agent_release, agent_wield
 from module_system.world_ops import diplomacy, party_order, world_encounter
@@ -162,6 +163,7 @@ OPS = {
     "not_item_has_property": 2723 | 0x80000000,
     "map_free": 37,
     "start_encounter": 1300,
+    "finish_mission": 1907,
 }
 
 
@@ -274,6 +276,7 @@ def callback(
     troop_count=0,
     market_menu_id=-1,
     trade_result_url=0,
+    town_departure_id=None,
 ):
     cmd, kind, a, b, session, scene, result, tmp, agent, count = [
         LOCAL + i for i in (3, 4, 5, 6, 8, 9, 10, 11, 12, 13)
@@ -482,6 +485,15 @@ def callback(
             ("else_try",),
             ("eq", kind, 12),
             *agent_wield(DIALOG_ACTIVE_SLOT, item_count),
+            ("else_try",),
+            ("eq", kind, 20),
+            *leave_town_ops(
+                town_departure_id,
+                native_globals or {},
+                MISSION_SLOT,
+                MISSION_FLAGS_SLOT,
+                DIALOG_ACTIVE_SLOT,
+            ),
             ("try_end",),
             ("else_try",),
             ("eq", kind, 5),
@@ -667,7 +679,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             "&scene={reg8}&agent={reg9}&result={reg10}&session={reg11}"
             "&mission={reg12}&flags={reg13}&captive={reg14}&town={reg15}"
             "&encounter={reg16}&menu={reg17}&pulse={reg18}&dialogue={reg19}"
-            "&menu-session={reg20}&build=11"
+            "&menu-session={reg20}&build=12"
         )
         new_strings.append(f"str_mcp_{kind}_url {value}")
     new_strings.extend(
@@ -743,6 +755,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
     if "mcp_http_active" in native_globals:
         raise ValueError("Native already uses reserved MCP lifecycle global")
     native_globals["mcp_http_active"] = (2 << 56) + len(native_globals)
+    town_departure_id = recognize_town_permission(missions, native_globals)
     variable_names = (
         variables_path.read_text().splitlines() if variables_path.exists() else []
     )
@@ -929,6 +942,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     if "town_trade" in menu_names
                     else -1,
                     STR + count + 13,
+                    town_departure_id,
                 )
                 + "\n"
             ),
@@ -979,6 +993,9 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                 },
                 "instrumented_missions": mission_names,
                 "menus": {str(i): name for i, name in enumerate(menu_names)},
+                "scene_departure_missions": []
+                if town_departure_id is None
+                else [town_departure_id],
                 "menu_actions": menu_actions,
             },
             indent=2,
@@ -991,7 +1008,10 @@ def build(native: Path, output: Path, endpoint: str, token: str):
         json.dumps(
             {
                 "protocol": 2,
-                "integration_revision": 11,
+                "integration_revision": 12,
+                "scene_departure_missions": []
+                if town_departure_id is None
+                else [town_departure_id],
                 "source": str(native),
                 "transport": "engine HTTP opcode 380",
                 "instrumented_missions": mission_names,
@@ -1025,6 +1045,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     "scan_merchant",
                     "goods_trade",
                     "world_encounter",
+                    "leave_scene",
                 ],
             },
             indent=2,

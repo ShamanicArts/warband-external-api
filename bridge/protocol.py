@@ -22,6 +22,7 @@ OPERATIONS = {
     "scan_merchant": 17,
     "goods_trade": 18,
     "world_encounter": 19,
+    "leave_scene": 20,
 }
 DATASETS = {
     "party": 1,
@@ -65,6 +66,7 @@ PARTY_ORDERS = {
     "escort": 10,
 }
 SCENE_CONTROLS = {
+    "leave_scene",
     "formation_position",
     "agent_combat",
     "agent_move",
@@ -122,9 +124,18 @@ def validate_operation(kind, payload, state):
         "scan_merchant": {"merchant", "offset", "limit"},
         "goods_trade": {"side", "slot", "item_id", "execute", "expected_price"},
         "world_encounter": {"party_id", "world_control"},
+        "leave_scene": set(),
     }[kind]
     if set(payload) != expected:
         raise ValueError("Unexpected or missing operation arguments")
+    if kind == "leave_scene":
+        if (
+            state.get("integration_revision", 0) < 12
+            or state.get("mission_template") != "town_default"
+        ):
+            raise ValueError("Departure requires revision-12 Native town scene")
+        if state.get("mission_flags", 0) & 2:
+            raise ValueError("Town departure is not battle retreat/mission abort")
     if kind == "goods_trade":
         if (
             state.get("integration_revision", 0) < 10

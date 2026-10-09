@@ -72,6 +72,24 @@ class ModuleBuildTests(unittest.TestCase):
     def test_callback_control_blocks_are_balanced(self):
         self.assert_balanced(callback())
 
+    def test_recognized_departure_is_exported_to_runtime_catalog(self):
+        import json
+
+        (self.native / "variables.txt").write_text("g_main_attacker_agent\n")
+        (self.native / "mission_templates.txt").write_text(
+            "missionsfile version 1\n1\n"
+            "mst_town_default town_default 0 -1\nDescription.\n\n"
+            "1 0 0 0\n1\n"
+            f"-21.000000 0.000000 0.000000 4 4 0 31 2 {2 << 56} 0 2075 1 1 3 0 0\n"
+        )
+        output = self.root / "DepartureCatalog"
+        build(self.native, output, "http://127.0.0.1", "a" * 64)
+        for filename in ("mcp-catalog.json", "mcp-build.json"):
+            self.assertEqual(
+                json.loads((output / filename).read_text())["scene_departure_missions"],
+                [0],
+            )
+
     def test_native_faction_note_count_seam_preserves_all_ids(self):
         import json
 
