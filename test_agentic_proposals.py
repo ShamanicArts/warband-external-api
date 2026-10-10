@@ -225,6 +225,75 @@ class MechanicalProposalBrokerTests(unittest.TestCase):
                 required_acceptors="player",
             )
 
+    def test_transition_journal_and_fail_closed_restore(self):
+        transitions = []
+        broker = MechanicalProposalBroker(
+            clock_ms=lambda: self.now,
+            token_factory=lambda: "proposal-option:journal",
+            proposal_id_factory=lambda: "proposal:journal",
+            transition_handler=lambda transition, proposal, context, outcome: (
+                transitions.append((transition, proposal, context, outcome))
+            ),
+        )
+        option = broker.offer(
+            source_session_id="village-elder",
+            source_context=self.source_context,
+            title="Defend Praven",
+            target_session_id="swadia",
+            target_session=self.target,
+            affordance_token=self.target.affordance.token,
+            arguments={"order": "defend", "target_id": 2},
+            required_acceptors=("player", "swadia-sovereign"),
+        )
+        proposal = broker.commit(
+            option["proposal_token"], "action:npc-turn:journal", self.source_context
+        )
+        broker.decide(proposal["proposal_id"], "player", accept=True)
+        approved = broker.decide(
+            proposal["proposal_id"], "swadia-sovereign", accept=True
+        )
+
+        self.assertEqual(
+            [item[0] for item in transitions],
+            ["committed", "decision:player", "decision:swadia-sovereign"],
+        )
+        self.assertTrue(all(item[2] == self.source_context for item in transitions))
+        restored = MechanicalProposalBroker(clock_ms=lambda: self.now)
+        manifests = restored.restore((approved,))
+
+        self.assertEqual(manifests[0]["state"], "stale")
+        self.assertEqual(restored.proposal(proposal["proposal_id"])["state"], "stale")
+        self.assertEqual(restored.proposals("village-elder"), manifests)
+        with self.assertRaisesRegex(ValueError, "cannot be changed"):
+            restored.decide(proposal["proposal_id"], "player", accept=True)
+        with self.assertRaisesRegex(ValueError, "cannot be changed"):
+            restored.execute(proposal["proposal_id"])
+        replacement = restored.offer(
+            source_session_id="village-elder",
+            source_context=self.source_context,
+            title="Replacement",
+            target_session_id="swadia",
+            target_session=self.target,
+            affordance_token=self.target.affordance.token,
+            arguments={"order": "defend", "target_id": 2},
+            required_acceptors=("player",),
+        )
+        with self.assertRaisesRegex(ValueError, "recovered mechanical proposal"):
+            restored.commit(
+                replacement["proposal_token"],
+                "action:npc-turn:journal",
+                self.source_context,
+            )
+
+        outcome = broker.execute(proposal["proposal_id"])
+        self.assertIs(transitions[-1][3], outcome)
+        self.assertEqual(transitions[-1][0], "submitted")
+        terminal = MechanicalProposalBroker(clock_ms=lambda: self.now)
+        terminal.restore((transitions[-1][1],))
+        self.assertEqual(
+            terminal.proposal(proposal["proposal_id"])["state"], "submitted"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -91,7 +91,17 @@ options cannot create mechanics, failed proposal bookkeeping cannot falsify an
 observed speech outcome, and approved execution preserves the exact original
 target token, arguments and revision.
 
-Proposal records and participant decisions are currently process-local. Action
-recovery preserves the selected opaque token, but a host restart does not restore
-the broker option/decision graph; durable proposal recovery and a live Warband
-consequence remain to be built and recorded.
+Committed proposal lifecycle snapshots and participant decisions are written to
+the host-only semantic event log. On restart, rejected and submitted records
+retain their terminal audit state. Pending or approved records are restored as
+`stale`: the original private target affordance belonged to the old process and
+is never rebound to a freshly issued token. Recovered records can be listed and
+inspected but cannot accept decisions or execute.
+
+Offered options that were never committed by engine-observed speech are not
+restored. Action recovery retains a selected opaque option token, but if the host
+failed before the broker committed it, reconciliation records a bounded proposal
+failure while preserving the observed speech outcome. Fully resumable proposal
+authority would require durable capability-token semantics; silently matching a
+new affordance by name and arguments is intentionally forbidden. A live Warband
+consequence remains to be built and recorded.

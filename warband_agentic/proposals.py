@@ -7,7 +7,13 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from warband_agentic.capabilities import validate_json_object
-from warband_agentic.contracts import ActionOutcome, Affordance, ContextRef, to_wire
+from warband_agentic.contracts import (
+    ActionOutcome,
+    Affordance,
+    ContextRef,
+    RiskClass,
+    to_wire,
+)
 
 
 class MechanicalProposalState(StrEnum):
@@ -44,7 +50,16 @@ class _ProposalRecord:
 class MechanicalProposalBroker:
     """Keep generated intent separate from authority and game execution."""
 
-    def __init__(self, *, clock_ms=None, token_factory=None, proposal_id_factory=None):
+    def __init__(
+        self,
+        *,
+        clock_ms=None,
+        token_factory=None,
+        proposal_id_factory=None,
+        transition_handler=None,
+    ):
+        if transition_handler is not None and not callable(transition_handler):
+            raise TypeError("transition_handler must be callable")
         self._clock_ms = clock_ms or (lambda: time.time_ns() // 1_000_000)
         self._token_factory = token_factory or (
             lambda: "proposal-option:" + secrets.token_urlsafe(18)
@@ -55,8 +70,11 @@ class MechanicalProposalBroker:
         self._options = {}
         self._option_committed_by = {}
         self._proposals = {}
+        self._archived_proposals = {}
+        self._archived_by_source_action = {}
         self._proposal_by_source_action = {}
         self._executing = set()
+        self._transition_handler = transition_handler
         self._lock = threading.RLock()
 
     def offer(
@@ -159,6 +177,8 @@ class MechanicalProposalBroker:
             raise TypeError("source_context must be a ContextRef")
         now_ms = self._now()
         with self._lock:
+            if source_action_id in self._archived_by_source_action:
+                raise ValueError("source action has a recovered mechanical proposal")
             existing_id = self._proposal_by_source_action.get(source_action_id)
             if existing_id is not None:
                 existing = self._proposals[existing_id]
@@ -177,7 +197,10 @@ class MechanicalProposalBroker:
                 raise ValueError("mechanical proposal option has expired")
             proposal_id = self._proposal_id_factory()
             self._identifier("proposal_id", proposal_id)
-            if proposal_id in self._proposals:
+            if (
+                proposal_id in self._proposals
+                or proposal_id in self._archived_proposals
+            ):
                 raise ValueError("mechanical proposal ID collision")
             record = _ProposalRecord(
                 proposal_id,
@@ -186,6 +209,7 @@ class MechanicalProposalBroker:
                 {},
                 MechanicalProposalState.PENDING,
             )
+            self._emit_transition("committed", record)
             self._proposals[proposal_id] = record
             self._proposal_by_source_action[source_action_id] = proposal_id
             self._option_committed_by[option_token] = source_action_id
@@ -207,21 +231,33 @@ class MechanicalProposalBroker:
                 return self._public_proposal(record)
             if record.state is not MechanicalProposalState.PENDING:
                 raise ValueError("mechanical proposal no longer accepts decisions")
-            record.decisions[acceptor_id] = accept
+            decisions = dict(record.decisions)
+            decisions[acceptor_id] = accept
+            state = record.state
             if not accept:
-                record.state = MechanicalProposalState.REJECTED
+                state = MechanicalProposalState.REJECTED
             elif all(
-                record.decisions.get(item) is True
-                for item in record.option.required_acceptors
+                decisions.get(item) is True for item in record.option.required_acceptors
             ):
-                record.state = MechanicalProposalState.APPROVED
+                state = MechanicalProposalState.APPROVED
+            updated = _ProposalRecord(
+                record.proposal_id,
+                record.option,
+                record.source_action_id,
+                decisions,
+                state,
+                record.outcome,
+            )
+            self._emit_transition(f"decision:{acceptor_id}", updated)
+            record.decisions = decisions
+            record.state = state
             return self._public_proposal(record)
 
     def execute(self, proposal_id):
         """Submit an approved exact affordance through its owning session."""
         self._identifier("proposal_id", proposal_id)
         with self._lock:
-            record = self._proposal(proposal_id)
+            record = self._active_proposal(proposal_id)
             if record.outcome is not None:
                 return record.outcome
             if record.state is not MechanicalProposalState.APPROVED:
@@ -272,6 +308,19 @@ class MechanicalProposalBroker:
                 self._executing.discard(proposal_id)
             raise TypeError("target session returned an invalid action outcome")
         with self._lock:
+            updated = _ProposalRecord(
+                record.proposal_id,
+                record.option,
+                record.source_action_id,
+                dict(record.decisions),
+                MechanicalProposalState.SUBMITTED,
+                outcome,
+            )
+            try:
+                self._emit_transition("submitted", updated, outcome)
+            except Exception:
+                self._executing.discard(proposal_id)
+                raise
             record.outcome = outcome
             record.state = MechanicalProposalState.SUBMITTED
             self._executing.discard(proposal_id)
@@ -280,7 +329,13 @@ class MechanicalProposalBroker:
     def proposal(self, proposal_id):
         self._identifier("proposal_id", proposal_id)
         with self._lock:
-            return self._public_proposal(self._proposal(proposal_id))
+            record = self._proposals.get(proposal_id)
+            if record is not None:
+                return self._public_proposal(record)
+            try:
+                return to_wire(self._archived_proposals[proposal_id])
+            except KeyError as exc:
+                raise ValueError("unknown mechanical proposal") from exc
 
     def proposals(self, source_session_id=None):
         """List committed proposals, optionally scoped to one source session."""
@@ -288,12 +343,51 @@ class MechanicalProposalBroker:
             self._identifier("source_session_id", source_session_id)
         with self._lock:
             records = tuple(self._proposals.values())
+            archived = tuple(self._archived_proposals.values())
+        proposals = [self._public_proposal(record) for record in records]
+        proposals.extend(to_wire(record) for record in archived)
         return tuple(
-            self._public_proposal(record)
-            for record in sorted(records, key=lambda item: item.proposal_id)
+            record
+            for record in sorted(proposals, key=lambda item: item["proposal_id"])
             if source_session_id is None
-            or record.option.source_session_id == source_session_id
+            or record["source_session_id"] == source_session_id
         )
+
+    def restore(self, proposals):
+        """Restore audit manifests while refusing stale authority after restart."""
+        manifests = tuple(proposals)
+        restored = []
+        with self._lock:
+            for manifest in manifests:
+                value = self._validated_manifest(manifest)
+                proposal_id = value["proposal_id"]
+                if proposal_id in self._proposals:
+                    raise ValueError("mechanical proposal ID collision")
+                if value["state"] in (
+                    MechanicalProposalState.PENDING.value,
+                    MechanicalProposalState.APPROVED.value,
+                ):
+                    value["state"] = MechanicalProposalState.STALE.value
+                previous = self._archived_proposals.get(proposal_id)
+                if previous is not None and previous != value:
+                    raise ValueError("conflicting recovered mechanical proposal")
+                source_action_id = value["source_action_id"]
+                previous_id = self._archived_by_source_action.get(source_action_id)
+                if previous_id is not None and previous_id != proposal_id:
+                    raise ValueError("conflicting recovered proposal source action")
+                self._archived_proposals[proposal_id] = value
+                self._archived_by_source_action[source_action_id] = proposal_id
+                restored.append(to_wire(value))
+        return tuple(restored)
+
+    def _emit_transition(self, transition, record, outcome=None):
+        if self._transition_handler is not None:
+            self._transition_handler(
+                transition,
+                self._public_proposal(record),
+                record.option.source_context,
+                outcome,
+            )
 
     @staticmethod
     def _public_option(option):
@@ -333,11 +427,89 @@ class MechanicalProposalBroker:
             "expires_at_ms": record.option.affordance.expires_at_ms,
         }
 
-    def _proposal(self, proposal_id):
+    def _active_proposal(self, proposal_id):
+        if proposal_id in self._archived_proposals:
+            raise ValueError("recovered mechanical proposal cannot be changed")
         try:
             return self._proposals[proposal_id]
         except KeyError as exc:
             raise ValueError("unknown mechanical proposal") from exc
+
+    def _proposal(self, proposal_id):
+        return self._active_proposal(proposal_id)
+
+    def _validated_manifest(self, manifest):
+        expected = {
+            "proposal_id",
+            "source_action_id",
+            "source_session_id",
+            "target_session_id",
+            "title",
+            "capability",
+            "arguments",
+            "risk",
+            "reversible",
+            "required_acceptors",
+            "accepted_by",
+            "rejected_by",
+            "state",
+            "consequence_warning",
+            "expires_at_ms",
+        }
+        if not isinstance(manifest, dict) or set(manifest) != expected:
+            raise ValueError("invalid recovered mechanical proposal fields")
+        value = to_wire(manifest)
+        for field in (
+            "proposal_id",
+            "source_action_id",
+            "source_session_id",
+            "target_session_id",
+            "title",
+            "capability",
+            "risk",
+            "consequence_warning",
+        ):
+            self._identifier(field, value[field])
+        state = MechanicalProposalState(value["state"])
+        RiskClass(value["risk"])
+        if not isinstance(value["arguments"], dict):
+            raise ValueError("invalid recovered proposal arguments")
+        if type(value["reversible"]) is not bool:
+            raise ValueError("invalid recovered proposal reversibility")
+        if type(value["expires_at_ms"]) is not int or value["expires_at_ms"] < 0:
+            raise ValueError("invalid recovered proposal expiry")
+        for field in ("required_acceptors", "accepted_by", "rejected_by"):
+            entries = value[field]
+            if not isinstance(entries, list) or len(set(entries)) != len(entries):
+                raise ValueError(f"invalid recovered proposal {field}")
+            for entry in entries:
+                self._identifier(field, entry)
+        required = set(value["required_acceptors"])
+        accepted = set(value["accepted_by"])
+        rejected = set(value["rejected_by"])
+        if (
+            not required
+            or len(required) > 16
+            or not accepted <= required
+            or not rejected <= required
+            or accepted & rejected
+        ):
+            raise ValueError("invalid recovered proposal decisions")
+        invalid_state = (
+            (
+                state is MechanicalProposalState.PENDING
+                and (bool(rejected) or accepted == required)
+            )
+            or (
+                state
+                in (MechanicalProposalState.APPROVED, MechanicalProposalState.SUBMITTED)
+                and (bool(rejected) or accepted != required)
+            )
+            or (state is MechanicalProposalState.REJECTED and not rejected)
+        )
+        if invalid_state:
+            raise ValueError("invalid recovered proposal state")
+        return value
 
     def _now(self):
         value = self._clock_ms()

@@ -211,8 +211,9 @@ current affordance, delays proposal creation until the source dialogue is
 engine-observed, records independent participant decisions and refuses stale
 execution. The NPC application and packaged host expose the option through the
 current speech affordance and provide trusted loopback listing, decision and
-execution routes. Durable broker recovery, participant-specific authentication
-and live consequence evidence remain application work.
+execution routes. Lifecycle snapshots are durable, while restart converts
+unfinished authority to stale rather than rebinding it. Participant-specific
+authentication and live consequence evidence remain application work.
 
 ## 8. Authority, control leases and multi-agent arbitration
 

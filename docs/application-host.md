@@ -174,9 +174,10 @@ or an external agent.
 - Automatic dispatch recovery relies on the semantic event database. The voice
   service's own request-id cache is in memory, so simultaneous host/voice restart
   after an uncertain delivery can still replay audio.
-- Mechanical proposal options, decisions and submitted outcomes are process-local.
-  Host restart recovery and participant-specific decision credentials are not
-  implemented.
+- Mechanical proposal lifecycle snapshots are durable host-only events. Pending
+  and approved authority is restored as inspectable `stale` state rather than
+  rebound to a new affordance; uncommitted options are not restored.
+  Participant-specific decision credentials are not implemented.
 - The listeners are plaintext loopback interfaces; remote exposure is unsupported.
 - Runtime lifecycle is bridge-simulated. A live hardware-rendered multi-session
   acceptance run and final video evidence are still pending.

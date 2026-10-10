@@ -373,6 +373,72 @@ class AgentApplicationHostCliTests(unittest.TestCase):
             control.server_close()
             control_thread.join()
 
+    def test_proposal_journal_restores_pending_authority_as_stale(self):
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "events.sqlite3"
+            plan = AgentHostPlan(
+                None,
+                None,
+                event_path,
+                (),
+                2,
+                16,
+                built_in_extension_registry(),
+            )
+            target = FakeTargetSession()
+            source_context = ContextRef(
+                ContextKind.MISSION, "mission:scene-42", 3, 1, 90
+            )
+            first = AgentApplicationHost(plan)
+            first._event_log = SemanticEventLog(event_path)
+            first._proposal_broker = MechanicalProposalBroker(
+                clock_ms=lambda: 1200,
+                token_factory=lambda: "proposal-option:restart",
+                proposal_id_factory=lambda: "proposal:restart",
+                transition_handler=first._persist_mechanical_proposal_transition,
+            )
+            option = first._proposal_broker.offer(
+                source_session_id="trainer",
+                source_context=source_context,
+                title="Defend Praven",
+                target_session_id="swadia",
+                target_session=target,
+                affordance_token=target.affordance.token,
+                arguments={"order": "defend", "target_id": 2},
+                required_acceptors=("player", "swadia-sovereign"),
+            )
+            proposal = first._proposal_broker.commit(
+                option["proposal_token"], "action:npc-turn:restart", source_context
+            )
+            first._proposal_broker.decide(
+                proposal["proposal_id"], "player", accept=True
+            )
+            page = first._event_log.read()
+            self.assertEqual(len(page.events), 2)
+            self.assertTrue(
+                all("agent_session_id" not in event.payload for event in page.events)
+            )
+            first._event_log.close()
+
+            second = AgentApplicationHost(plan)
+            second._event_log = SemanticEventLog(event_path)
+            try:
+                second._restore_mechanical_proposals()
+                second._state = "ready"
+                second._applications = {"trainer": SimpleNamespace()}
+
+                restored = second.mechanical_proposals("trainer")["proposals"]
+
+                self.assertEqual(len(restored), 1)
+                self.assertEqual(restored[0]["proposal_id"], proposal["proposal_id"])
+                self.assertEqual(restored[0]["state"], "stale")
+                self.assertEqual(restored[0]["accepted_by"], ["player"])
+                with self.assertRaisesRegex(ValueError, "cannot be changed"):
+                    second.execute_mechanical_proposal(proposal["proposal_id"])
+                self.assertEqual(target.submissions, [])
+            finally:
+                second._event_log.close()
+
     def test_observed_npc_speech_uses_configured_automatic_voice_policy(self):
         class Adapter:
             def __init__(self):

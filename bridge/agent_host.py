@@ -45,6 +45,7 @@ HOST_CONFIG_SCHEMA = "warband.agentic/host-config/v2"
 HOST_DIAGNOSTICS_SCHEMA = "warband.agentic/host-diagnostics/v1"
 EXPECTED_PROTOCOL = 2
 EXPECTED_INTEGRATION_REVISION = 16
+_MECHANICAL_PROPOSAL_EVENT = "dialogue.mechanical-proposal-transition"
 
 
 @dataclass(frozen=True, slots=True)
@@ -247,6 +248,11 @@ def _speech_request_from_wire(value):
 def _automatic_voice_source_key(request_id, phase):
     digest = hashlib.sha256(request_id.encode()).hexdigest()
     return f"automatic-voice:{digest}:{phase}"
+
+
+def _mechanical_proposal_source_key(proposal_id, transition):
+    digest = hashlib.sha256(f"{proposal_id}\x00{transition}".encode()).hexdigest()
+    return f"mechanical-proposal:{digest}"
 
 
 def _voice_endpoint(value):
@@ -509,7 +515,9 @@ class AgentApplicationHost:
         self._failure = None
         self._voice_dispatch_queue = queue.Queue(maxsize=256)
         self._automatic_voice_dispatches = {}
-        self._proposal_broker = MechanicalProposalBroker()
+        self._proposal_broker = MechanicalProposalBroker(
+            transition_handler=self._persist_mechanical_proposal_transition
+        )
 
     def start(self):
         with self._lock:
@@ -527,6 +535,7 @@ class AgentApplicationHost:
                     compiled_operations=self.plan.extensions.compiled_operations(),
                 )
                 self._event_log = SemanticEventLog(self.plan.events_database)
+                self._restore_mechanical_proposals()
                 self._restore_automatic_voice_dispatches()
                 self._bridge_server = make_server(
                     self._store,
@@ -898,6 +907,88 @@ class AgentApplicationHost:
                 "error_type": None,
             }
             self._voice_dispatch_queue.put_nowait(job)
+
+    def _persist_mechanical_proposal_transition(
+        self, transition, proposal, context, outcome
+    ):
+        if not isinstance(transition, str) or not transition:
+            raise ValueError("mechanical proposal transition must be non-empty")
+        if not isinstance(context, ContextRef):
+            raise TypeError("mechanical proposal transition needs a context")
+        if not isinstance(proposal, dict):
+            raise TypeError("mechanical proposal transition needs a manifest")
+        with self._lock:
+            if self._event_log is None:
+                raise RuntimeError("semantic event log is unavailable")
+            event_log = self._event_log
+        source_session_id = proposal.get("source_session_id")
+        proposal_id = proposal.get("proposal_id")
+        if not isinstance(source_session_id, str) or not source_session_id:
+            raise ValueError("mechanical proposal source session is invalid")
+        if not isinstance(proposal_id, str) or not proposal_id:
+            raise ValueError("mechanical proposal ID is invalid")
+        level = (
+            EvidenceLevel.ENGINE_OBSERVED
+            if transition == "committed"
+            else EvidenceLevel.DECLARED
+        )
+        event_log.append(
+            GameEvent(
+                0,
+                _MECHANICAL_PROPOSAL_EVENT,
+                context,
+                (),
+                {
+                    "host_session_id": source_session_id,
+                    "transition": transition,
+                    "proposal": proposal,
+                    "outcome": to_wire(outcome) if outcome is not None else None,
+                },
+                Evidence(
+                    level,
+                    "mechanical proposal broker",
+                    "The host recorded a fail-closed proposal lifecycle snapshot",
+                ),
+                time.time_ns() // 1_000_000,
+                proposal["source_action_id"],
+            ),
+            _mechanical_proposal_source_key(proposal_id, transition),
+        )
+
+    def _restore_mechanical_proposals(self):
+        latest = {}
+        cursor = 0
+        while True:
+            page = self._event_log.read(cursor, 1000)
+            for event in page.events:
+                if event.event_type != _MECHANICAL_PROPOSAL_EVENT:
+                    continue
+                payload = to_wire(event.payload)
+                if not isinstance(payload, dict) or set(payload) != {
+                    "host_session_id",
+                    "transition",
+                    "proposal",
+                    "outcome",
+                }:
+                    raise ValueError("Invalid mechanical proposal journal event")
+                proposal = payload["proposal"]
+                if (
+                    not isinstance(proposal, dict)
+                    or payload["host_session_id"] != proposal.get("source_session_id")
+                    or not isinstance(payload["transition"], str)
+                    or not payload["transition"]
+                    or payload["outcome"] is not None
+                    and not isinstance(payload["outcome"], dict)
+                ):
+                    raise ValueError("Invalid mechanical proposal journal event")
+                proposal_id = proposal.get("proposal_id")
+                if not isinstance(proposal_id, str) or not proposal_id:
+                    raise ValueError("Invalid mechanical proposal journal event")
+                latest[proposal_id] = proposal
+            if page.next_sequence >= page.high_watermark:
+                break
+            cursor = page.next_sequence
+        self._proposal_broker.restore(latest.values())
 
     def automatic_voice_dispatches(self):
         with self._lock:
