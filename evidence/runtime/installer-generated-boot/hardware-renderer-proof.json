@@ -1,0 +1,18 @@
+{
+  "driver": "amdgpu",
+  "evidence_kind": "kernel-drm-engine-advance",
+  "graphics_backend": "wined3d",
+  "processes": [
+    {
+      "client_id": "63464",
+      "driver": "amdgpu",
+      "gfx_after_ns": 5709633,
+      "gfx_before_ns": 1192264,
+      "gfx_delta_ns": 4517369,
+      "gfx_ns": 5709633,
+      "pid": 653565,
+      "render_node": "/dev/dri/renderD129"
+    }
+  ],
+  "renderer": "AMD Radeon RX 6600 XT (RADV NAVI23)"
+}

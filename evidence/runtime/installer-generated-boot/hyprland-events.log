@@ -1,0 +1,72 @@
+windowtitle>>5f286de00ca0
+windowtitlev2>>5f286de00ca0,Input
+windowtitle>>5f286de36330
+windowtitlev2>>5f286de36330,Default IME
+windowtitle>>5f2870011490
+windowtitlev2>>5f2870011490,Default IME
+windowtitle>>5f2870baad30
+windowtitlev2>>5f2870baad30,WineD3D fake window
+windowtitle>>5f2870baad30
+windowtitlev2>>5f2870baad30,Mount&Blade Warband
+createworkspace>>warband-agent
+createworkspacev2>>-1337,warband-agent
+openwindow>>5f2870baad30,warband-agent,steam_app_48700,Mount&Blade Warband
+activewindow>>bb-desktop,Alder — manuscript studies across the range
+activewindowv2>>5f286ddcfa20
+closewindow>>5f2870baad30
+destroyworkspace>>warband-agent
+destroyworkspacev2>>-1337,warband-agent
+windowtitle>>5f2870baad30
+windowtitlev2>>5f2870baad30,WineD3D fake window
+windowtitle>>5f286fffc0c0
+windowtitlev2>>5f286fffc0c0,WineD3D fake window
+windowtitle>>5f2870baad30
+windowtitlev2>>5f2870baad30,Hidden D3D Window
+windowtitle>>5f2870baad30
+windowtitlev2>>5f2870baad30,WineD3D fake window
+windowtitle>>5f2870baad30
+windowtitlev2>>5f2870baad30,Hidden D3D Window
+windowtitle>>5f2870baad30
+windowtitlev2>>5f2870baad30,Bink Video Player
+windowtitle>>5f286dfb5770
+windowtitlev2>>5f286dfb5770,Default IME
+createworkspace>>warband-agent
+createworkspacev2>>-1337,warband-agent
+openwindow>>5f2870baad30,warband-agent,steam_app_48700,Bink Video Player
+activewindow>>bb-desktop,Alder — manuscript studies across the range
+activewindowv2>>5f286ddcfa20
+windowtitle>>5f286ff1ee00
+windowtitlev2>>5f286ff1ee00,Mount&Blade Warband
+openwindow>>5f286ff1ee00,warband-agent,steam_app_48700,Mount&Blade Warband
+activewindow>>bb-desktop,Alder — manuscript studies across the range
+activewindowv2>>5f286ddcfa20
+windowtitle>>5f286def1380
+windowtitlev2>>5f286def1380,WineD3D fake window
+windowtitle>>5f286def1380
+windowtitlev2>>5f286def1380,WineD3D fake window
+windowtitle>>5f286def1380
+windowtitlev2>>5f286def1380,WineD3D fake window
+windowtitle>>5f286def1380
+windowtitlev2>>5f286def1380,Hidden D3D Window
+windowtitle>>5f286def1380
+windowtitlev2>>5f286def1380,WineD3D fake window
+windowtitle>>5f286def1380
+windowtitlev2>>5f286def1380,Hidden D3D Window
+windowtitle>>5f286def1380
+windowtitlev2>>5f286def1380,WineD3D fake window
+windowtitle>>5f286def1380
+windowtitlev2>>5f286def1380,WineD3D fake window
+closewindow>>5f2870baad30
+windowtitle>>5f286fffc0c0
+windowtitlev2>>5f286fffc0c0,WineD3D fake window
+windowtitle>>5f286fffc0c0
+windowtitlev2>>5f286fffc0c0,Hidden D3D Window
+windowtitle>>5f286fffc0c0
+windowtitlev2>>5f286fffc0c0,WineD3D fake window
+windowtitle>>5f286fffc0c0
+windowtitlev2>>5f286fffc0c0,Hidden D3D Window
+closelayer>>gtk4-layer-shell
+windowtitle>>5f286ddcfa20
+windowtitlev2>>5f286ddcfa20,Astrum — Overworld renderer recovery
+activewindow>>bb-desktop,Astrum — Overworld renderer recovery
+activewindowv2>>5f286ddcfa20

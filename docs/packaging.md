@@ -84,7 +84,8 @@ change firewall policy or create a privileged forwarder. MCP registration remain
 manual because client configuration formats and trust policies differ.
 
 The retained installed-wheel, rollback and real-Native acceptance evidence is in
-`evidence/packaging/`.
+`evidence/packaging/`. Hardware-rendered boot of a fresh installer-generated
+module is retained separately in `evidence/runtime/installer-generated-boot/`.
 
 ## Build an isolated game module
 
@@ -121,5 +122,5 @@ opening either runtime database or any listener.
 - Explicit Python extension registration and exact-ID installed entry-point
   loading are packaged. Automatic loading, new compiled-handler generation and
   hot reload are not.
-- A hardware-rendered game acceptance run from an installer-generated module still
-  needs retained interaction evidence and final video clips.
+- Hardware-rendered boot from an installer-generated module is proven. Live bridge
+  connectivity, semantic interaction evidence and final video clips remain open.

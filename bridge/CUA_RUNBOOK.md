@@ -43,6 +43,7 @@ python bridge/warband_desktop_runner.py run \
   --graphics-backend wined3d \
   --prefix /tmp/shuvcode/warband-cua/compatdata \
   --auto-play \
+  --post-acceptance-seconds 30 \
   --log-dir "$run_dir"
 ```
 
@@ -52,6 +53,12 @@ delivery, waits for game-PID AMD DRM activity, and captures the resulting game
 window. ImageMagick is used to reject technically valid but visually black
 transition frames. Once all acceptance gates pass, the runner tears down its
 exact cgroup and exits zero.
+
+The CUA session label defaults to a value unique to the outer runner process, so
+completed daemon sessions are never accidentally reused. A positive
+`--post-acceptance-seconds` keeps every safety guard active for that additional
+bounded interval and writes `game-final.png` plus `cua-final-capture.json` before
+teardown. Use zero when the first non-black rendered frame is sufficient.
 
 For manual diagnostics only, omit `--auto-play`, then inspect the launcher in a
 second terminal through the existing X11 CUA daemon:

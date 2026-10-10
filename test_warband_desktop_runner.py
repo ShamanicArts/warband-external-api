@@ -1,4 +1,5 @@
 import argparse
+import os
 import subprocess
 import tempfile
 import unittest
@@ -18,7 +19,9 @@ from bridge.warband_desktop_runner import (
     current_control_group_pids,
     desktop_violations,
     image_mean_luminance,
+    make_parser,
     process_driver_evidence,
+    run_bounded,
     select_owned_cua_window,
     terminate_control_group_descendants,
     workspace_is_inactive,
@@ -26,6 +29,14 @@ from bridge.warband_desktop_runner import (
 
 
 class WarbandDesktopRunnerTests(unittest.TestCase):
+    def test_default_cua_session_is_unique_to_the_outer_runner_process(self):
+        args = make_parser().parse_args(["run", "--log-dir", "/tmp/proof"])
+        self.assertEqual(args.cua_session, f"warband-hidden-{os.getpid()}")
+
+    def test_negative_post_acceptance_hold_is_refused_before_launch(self):
+        with self.assertRaisesRegex(DesktopSafetyFailure, "must not be negative"):
+            run_bounded(argparse.Namespace(post_acceptance_seconds=-1))
+
     def test_proton_command_uses_the_launcher_mapping_verb(self):
         self.assertEqual(
             build_proton_command(
@@ -129,6 +140,7 @@ class WarbandDesktopRunnerTests(unittest.TestCase):
             play_x=150,
             play_y=212,
             cua_session="test-session",
+            post_acceptance_seconds=15,
             game_arguments=["-m", "WarbandMCP"],
             cpu_quota=200,
             memory_high="1500M",
@@ -144,6 +156,8 @@ class WarbandDesktopRunnerTests(unittest.TestCase):
         self.assertIn("--auto-play", command)
         self.assertIn("/cua", command)
         self.assertIn("test-session", command)
+        self.assertIn("--post-acceptance-seconds", command)
+        self.assertIn("15", command)
         self.assertIn("--game-arg=-m", command)
         self.assertIn("--game-arg=WarbandMCP", command)
 

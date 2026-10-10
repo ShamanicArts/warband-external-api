@@ -1,0 +1,32 @@
+{
+  "capture": {
+    "app_name": "steam_app_48700",
+    "capture_id": "capture_554c81799f64413385210048f457a8be_0000000000000028",
+    "coordinate_frame": "window",
+    "frame_scale": 0.88375,
+    "invalidated_snapshot_ids": [
+      "s00000029"
+    ],
+    "pid": 653565,
+    "screenshot_file_path": "/tmp/warband-installer-game-live3/game.png",
+    "screenshot_frame_valid": true,
+    "screenshot_height": 813,
+    "screenshot_mime_type": "image/png",
+    "screenshot_original_width": 1600,
+    "screenshot_width": 1414,
+    "window_bounds": {
+      "height": 919,
+      "width": 1600,
+      "x": 164,
+      "y": 119
+    },
+    "window_id": 67108876,
+    "window_title": "Mount&Blade Warband"
+  },
+  "mean_luminance": 0.385407,
+  "minimum_mean_luminance": 0.08,
+  "target": {
+    "pid": 653565,
+    "window_id": 67108876
+  }
+}

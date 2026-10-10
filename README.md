@@ -98,7 +98,8 @@ generation. See the
 runtime startup and the [extension SDK guide](docs/extension-sdk.md) for explicit
 custom application registration. The repository is
 not ready for public release yet: no project license has been selected, and
-fresh-install/live acceptance plus final video evidence remain open.
+installer-generated module boot is proven but live semantic interaction and final
+video evidence remain open.
 
 MCP is one adapter, not the core product boundary. CUA is used only for isolated
 launch and independent visual validation, never as an invisible game backend.

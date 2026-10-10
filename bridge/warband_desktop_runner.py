@@ -387,6 +387,8 @@ def build_systemd_command(
         str(args.play_y),
         "--cua-session",
         args.cua_session,
+        "--post-acceptance-seconds",
+        str(args.post_acceptance_seconds),
     ]
     if args.auto_play:
         inner.append("--auto-play")
@@ -655,6 +657,8 @@ def _assert_no_existing_warband() -> None:
 
 
 def run_bounded(args: argparse.Namespace) -> int:
+    if args.post_acceptance_seconds < 0:
+        raise DesktopSafetyFailure("post-acceptance seconds must not be negative")
     required_paths = [
         (args.proton, "Proton executable"),
         (args.game, "Warband executable"),
@@ -715,6 +719,8 @@ def run_bounded(args: argparse.Namespace) -> int:
     last_cua_poll = started - 1
     auto_clicked = False
     game_captured = False
+    acceptance_started: float | None = None
+    final_capture_valid = False
     cleanup_signals: dict[str, list[int]] = {"sigterm": [], "sigkill": []}
     try:
         environment = build_proton_environment(
@@ -934,7 +940,62 @@ def run_bounded(args: argparse.Namespace) -> int:
                     gpu_baselines.setdefault(key, sample)
 
             if args.auto_play and hardware and game_captured:
-                return 0
+                if acceptance_started is None:
+                    acceptance_started = now
+                if now - acceptance_started >= args.post_acceptance_seconds:
+                    if args.post_acceptance_seconds:
+                        windows = call_cua(
+                            args.cua,
+                            args.cua_socket,
+                            "list_windows",
+                            {"session": args.cua_session},
+                        )
+                        game_window = select_owned_cua_window(
+                            windows,
+                            owned_pids,
+                            minimum_size=(1000, 700),
+                            title="Mount&Blade Warband",
+                        )
+                        if game_window is None:
+                            raise DesktopSafetyFailure(
+                                "owned game window disappeared during acceptance hold"
+                            )
+                        target = cua_window_target(game_window)
+                        capture = call_cua(
+                            args.cua,
+                            args.cua_socket,
+                            "get_window_state",
+                            {
+                                "session": args.cua_session,
+                                **target,
+                                "include_accessibility_tree": False,
+                                "screenshot_out_file": str(
+                                    args.log_dir / "game-final.png"
+                                ),
+                            },
+                        )
+                        if capture.get("screenshot_frame_valid") is not True:
+                            raise DesktopSafetyFailure(
+                                "CUA final game capture was not a valid frame"
+                            )
+                        luminance = image_mean_luminance(
+                            args.log_dir / "game-final.png"
+                        )
+                        if luminance < 0.08:
+                            raise DesktopSafetyFailure(
+                                "CUA final game capture was a black transition frame"
+                            )
+                        _metadata(
+                            args.log_dir / "cua-final-capture.json",
+                            {
+                                "capture": capture,
+                                "mean_luminance": luminance,
+                                "minimum_mean_luminance": 0.08,
+                                "target": target,
+                            },
+                        )
+                        final_capture_valid = True
+                    return 0
 
             if now - started >= args.max_runtime:
                 return 124
@@ -962,6 +1023,15 @@ def run_bounded(args: argparse.Namespace) -> int:
             raise DesktopSafetyFailure(
                 "Warband exited before proving AMD hardware rendering"
             )
+        if args.auto_play and not stopping:
+            if not game_captured:
+                raise DesktopSafetyFailure(
+                    "Warband exited before a rendered game frame was captured"
+                )
+            if args.post_acceptance_seconds and not final_capture_valid:
+                raise DesktopSafetyFailure(
+                    "Warband exited before the post-acceptance capture"
+                )
         return (process.returncode or 0) if not stopping else 130
     finally:
         _terminate(process)
@@ -984,8 +1054,10 @@ def run_bounded(args: argparse.Namespace) -> int:
                 "focus_before": focus_before,
                 "hardware_renderer_proven": bool(hardware),
                 "game_capture_valid": game_captured,
+                "final_capture_valid": final_capture_valid,
                 "graphics_backend": args.graphics_backend,
                 "renderer": probe.renderer,
+                "post_acceptance_seconds": args.post_acceptance_seconds,
                 "started_at": started_at,
                 "state": "stopped",
                 "workspace": args.workspace,
@@ -1034,7 +1106,8 @@ def make_parser() -> argparse.ArgumentParser:
     run.add_argument("--launcher-timeout", type=float, default=45)
     run.add_argument("--play-x", type=int, default=150)
     run.add_argument("--play-y", type=int, default=212)
-    run.add_argument("--cua-session", default="warband-hidden-acceptance")
+    run.add_argument("--cua-session", default=f"warband-hidden-{os.getpid()}")
+    run.add_argument("--post-acceptance-seconds", type=float, default=0)
     run.add_argument("--game-arg", action="append", default=[], dest="game_arguments")
     run.add_argument("--bounded", action="store_true", help=argparse.SUPPRESS)
     return parser
