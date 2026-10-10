@@ -446,3 +446,19 @@ Seven new contract tests bring the expanded active suite to **141 tests**; the
 maintained source remains Ruff-clean. Capability registration, policy filtering,
 affordance issuance/consumption and persistent semantic-event migration are the
 next kernel layers, not implied by these type definitions.
+
+## Role-scoped capability and affordance registry
+
+`warband_agentic.capabilities` now registers semantic capability definitions with
+public name/description, authority, domain, valid contexts, bounded parameter
+schema, risk, reversibility, warning, lease requirement and required evidence.
+Agent discovery filters definitions through the active role grant, context,
+authority and domain while withholding internal handler IDs and transport details.
+
+Issuance creates opaque, actor/target/context/revision-bound affordances that cannot
+outlive their role grant. Consumption validates the current grant, exact context,
+submission timestamp, expiry, optimistic revision, JSON-schema subset, and optional
+control lease before resolving the private handler binding. Tokens are single-use
+and action IDs cannot be replayed. This layer validates and resolves; it does not
+execute game mutations or treat validation as an outcome. Eight registry tests
+bring the active suite to **149 tests**.

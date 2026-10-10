@@ -1,5 +1,10 @@
 """Provider-neutral contracts for the Warband agentic runtime."""
 
+from warband_agentic.capabilities import (
+    CapabilityDefinition,
+    CapabilityRegistry,
+    ValidatedAction,
+)
 from warband_agentic.contracts import (
     CONTRACT_VERSION,
     ActionOutcome,
@@ -28,6 +33,8 @@ from warband_agentic.contracts import (
 
 __all__ = [
     "CONTRACT_VERSION",
+    "CapabilityDefinition",
+    "CapabilityRegistry",
     "ActionOutcome",
     "ActionState",
     "ActionSubmission",
@@ -48,6 +55,7 @@ __all__ = [
     "RiskClass",
     "RoleGrant",
     "RoleId",
+    "ValidatedAction",
     "contract_manifest",
     "to_wire",
 ]

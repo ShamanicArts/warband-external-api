@@ -526,7 +526,7 @@ The kit is ready for an initial public developer release when:
 - [x] Define semantic schema package independently of HTTP/MCP representations.
 - [ ] Wrap two existing vertical paths as prototypes: campaign observation and a
       session-scoped menu/dialogue action.
-- [ ] Add role/grant and evidence-level capability discovery.
+- [x] Add role/grant and evidence-level capability discovery.
 - [ ] Define event-log schema and migration from existing result tables.
 - [ ] Inspect the local voice system and draft its adapter against §12.
 - [ ] Build an agent-usability fixture before launching announced external models.

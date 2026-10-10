@@ -12,6 +12,8 @@ Current foundations include:
 - durable catalog-validated events for committed Native dialogue entries;
 - transport-neutral `warband.agentic/v1` contracts for actors, contexts,
   observations, facts, affordances, actions, evidence, roles and control leases;
+- role-scoped capability discovery plus expiring, context-bound, single-use
+  affordance validation with internal handlers hidden from agents;
 - reproducible tests and retained engine/visual evidence.
 
 MCP is one adapter, not the core product boundary. CUA is used only for isolated
