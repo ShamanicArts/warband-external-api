@@ -496,3 +496,27 @@ rejection stated in the contract. Validated actions resolve to the existing
 allowlisted `select_menu` operation; raw condition/consequence script fields are
 rejected at the adapter boundary. Dialogue choice execution remains unimplemented.
 Six adapter tests bring the active suite to **164 tests**.
+
+## Pluggable host voice service
+
+`warband_agentic.voice` now provides a provider-neutral voice boundary separate
+from dialogue and game truth. Named public profiles hide provider voice IDs and
+adapter configuration. Idempotent speech requests choose synthesis-only or host
+playback delivery; bounded in-memory WAV artifacts, outcomes and ordered lifecycle
+events remain queryable. Synthesis and playback failures become explicit outcomes
+and cannot advance, roll back or falsify the correlated game event. The service
+serializes shared state so concurrent duplicate request IDs synthesize exactly once.
+
+The first concrete adapter targets the existing loopback OpenAI-compatible Kokoro
+service at `/v1/audio/speech`; optional host playback uses `pw-play` with audio on
+stdin and no shell. An authenticated loopback HTTP facade exposes profiles, speech,
+request outcomes, cursor-based events and audio retrieval. Configuration and token
+files remain outside the game module. `docs/voice.md` contains the runnable setup;
+in-game sound injection, dialogue-event wiring, interruption/priority and durable
+artifact recovery remain deliberately deferred.
+
+A live synthesis-only HTTP round trip using profile `elder.calm` / local voice
+`bm_george` produced an **87,644-byte valid RIFF/WAVE**, then recovered the ready
+outcome, three lifecycle events and audio through separate authenticated requests.
+Nothing was played through host speakers during proof. Sixteen voice tests bring
+the active suite to **180 tests**; targeted Ruff is clean.

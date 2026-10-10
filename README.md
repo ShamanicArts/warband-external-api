@@ -18,6 +18,9 @@ Current foundations include:
   that report omissions without leaking hidden facts;
 - semantic adapters for canonical engine observations, committed dialogue events,
   and exact-session attempts over the proven Native menu-selection path;
+- an authenticated, loopback-only [host voice service](docs/voice.md) with named
+  public profiles, a local Kokoro adapter, optional PipeWire playback, lifecycle
+  events and bounded audio retrieval;
 - reproducible tests and retained engine/visual evidence.
 
 MCP is one adapter, not the core product boundary. CUA is used only for isolated

@@ -1,0 +1,24 @@
+{
+  "kokoro": {
+    "endpoint": "http://127.0.0.1:8880/v1/audio/speech",
+    "model": "tts-1"
+  },
+  "profiles": [
+    {
+      "profile_id": "elder.calm",
+      "display_name": "Village elder - calm",
+      "voice_id": "bm_george",
+      "locale": "en-GB",
+      "tags": ["elder", "calm"]
+    },
+    {
+      "profile_id": "companion.clear",
+      "display_name": "Companion - clear",
+      "voice_id": "bf_emma",
+      "locale": "en-GB",
+      "tags": ["companion", "clear"]
+    }
+  ],
+  "playback": "pipewire",
+  "artifact_limit": 32
+}

@@ -312,22 +312,25 @@ Why not:
 - **Require Warband sound-resource injection for MVP:** unnecessary for an
   immersive working experience and materially harder to package.
 
-The initial interface accepts:
+The implemented first interface accepts:
 
 - utterance ID and text;
-- speaker/voice profile ID;
-- optional language, emotion, style and pacing hints;
-- conversation/session priority and interruption policy;
-- optional spatial metadata for future renderers.
+- a public speaker/voice profile ID;
+- delivery (`synthesize-only` or `play-host`), speed and output format;
+- an optional correlation ID for dialogue/application events.
 
-It emits lifecycle events (`queued`, `synthesizing`, `ready`, `playing`,
-`interrupted`, `finished`, `failed`) and timing metadata. A voice adapter may
-return audio bytes, a local file/stream reference, or own playback itself. Voice
-failure must never block or falsify the underlying dialogue turn.
+It emits ordered lifecycle events (`queued`, `synthesizing`, `ready`, `playing`,
+`played`, `synthesis-failed`, `playback-failed`) and timing metadata. The current
+adapter returns bounded WAV bytes retained in memory; a separate player optionally
+owns host playback. Voice failure must never block or falsify the underlying
+dialogue turn. Priority, interruption, style/emotion hints, spatial metadata and
+durable artifact recovery are future protocol extensions, not current claims.
 
 Credentials and provider configuration stay outside the game module and evidence
-artifacts. The user's existing local voice system will be integrated through an
-adapter once its API contract is inspected (Q3).
+artifacts. The first adapter uses the user's loopback OpenAI-compatible Kokoro
+`/v1/audio/speech` endpoint and optional PipeWire playback. The HTTP facade is
+bearer-authenticated and refuses non-loopback binds. Dialogue-event wiring remains
+application work; audio is not part of game truth.
 
 ## 13. Faction agents and benchmark harness
 
@@ -481,8 +484,6 @@ completion of the full-control backlog in `IMPLEMENTATION.md`.
   runtime/SDK, and what source-reference terms must be documented?
 - **Q2 — Public name:** retain `Warband External API`, or release as `Warband
   Agentic Kit`/another name?
-- **Q3 — Voice adapter:** what protocol and lifecycle does Lucas's local voice
-  system currently expose?
 - **Q4 — Extended backend:** should WSE2/native extension support be an explicit
   post-vanilla target, or remain outside the initial kit?
 - **Q5 — Local application API:** JSON-RPC, HTTP/WebSocket, or a Python-first SDK
@@ -528,6 +529,8 @@ The kit is ready for an initial public developer release when:
       and a session-scoped Native menu action.
 - [x] Add role/grant and evidence-level capability discovery.
 - [ ] Define event-log schema and migration from existing result tables.
-- [ ] Inspect the local voice system and draft its adapter against §12.
+- [x] Inspect the local voice system and implement its first adapter against §12
+      (authenticated HTTP round trip and real Kokoro WAV synthesis verified;
+      host playback available but deliberately not exercised during proof).
 - [ ] Build an agent-usability fixture before launching announced external models.
 - [ ] Resolve Q1 licensing before calling any artifact publicly releasable.
