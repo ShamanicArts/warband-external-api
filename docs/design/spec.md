@@ -548,7 +548,7 @@ The kit is ready for an initial public developer release when:
       backend operations and host integration. Installed-package discovery and
       generated ModSys handlers remain open.
 - [x] Add evidence-gated, scenario-defined faction metrics/scoring and a canonical
-      multi-epoch run report. Paused live metric collection, save recovery and
-      provider scheduling remain open.
+      multi-epoch run report, plus a fixed-clock paged campaign metric collector.
+      Live collector acceptance, save recovery and provider scheduling remain open.
 - [ ] Complete the collated test/live/video evidence report before final handoff.
 - [ ] Resolve Q1 licensing before calling any artifact publicly releasable.

@@ -792,3 +792,25 @@ Three structural tests raise separated discovery to **248 tests**: 114 root, 86
 bridge and 48 module-system. A paused live collector for settlement/party/faction
 facts, game-save recovery and equal-budget provider scheduling remain open; the
 scoring core does not upgrade those absent evidence layers.
+
+## Fixed-clock campaign metric collection
+
+`CampaignMetricCollector` now drives the production Store's paged omniscient
+`world_parties` export plus one faction-state getter per configured participant.
+It requires live protocol-2 revision-8+ campaign telemetry and the same integer
+engine clock throughout collection. Complete non-stale pages must preserve one
+total, offsets cannot overlap or skip, and faction results must match their exact
+queries. Rejection, expiry, malformed rows, context change or clock drift
+interrupts the collector without producing a semantic metric snapshot.
+
+The first metric adapter emits engine-observed active-world-party count, summed
+member count (explicitly including centers/garrisons), ownership among
+scenario-supplied settlement IDs, and Native faction-state-zero survival. Status
+exposes only progress counts, not bridge command IDs. Evidence retains the honest
+multi-page caveat: pages were separately captured while the integer clock stayed
+fixed, not in one atomic engine callback.
+
+Two bridge simulations cover an 18-row/two-page, two-faction collection and
+clock-drift refusal. Separated discovery passes **250 tests**: 114 root, 88 bridge
+and 48 module-system. A real stopped-campaign collection, save/process recovery
+and provider-driven benchmark remain open.

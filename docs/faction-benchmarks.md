@@ -74,6 +74,24 @@ the exact scenario faction and metric sets. The resulting scorecard retains both
 values, delta, normalized component, points and evidence for every metric, plus a
 SHA-256 hash over the scenario and input snapshots.
 
+`bridge.campaign_metric_collector.CampaignMetricCollector` supplies the first
+production-Store adapter for those snapshots. A trusted runner starts it only
+after campaign time has stopped. It pages the omniscient `world_parties` engine
+export and queries each configured Native faction state while requiring live
+protocol-2 campaign context and the same integer game clock throughout. It emits:
+
+- `active_world_parties`: every active exported party assigned to the faction;
+- `military_strength`: the sum of their engine member counts, including centers
+  and garrisons rather than pretending this is field-army-only strength;
+- `settlements`: ownership among the scenario-supplied settlement party IDs; and
+- `surviving`: whether the Native faction-state slot is zero (active).
+
+Incomplete/stale pages, changing totals, duplicate rows, failed faction getters,
+context transition or clock drift interrupt collection and produce no metric
+snapshot. Progress status exposes counts but not bridge command IDs. The retained
+evidence explicitly says that pages are separately captured while the integer
+clock remains fixed; this is not falsely labelled one atomic engine callback.
+
 `FactionBenchmarkRun` binds one baseline, one or more complete resolved epoch
 transcripts and an evidenced metric snapshot after each fixed-time advance. It
 revalidates faction coverage, run metadata, turn-set content hash, monotonic game
@@ -84,10 +102,8 @@ scorecard and report hash. Calling `report()` finalizes the run against later
 mutation.
 
 This is not yet the full benchmark harness. The next layer must orchestrate the
-driver against a live campaign, capture save/checkpoints, collect each declared
-metric from paused engine reads, resume from a game save when the game process
-itself is lost, and schedule providers under equal budgets. The scoring core does
-not itself claim that the current bridge produces an atomic metric snapshot.
-External
+driver and metric collector against a live campaign, capture save/checkpoints,
+resume from a game save when the game process itself is lost, and schedule
+providers under equal budgets. External
 model runs still require the user-visible preflight notice described in the design
 specification.
