@@ -59,7 +59,7 @@ def _canonical_hash(value):
     return hashlib.sha256(encoded).hexdigest()
 
 
-def _scenario_from_manifest(value):
+def benchmark_scenario_from_manifest(value):
     expected = {
         "schema",
         "scenario_id",
@@ -626,7 +626,7 @@ class FactionBenchmarkRun:
             checksum, _canonical_hash(payload)
         ):
             raise ValueError("Benchmark run checkpoint checksum does not match")
-        scenario = _scenario_from_manifest(payload["scenario"])
+        scenario = benchmark_scenario_from_manifest(payload["scenario"])
         run = cls(payload["run_id"], scenario, run_metadata=payload["run_metadata"])
         run.set_baseline(_snapshot_from_manifest(payload["baseline"]))
         epochs = payload["epochs"]

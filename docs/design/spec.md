@@ -553,6 +553,7 @@ The kit is ready for an initial public developer release when:
       multi-epoch run report, a fixed-clock paged campaign metric collector and a
       restart-safe non-blocking baseline-to-report orchestration harness. Live
       acceptance, game-save/process recovery and concrete provider adapters remain
-      open; equal-budget task and report-audit contracts are implemented.
+      open; equal-budget task/report-audit contracts and a check-only versioned
+      benchmark plan are implemented.
 - [ ] Complete the collated test/live/video evidence report before final handoff.
 - [ ] Resolve Q1 licensing before calling any artifact publicly releasable.

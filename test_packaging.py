@@ -53,12 +53,14 @@ class PackagingTests(unittest.TestCase):
                 self.assertIn("bridge/game_bridge.py", names)
                 self.assertIn("bridge/application_extensions.py", names)
                 self.assertIn("bridge/campaign_metric_collector.py", names)
+                self.assertIn("bridge/benchmark_plan.py", names)
                 self.assertIn("bridge/native_faction_agent_app.py", names)
                 self.assertIn("bridge/native_npc_speech_app.py", names)
                 self.assertIn("module_system/build_mcp_module.py", names)
                 self.assertIn("src/warband_mcp.py", names)
                 for example in (
                     "agent-host.example.json",
+                    "benchmark.example.json",
                     "voice.example.json",
                 ):
                     self.assertTrue(
@@ -81,6 +83,7 @@ class PackagingTests(unittest.TestCase):
                     "warband-build-module",
                     "warband-voice",
                     "warband-agent-usability",
+                    "warband-benchmark",
                 ):
                     self.assertIn(command, scripts)
                 self.assertFalse(
@@ -115,6 +118,7 @@ class PackagingTests(unittest.TestCase):
                         "import bridge.native_faction_agent_app; "
                         "import bridge.application_extensions; "
                         "import bridge.campaign_metric_collector; "
+                        "import bridge.benchmark_plan; "
                         "import module_system.build_mcp_module; "
                         "import warband_agentic.benchmark; "
                         "import warband_agentic.extensions; "
@@ -134,6 +138,7 @@ class PackagingTests(unittest.TestCase):
                 "warband-build-module",
                 "warband-voice",
                 "warband-agent-usability",
+                "warband-benchmark",
             ):
                 subprocess.run(
                     [installed / "bin" / command, "--help"],

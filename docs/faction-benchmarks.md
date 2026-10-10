@@ -168,3 +168,10 @@ This layer does not call a provider or impose a specific concurrency framework.
 A production adapter must dispatch the frozen tasks without advancing game time,
 honor cancellation/deadlines, and authenticate independently. No external model
 was invoked while implementing or testing this contract.
+
+The check-only [`warband-benchmark`](benchmark-plan.md) command compiles a
+versioned plan against the referenced application-host configuration before any
+runtime side effect. It catches faction/session mismatches, metric sets the Native
+collector cannot produce, unsafe provider settings, missing reproducibility
+metadata and invalid epoch/budget bounds. Live execution is intentionally not
+claimed by that command yet.

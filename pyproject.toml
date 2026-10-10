@@ -17,6 +17,7 @@ warband-agent-host = "bridge.agent_host:main"
 warband-build-module = "module_system.build_mcp_module:main"
 warband-voice = "warband_agentic.voice_server:main"
 warband-agent-usability = "warband_agentic.usability_cli:main"
+warband-benchmark = "bridge.benchmark_plan:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

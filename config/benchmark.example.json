@@ -1,0 +1,84 @@
+{
+  "schema": "warband.agentic/benchmark-plan/v1",
+  "run_id": "native-border-war-42",
+  "host_config": "agent-host.example.json",
+  "scenario": {
+    "schema": "warband.agentic/benchmark-scenario/v1",
+    "scenario_id": "native.border-war",
+    "version": "1.0.0",
+    "description": "Two factions compete over a bounded Native campaign interval",
+    "faction_ids": [15, 16],
+    "metrics": [
+      {
+        "key": "active_world_parties",
+        "description": "Active parties assigned to the faction",
+        "unit": "count",
+        "objective": "maximize",
+        "weight": 10,
+        "scale": 5
+      },
+      {
+        "key": "settlements",
+        "description": "Owned scenario settlements",
+        "unit": "count",
+        "objective": "maximize",
+        "weight": 30,
+        "scale": 2
+      },
+      {
+        "key": "military_strength",
+        "description": "Members in active faction parties",
+        "unit": "troops",
+        "objective": "maximize",
+        "weight": 30,
+        "scale": 100
+      },
+      {
+        "key": "surviving",
+        "description": "Faction remains active",
+        "unit": "boolean",
+        "objective": "binary",
+        "weight": 30,
+        "scale": null
+      }
+    ]
+  },
+  "participants": [
+    {
+      "faction_id": 15,
+      "session_id": "swadia",
+      "provider": "provider-adapter-a",
+      "model": "model-version-a",
+      "settings": {
+        "temperature": 0
+      }
+    },
+    {
+      "faction_id": 16,
+      "session_id": "vaegirs",
+      "provider": "provider-adapter-b",
+      "model": "model-version-b",
+      "settings": {
+        "temperature": 0
+      }
+    }
+  ],
+  "settlement_party_ids": [1, 2, 3, 4],
+  "epochs": {
+    "count": 24,
+    "hours": 1,
+    "speed": 2
+  },
+  "budget": {
+    "max_input_tokens": 4096,
+    "max_output_tokens": 300,
+    "timeout_ms": 30000,
+    "max_cost_microusd": 50000
+  },
+  "run_metadata": {
+    "module_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "save_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "scenario_seed": 42,
+    "runner_version": "0.2.0"
+  }
+}

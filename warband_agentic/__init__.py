@@ -108,6 +108,7 @@ from warband_agentic.scoring import (
     MetricObjective,
     MetricObservation,
     MetricRule,
+    benchmark_scenario_from_manifest,
     score_scenario,
 )
 from warband_agentic.usability import (
@@ -215,6 +216,7 @@ __all__ = [
     "VoiceState",
     "canonical_observation_from_snapshot",
     "build_faction_usability_fixture",
+    "benchmark_scenario_from_manifest",
     "contract_manifest",
     "context_from_snapshot",
     "default_perception_policies",

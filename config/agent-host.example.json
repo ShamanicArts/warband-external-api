@@ -41,6 +41,22 @@
       "token_file": "../runtime/trainer.token",
       "port": 8871,
       "agent_id": 7
+    },
+    {
+      "kind": "native-faction",
+      "session_id": "vaegirs",
+      "token_file": "../runtime/vaegirs.token",
+      "port": 8872,
+      "faction_id": 16,
+      "controlled_party_ids": [600],
+      "order_options": [
+        {
+          "party_id": 600,
+          "order": "attack",
+          "target_party_id": 500,
+          "title": "Attack the Swadian host"
+        }
+      ]
     }
   ]
 }

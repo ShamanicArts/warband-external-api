@@ -963,3 +963,26 @@ This does not implement an OpenAI, Cursor or OpenCode adapter, concurrent networ
 dispatch, provider authentication or model invocation. Those remain separate
 host adapters and will require the promised user-visible preflight before any
 external run. No external agent, Warband process or voice model was launched.
+
+## Versioned faction benchmark plans
+
+`bridge.benchmark_plan` and the packaged `warband-benchmark --check` command now
+compile one complete `benchmark-plan/v1` against a real application-host plan.
+Before any database/socket/game/provider side effect, validation binds scenario
+factions to distinct faction-sovereign sessions, checks the exact four metrics
+the current Native collector can emit, validates settlement IDs and epoch bounds,
+constructs the common decision budget, and requires module/save hashes, scenario
+seed and runner version. Provider settings and retained run metadata reject
+credential-like keys.
+
+The secret-free diagnostics expose provider/model identities and public settings,
+scenario/epoch/budget details and only a hash of raw run metadata. The packaged
+host example now contains two disjoint faction sessions and the paired benchmark
+example is structurally consistent with that topology. Three root regressions
+exercise the real host-plan files and subprocess CLI, side-effect refusal, secret
+hygiene and Native metric compatibility. Separated discovery passes **273
+tests**: 129 root, 94 bridge and 50 module-system.
+
+The command remains check-only: it does not start the host, capture/load a save,
+dispatch model calls or run a campaign. No external agent or Warband process was
+launched for this slice.
