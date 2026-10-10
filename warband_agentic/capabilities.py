@@ -226,6 +226,7 @@ class CapabilityRegistry:
         grant,
         issued_at_ms,
         expires_at_ms,
+        parameters=None,
     ):
         if not isinstance(actor, ActorRef) or not isinstance(context, ContextRef):
             raise TypeError("issue requires ActorRef and ContextRef values")
@@ -244,6 +245,12 @@ class CapabilityRegistry:
                 raise ValueError("Capability is invalid in this context")
             if grant.expires_at_ms is not None and expires_at_ms > grant.expires_at_ms:
                 raise ValueError("Affordance cannot outlive its role grant")
+            issued_parameters = (
+                definition.parameters
+                if parameters is None
+                else _freeze_json(parameters, "parameters")
+            )
+            _validate_parameter_schema(issued_parameters)
             token = self._token_factory()
             _nonempty("token", token)
             if token in self._issued:
@@ -256,7 +263,7 @@ class CapabilityRegistry:
                 tuple(targets),
                 context,
                 definition.authority,
-                definition.parameters,
+                issued_parameters,
                 definition.risk,
                 definition.reversible,
                 definition.consequence_warning,
@@ -302,7 +309,7 @@ class CapabilityRegistry:
                 raise ValueError("Submission uses a stale observation revision")
             if current_context != affordance.context:
                 raise ValueError("Game context changed after affordance issuance")
-            _validate_object(definition.parameters, submission.arguments)
+            _validate_object(affordance.parameters, submission.arguments)
             if definition.requires_lease:
                 if self._lease_resolver is None:
                     raise ValueError(

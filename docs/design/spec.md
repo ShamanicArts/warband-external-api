@@ -524,8 +524,8 @@ The kit is ready for an initial public developer release when:
 - [ ] Determine the exact engine path, if any, for advancing a player dialogue
       choice without desktop input.
 - [x] Define semantic schema package independently of HTTP/MCP representations.
-- [ ] Wrap two existing vertical paths as prototypes: campaign observation and a
-      session-scoped menu/dialogue action.
+- [x] Wrap two existing vertical paths as prototypes: engine/campaign observation
+      and a session-scoped Native menu action.
 - [x] Add role/grant and evidence-level capability discovery.
 - [ ] Define event-log schema and migration from existing result tables.
 - [ ] Inspect the local voice system and draft its adapter against §12.

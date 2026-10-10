@@ -1,5 +1,13 @@
 """Provider-neutral contracts for the Warband agentic runtime."""
 
+from warband_agentic.adapters import (
+    canonical_observation_from_snapshot,
+    context_from_snapshot,
+    dialogue_event_from_bridge,
+    issue_menu_affordances,
+    menu_operation_from_validated,
+    register_menu_capability,
+)
 from warband_agentic.authority import (
     LeaseBook,
     ObservationFilter,
@@ -65,7 +73,13 @@ __all__ = [
     "RoleGrant",
     "RoleId",
     "ValidatedAction",
+    "canonical_observation_from_snapshot",
     "contract_manifest",
+    "context_from_snapshot",
     "default_perception_policies",
+    "dialogue_event_from_bridge",
+    "issue_menu_affordances",
+    "menu_operation_from_validated",
+    "register_menu_capability",
     "to_wire",
 ]

@@ -16,6 +16,8 @@ Current foundations include:
   affordance validation with internal handlers hidden from agents;
 - trusted control-lease arbitration and role/context/source-filtered observations
   that report omissions without leaking hidden facts;
+- semantic adapters for canonical engine observations, committed dialogue events,
+  and exact-session attempts over the proven Native menu-selection path;
 - reproducible tests and retained engine/visual evidence.
 
 MCP is one adapter, not the core product boundary. CUA is used only for isolated

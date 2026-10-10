@@ -479,3 +479,20 @@ reports coarse omitted categories without exposing hidden keys or values. Initia
 conservative policies cover readonly observer, strategic player, NPC self, party
 commander, faction sovereign, test director and full operator roles. Nine new
 authority/lease tests bring the active suite to **158 tests**.
+
+## First semantic adapters over proven game paths
+
+`warband_agentic.adapters` maps connected protocol-2 telemetry into canonical
+operator observations with a runtime-assigned optimistic revision. Engine facts,
+definition metadata and omitted bridge bookkeeping remain distinct; the adapter
+does not confuse telemetry age with a game revision. Catalog-validated Native
+dialogue rows also map to semantic events with a runtime-global sequence while
+retaining their source-stream sequence in the payload.
+
+The first action adapter registers `menu.try-select` over the already proven Native
+menu seam. It converts safe current-menu candidate metadata into one exact-session,
+single-action affordance per candidate, with Native-condition recheck and possible
+rejection stated in the contract. Validated actions resolve to the existing
+allowlisted `select_menu` operation; raw condition/consequence script fields are
+rejected at the adapter boundary. Dialogue choice execution remains unimplemented.
+Six adapter tests bring the active suite to **164 tests**.
