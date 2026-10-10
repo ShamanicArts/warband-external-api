@@ -429,22 +429,26 @@ Model-based usability tests are investigation/review, not delegated code-writing
 - Package runtime, builder/SDK, schemas, MCP adapter and examples independently
   enough that applications do not import internal bridge classes.
 - Add migration policy for protocol, database and extension schema versions.
-- Establish an explicit project license before public release (Q1).
+- License original project code and documentation under MIT while preserving
+  explicit third-party content and dependency boundaries.
 
 ## 17. Dependencies and licensing
 
 | Dependency/input | Version | License/status | Verdict |
 |---|---:|---|---|
 | Python | >=3.11 | PSF | clean |
-| MCP Python SDK | >=1.26,<2 | verify before release | pending |
+| MCP Python SDK | >=1.26,<2 | MIT | clean |
 | Jujutsu | development-only | Apache-2.0/MIT | clean |
 | Warband Native compiled files | user installation | proprietary game content | never redistribute |
 | TaleWorlds ModSys definitions/reference | pinned 1.171 mirror | verify source terms | pending |
 | Local voice provider | user supplied | unknown until adapter review | pending |
 | Optional model providers | external services/models | provider-specific | quarantined from core |
 
-The repository currently has no top-level license file. Public release is blocked
-until Q1 and the pending dependency/source verdicts are resolved.
+The repository's original code and documentation are licensed under MIT. The
+top-level `THIRD_PARTY_NOTICES.md` preserves the separate status of game content,
+screenshots, external providers and the referenced ModSys definitions. A public
+source repository does not by itself claim supported-release acceptance; the
+remaining source-reference verdicts and live acceptance gates stay explicit.
 
 ## 18. Delivery phases
 
@@ -471,7 +475,7 @@ completion of the full-control backlog in `IMPLEMENTATION.md`.
 | Builder/callback monolith becomes unmaintainable | high | capability registry, generated dispatch and extension collision checks | Codex |
 | Agents exploit omniscient or administrative data | high | role perception policies, authority classes and benchmark audits | Codex |
 | Acknowledgement is mistaken for outcome | high | required outcome/evidence contracts and capability levels | Codex |
-| Native/mod assets or terms block distribution | high | generate locally, distribute no assets, resolve Q1/license matrix before release | Lucas |
+| Native/mod assets or terms block distribution | high | generate locally, distribute no assets, maintain the third-party/license matrix before release | Lucas |
 | Stale actions execute after context transition | high | expiring affordances, expected revisions and game-side session guards | Codex |
 | Multi-agent races produce unfair benchmarks | medium | leases, synchronized epochs and deterministic arbitration rules | Codex |
 | Voice/provider latency stalls gameplay | medium | asynchronous lifecycle, interruption policy and text-first fallback | Codex |
@@ -492,8 +496,6 @@ completion of the full-control backlog in `IMPLEMENTATION.md`.
 
 ## 21. Open questions
 
-- **Q1 — Project license:** which open-source license should govern the original
-  runtime/SDK, and what source-reference terms must be documented?
 - **Q2 — Public name:** retain `Warband External API`, or release as `Warband
   Agentic Kit`/another name?
 - **Q4 — Extended backend:** should WSE2/native extension support be an explicit
@@ -571,4 +573,5 @@ The kit is ready for an initial public developer release when:
       preflight-gated live CLI and a check-only versioned benchmark plan are
       implemented.
 - [ ] Complete the collated test/live/video evidence report before final handoff.
-- [ ] Resolve Q1 licensing before calling any artifact publicly releasable.
+- [x] License the original project under MIT and document third-party boundaries;
+      dependency/source attribution remains part of release review.

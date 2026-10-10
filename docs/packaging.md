@@ -120,8 +120,10 @@ opening either runtime database or any listener.
 
 ## Current release blockers
 
-- No project license has been selected. Public distribution is blocked until the
-  license and referenced-source/dependency terms are resolved.
+- Original project code and documentation are licensed under MIT. The remaining
+  referenced-source and third-party boundaries are recorded in
+  `THIRD_PARTY_NOTICES.md`; do not redistribute Native assets, generated modules,
+  saves or credentials.
 - The Python artifact, built-in multi-session host and fail-closed guided installer
   are reproducible. MCP-client registration remains deliberately manual.
 - Explicit Python extension registration and exact-ID installed entry-point

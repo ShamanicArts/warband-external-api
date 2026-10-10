@@ -111,10 +111,12 @@ installer, reproducible sdist-to-wheel builds and isolated Native module
 generation. See the
 [application-host guide](docs/application-host.md) for validated multi-session
 runtime startup and the [extension SDK guide](docs/extension-sdk.md) for explicit
-custom application registration. The repository is
-not ready for public release yet: no project license has been selected, and
-installer-generated module boot is proven but live semantic interaction and final
-video evidence remain open.
+custom application registration. The source is published under the
+[MIT License](LICENSE); third-party boundaries are documented in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). This remains a developer
+preview rather than a supported 1.0 release: installer-generated module boot is
+proven, while live semantic interaction from that fresh install and final video
+evidence remain open.
 
 MCP is one adapter, not the core product boundary. CUA is used only for isolated
 launch and independent visual validation, never as an invisible game backend.

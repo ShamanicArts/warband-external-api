@@ -687,10 +687,11 @@ checkout, imports the core modules and exercises every non-MCP command's help
 path. This raises separated discovery to **232 tests**: 98 root, 86 bridge and 48
 module-system tests.
 
-This is structural installability, not public-release acceptance. A project
-license is still unselected; dependency/source licensing verdicts, guided client
-registration, packaged application discovery, fresh-Native end-to-end acceptance
-and final hardware-rendered video evidence remain open. See `docs/packaging.md`.
+This is structural installability, not public-release acceptance. The project was
+subsequently licensed under MIT; remaining third-party/source boundaries, guided
+client registration, packaged application discovery, fresh-Native end-to-end
+acceptance and final hardware-rendered video evidence remain open. See
+`docs/packaging.md` and `THIRD_PARTY_NOTICES.md`.
 
 ## Constrained action restart recovery
 

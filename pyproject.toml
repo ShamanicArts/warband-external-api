@@ -8,6 +8,8 @@ version = "0.2.0"
 description = "Provider-neutral agentic modding and scripting kit for Warband"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 dependencies = ["mcp>=1.26,<2"]
 
 [project.scripts]

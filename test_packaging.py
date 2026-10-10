@@ -89,6 +89,20 @@ class PackagingTests(unittest.TestCase):
                     name for name in names if name.endswith("/entry_points.txt")
                 )
                 scripts = archive.read(entry_points).decode()
+                metadata_file = next(
+                    name for name in names if name.endswith(".dist-info/METADATA")
+                )
+                metadata = archive.read(metadata_file).decode()
+                self.assertIn("License-Expression: MIT", metadata)
+                self.assertTrue(
+                    any(name.endswith(".dist-info/licenses/LICENSE") for name in names)
+                )
+                self.assertTrue(
+                    any(
+                        name.endswith(".dist-info/licenses/THIRD_PARTY_NOTICES.md")
+                        for name in names
+                    )
+                )
                 for command in (
                     "warband-mcp",
                     "warband-agent-mcp",
