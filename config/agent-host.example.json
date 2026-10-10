@@ -45,7 +45,12 @@
       "session_id": "trainer",
       "token_file": "../runtime/trainer.token",
       "port": 8892,
-      "agent_id": 7
+      "agent_id": 7,
+      "automatic_voice": {
+        "profile_id": "trainer.default",
+        "delivery": "play-host",
+        "speed": 1.0
+      }
     },
     {
       "kind": "native-faction",

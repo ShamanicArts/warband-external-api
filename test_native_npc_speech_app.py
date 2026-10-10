@@ -363,6 +363,51 @@ class NativeNpcSpeechApplicationTests(unittest.TestCase):
             },
         )
 
+    def test_observed_speech_handler_is_exactly_once_and_cannot_falsify_outcome(self):
+        notifications = []
+
+        def handler(action_id, text):
+            notifications.append((action_id, text))
+            raise RuntimeError("voice service is offline")
+
+        self.app.set_observed_speech_handler(handler)
+        with self.assertRaisesRegex(RuntimeError, "already configured"):
+            self.app.set_observed_speech_handler(handler)
+        self._complete_agent_refresh()
+        turn = self.app.session.turn()
+        self.app.session.submit(
+            {
+                "request_id": "utterance:auto-voice",
+                "affordance_token": turn.affordances[0].token,
+                "arguments": {"text": "The game result remains authoritative."},
+                "expected_revision": turn.observation.context.revision,
+            }
+        )
+        command_id = int(self.store.poll(self.query).split("|")[2])
+        self.store.event(
+            "/dialogue",
+            {"v": "2", "job": str(command_id), "event": "1"},
+        )
+
+        first = self.app.session.outcome("utterance:auto-voice")
+        repeated = self.app.session.outcome("utterance:auto-voice")
+
+        self.assertIs(first.state, ActionState.OBSERVED)
+        self.assertEqual(repeated, first)
+        self.assertEqual(
+            notifications,
+            [
+                (
+                    "action:utterance:auto-voice",
+                    "The game result remains authoritative.",
+                )
+            ],
+        )
+        self.assertEqual(
+            self.app.speech_notification_failures(),
+            {"action:utterance:auto-voice": "RuntimeError"},
+        )
+
     def test_player_agent_cannot_be_recast_as_an_npc(self):
         player_app = NativeNpcSpeechApplication(
             self.store,

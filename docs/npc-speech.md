@@ -58,6 +58,25 @@ deployment can instead call `/voice-dispatches` at the same session path to have
 the application host perform that authenticated relay and return the validated
 terminal voice outcome.
 
+For hands-free dialogue, an NPC session may declare a trusted host policy:
+
+```json
+{
+  "automatic_voice": {
+    "profile_id": "elder.calm",
+    "delivery": "play-host",
+    "speed": 1.0
+  }
+}
+```
+
+This requires the host-config v2 `voice` service. The profile, delivery and speed
+come from configuration, never from the NPC agent. After Warband emits the
+matching dialogue event and the action outcome is reconciled, the host queues one
+asynchronous voice request correlated to that action. Repeated outcome polls do
+not replay it. Queue, HTTP, synthesis or playback failure is reported only in
+host diagnostics and cannot downgrade, promote or block the game outcome.
+
 With a `SemanticEventLog`, restart recovery restores the exact action outcome and
 private bridge command correlation without replay. A later Warband dialogue event
 can still promote the recovered action to observed, and `voice_request()` can
@@ -112,8 +131,9 @@ and one session is capped at 64 player/NPC turns.
 
 Every NPC response still uses the existing one-turn custom speech path with a
 fixed Native return choice. The persistent loop does not yet provide an in-game
-text-entry UI, speech recognition, policy-triggered automatic voice dispatch,
-remote execution of
-original Native choices, NPC-to-NPC dialogue, long-term character memory or a
-mechanical-proposal system. Those layers can feed or consume this host contract
-without receiving bridge credentials.
+text-entry UI, speech recognition, remote execution of original Native choices,
+NPC-to-NPC dialogue, long-term character memory or a mechanical-proposal system.
+Those layers can feed or consume this host contract without receiving bridge
+credentials. Automatic voice begins only when an observed outcome is reconciled;
+the host does not independently poll unreconciled agent actions, and its pending
+dispatch queue is not yet recovered across application-host restart.

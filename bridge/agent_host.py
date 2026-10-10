@@ -3,10 +3,12 @@
 import argparse
 import hmac
 import json
+import queue
 import stat
 import sys
 import threading
 from dataclasses import dataclass
+from functools import partial
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from types import MappingProxyType
@@ -79,6 +81,14 @@ class AgentHostPlan:
     voice: VoiceHostPlan | None = None
 
     def diagnostics(self):
+        voice = _voice_diagnostics(self.voice)
+        automatic_sessions = [
+            session.session_id
+            for session in self.sessions
+            if session.settings.get("automatic_voice") is not None
+        ]
+        if automatic_sessions:
+            voice["automatic_sessions"] = automatic_sessions
         return {
             "schema": HOST_DIAGNOSTICS_SCHEMA,
             "status": "ready",
@@ -88,7 +98,7 @@ class AgentHostPlan:
             },
             "bridge": {"host": "127.0.0.1", "port": self.bridge.port},
             "control": {"host": "127.0.0.1", "port": self.control.port},
-            "voice": _voice_diagnostics(self.voice),
+            "voice": voice,
             "extensions": list(self.extensions.summaries()),
             "sessions": [
                 {
@@ -360,6 +370,11 @@ def load_agent_host_plan(path, extensions=None):
         _session_plan(base, session, index, extensions)
         for index, session in enumerate(sessions)
     )
+    if (
+        any(plan.settings.get("automatic_voice") is not None for plan in plans)
+        and voice_plan is None
+    ):
+        raise ValueError("automatic NPC voice requires host-config v2 voice service")
     session_ids = [plan.session_id for plan in plans]
     if len(session_ids) != len(set(session_ids)):
         raise ValueError("session IDs must be unique")
@@ -427,6 +442,8 @@ class AgentApplicationHost:
         self._applications = {}
         self._threads = []
         self._failure = None
+        self._voice_dispatch_queue = queue.Queue(maxsize=256)
+        self._automatic_voice_dispatches = {}
 
     def start(self):
         with self._lock:
@@ -456,6 +473,14 @@ class AgentApplicationHost:
                 )
                 self._start_server_thread(self._bridge_server, "bridge")
                 self._start_server_thread(self._control_server, "control")
+                if self._voice_client is not None:
+                    voice_worker = threading.Thread(
+                        target=self._run_voice_dispatches,
+                        name="warband-agent-host-automatic-voice",
+                        daemon=True,
+                    )
+                    self._threads.append(voice_worker)
+                    voice_worker.start()
                 self._state = "waiting-for-game"
                 activation = threading.Thread(
                     target=self._activate_after_connection,
@@ -508,6 +533,22 @@ class AgentApplicationHost:
                     self._event_log,
                     session.settings,
                 )
+                voice_policy = getattr(application, "host_voice_policy", None)
+                if voice_policy is not None:
+                    configure = getattr(
+                        application, "set_observed_speech_handler", None
+                    )
+                    if not callable(configure):
+                        raise TypeError(
+                            "automatic voice application has no observation hook"
+                        )
+                    configure(
+                        partial(
+                            self._queue_automatic_voice,
+                            session.session_id,
+                            policy=voice_policy,
+                        )
+                    )
                 server = make_agent_server(
                     application.session,
                     session.token,
@@ -558,6 +599,19 @@ class AgentApplicationHost:
                 }
                 for plan in self.plan.sessions
             ]
+            voice = _voice_diagnostics(self._voice_client)
+            automatic_sessions = [
+                session.session_id
+                for session in self.plan.sessions
+                if session.settings.get("automatic_voice") is not None
+            ]
+            if automatic_sessions:
+                counts = {}
+                for dispatch in self._automatic_voice_dispatches.values():
+                    status_value = dispatch["status"]
+                    counts[status_value] = counts.get(status_value, 0) + 1
+                voice["automatic_sessions"] = automatic_sessions
+                voice["automatic_dispatches"] = counts
         return {
             "schema": HOST_DIAGNOSTICS_SCHEMA,
             "status": status,
@@ -579,10 +633,65 @@ class AgentApplicationHost:
                 if status in ("waiting-for-game", "ready")
                 else status,
             },
-            "voice": _voice_diagnostics(self._voice_client),
+            "voice": voice,
             "extensions": list(self.plan.extensions.summaries()),
             "sessions": sessions,
         }
+
+    def _queue_automatic_voice(self, session_id, action_id, text, policy):
+        request = SpeechRequest(
+            f"speech:{action_id}",
+            text,
+            policy["profile_id"],
+            VoiceDelivery(policy["delivery"]),
+            policy["speed"],
+            "wav",
+            action_id,
+        )
+        with self._lock:
+            if request.request_id in self._automatic_voice_dispatches:
+                return
+            self._automatic_voice_dispatches[request.request_id] = {
+                "session_id": session_id,
+                "status": "queued",
+                "correlation_id": action_id,
+                "error_type": None,
+            }
+        try:
+            self._voice_dispatch_queue.put_nowait(request)
+        except queue.Full:
+            with self._lock:
+                dispatch = self._automatic_voice_dispatches[request.request_id]
+                dispatch["status"] = "queue-full"
+                dispatch["error_type"] = "Full"
+
+    def _run_voice_dispatches(self):
+        while not self._stopping.is_set():
+            try:
+                request = self._voice_dispatch_queue.get(timeout=0.1)
+            except queue.Empty:
+                continue
+            try:
+                outcome = self._voice_client.speak(request)
+                if not isinstance(outcome, VoiceOutcome):
+                    raise TypeError("voice service returned an invalid outcome")
+                status = outcome.state.value
+                error_type = None
+            except Exception as exc:
+                status = "failed"
+                error_type = type(exc).__name__
+            with self._lock:
+                dispatch = self._automatic_voice_dispatches[request.request_id]
+                dispatch["status"] = status
+                dispatch["error_type"] = error_type
+            self._voice_dispatch_queue.task_done()
+
+    def automatic_voice_dispatches(self):
+        with self._lock:
+            return {
+                request_id: dict(dispatch)
+                for request_id, dispatch in self._automatic_voice_dispatches.items()
+            }
 
     def extension_catalog(self):
         return self.plan.extensions.catalog()

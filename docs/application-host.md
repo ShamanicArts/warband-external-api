@@ -119,6 +119,14 @@ voice failure is reported but never changes or rolls back the dialogue outcome.
 The voice token stays in host memory and is never accepted from a request body or
 returned in diagnostics.
 
+`native-npc-speech` and `native-npc-dialogue` sessions may instead include an
+`automatic_voice` object containing a trusted `profile_id`, `delivery` and
+`speed`. This is accepted only with host-config v2 and a configured voice
+service. Once Warband observation is reconciled, the host sends one deduplicated
+request on a separate worker; synthesis/playback never blocks the action response.
+Runtime diagnostics show configured automatic sessions and bounded status counts,
+without tokens, provider settings, text or audio data.
+
 Normal interruption closes every owned HTTP server, joins its threads, and closes
 both SQLite connections. It never starts Warband, Wine, Gamescope, a voice model
 or an external agent.
@@ -131,8 +139,11 @@ or an external agent.
   automatic loading or hot reload; JSON never names an import path.
 - Refresh scheduling is explicit host/runner policy. The host does not silently
   choose faction decision epochs or repeatedly scan an NPC scene.
-- Voice remains a separately authenticated process. The optional v2 relay owns
-  only its loopback credential and bounded HTTP client; it does not co-host TTS.
+- Voice remains a separately authenticated process. Manual or automatic v2 relay
+  owns only its loopback credential and bounded HTTP client; it does not co-host
+  TTS.
+- Automatic dispatch deduplicates repeated reconciliation in one host process.
+  Its pending queue/status is not yet a durable restart-recovered outbox.
 - The listeners are plaintext loopback interfaces; remote exposure is unsupported.
 - Runtime lifecycle is bridge-simulated. A live hardware-rendered multi-session
   acceptance run and final video evidence are still pending.

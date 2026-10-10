@@ -4,6 +4,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -18,6 +19,7 @@ from bridge.agent_host import (
 )
 from bridge.application_extensions import built_in_extension_registry
 from bridge.native_npc_speech_app import NativeNpcSpeechApplication
+from bridge.test_game_bridge import mission_telemetry
 from test_agentic_extensions import example_extension, grant_gold_operation
 from warband_agentic import (
     AudioArtifact,
@@ -128,6 +130,23 @@ class AgentApplicationHostCliTests(unittest.TestCase):
                 AgentApplicationHost(plan).runtime_diagnostics()["voice"],
                 diagnostics["voice"],
             )
+
+            missing_voice = json.loads(config.read_text())
+            missing_voice["schema"] = "warband.agentic/host-config/v1"
+            del missing_voice["voice"]
+            missing_voice["sessions"][0] = {
+                **missing_voice["sessions"][0],
+                "kind": "native-npc-speech",
+                "agent_id": 7,
+                "automatic_voice": {
+                    "profile_id": "trainer.default",
+                    "delivery": "play-host",
+                    "speed": 1.0,
+                },
+            }
+            config.write_text(json.dumps(missing_voice))
+            with self.assertRaisesRegex(ValueError, "requires host-config v2"):
+                load_agent_host_plan(config)
 
     def test_operator_can_dispatch_engine_observed_speech_to_voice_service(self):
         class Adapter:
@@ -241,6 +260,197 @@ class AgentApplicationHostCliTests(unittest.TestCase):
             voice_server.shutdown()
             voice_server.server_close()
             voice_thread.join()
+
+    def test_observed_npc_speech_uses_configured_automatic_voice_policy(self):
+        class Adapter:
+            def __init__(self):
+                self.requests = []
+                self.called = threading.Event()
+
+            def synthesize(self, request, profile, created_at_ms):
+                self.requests.append(request)
+                self.called.set()
+                return AudioArtifact(
+                    "audio:automatic",
+                    request.request_id,
+                    "audio/wav",
+                    b"RIFF\x00\x00\x00\x00WAVEdata",
+                    created_at_ms,
+                )
+
+        class Player:
+            def __init__(self):
+                self.audio_ids = []
+
+            def play(self, artifact):
+                self.audio_ids.append(artifact.audio_id)
+
+        adapter = Adapter()
+        player = Player()
+        voice = VoiceService(
+            {"local": adapter},
+            (VoiceProfile("trainer.default", "Trainer", "local", "voice"),),
+            player=player,
+            clock_ms=iter(range(1000, 1100)).__next__,
+        )
+        voice_server = make_voice_server(voice, "d" * 64, port=0)
+        voice_thread = threading.Thread(target=voice_server.serve_forever, daemon=True)
+        voice_thread.start()
+        self.addCleanup(voice_thread.join)
+        self.addCleanup(voice_server.server_close)
+        self.addCleanup(voice_server.shutdown)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            ports = {
+                "bridge": available_port(),
+                "control": available_port(),
+                "session": available_port(),
+            }
+            while len({*ports.values(), voice_server.server_port}) != 4:
+                ports = {name: available_port() for name in ports}
+            (root / "mcp-catalog.json").write_text(
+                json.dumps({"troops": {"0": "Player", "1": "Trainer"}})
+            )
+            (root / "mcp-build.json").write_text(
+                json.dumps(
+                    {
+                        "protocol": 2,
+                        "integration_revision": 16,
+                        "extensions": [
+                            {"extension_id": "warband.native", "version": "0.2.0"}
+                        ],
+                    }
+                )
+            )
+            for name, token in (
+                ("bridge", "a" * 64),
+                ("control", "b" * 64),
+                ("session", "c" * 64),
+                ("voice", "d" * 64),
+            ):
+                path = root / f"{name}.token"
+                path.write_text(token)
+                path.chmod(0o600)
+            config = root / "host.json"
+            config.write_text(
+                json.dumps(
+                    {
+                        "schema": "warband.agentic/host-config/v2",
+                        "bridge": {
+                            "database": "bridge.sqlite3",
+                            "catalog": "mcp-catalog.json",
+                            "build_manifest": "mcp-build.json",
+                            "token_file": "bridge.token",
+                            "port": ports["bridge"],
+                        },
+                        "control": {
+                            "token_file": "control.token",
+                            "port": ports["control"],
+                        },
+                        "voice": {
+                            "endpoint": (
+                                "http://127.0.0.1:"
+                                f"{voice_server.server_port}/v1/voice/speech"
+                            ),
+                            "token_file": "voice.token",
+                            "timeout_ms": 2000,
+                        },
+                        "events_database": "events.sqlite3",
+                        "sessions": [
+                            {
+                                "kind": "native-npc-speech",
+                                "session_id": "trainer",
+                                "token_file": "session.token",
+                                "port": ports["session"],
+                                "agent_id": 1,
+                                "automatic_voice": {
+                                    "profile_id": "trainer.default",
+                                    "delivery": "play-host",
+                                    "speed": 1.0,
+                                },
+                            }
+                        ],
+                    }
+                )
+            )
+            plan = load_agent_host_plan(config)
+            self.assertEqual(
+                plan.diagnostics()["voice"]["automatic_sessions"], ["trainer"]
+            )
+            host = AgentApplicationHost(plan)
+            try:
+                host.start()
+                query = mission_telemetry()
+                host._store.poll(query)
+                self.assertTrue(host.wait_until_ready(timeout=2))
+                application = host._applications["trainer"]
+                refresh_id = application.queue_observation_refresh()
+                host._store.poll(query)
+                event = {
+                    "v": "2",
+                    "job": str(refresh_id),
+                    "scene": "42",
+                    "session": "1",
+                }
+                host._store.event("/agents_end", {**event, "count": "2"})
+                for agent_id in (0, 1):
+                    host._store.event(
+                        "/agent",
+                        {
+                            **event,
+                            "id": str(agent_id),
+                            "troop": str(agent_id),
+                            "team": "0",
+                            "hp": "50",
+                            "x": "0",
+                            "y": "0",
+                            "z": "0",
+                            "player": str(int(agent_id == 0)),
+                        },
+                    )
+                host._store.poll({**query, "ack": str(refresh_id)})
+                turn = application.session.turn()
+                application.session.submit(
+                    {
+                        "request_id": "npc-turn:auto",
+                        "affordance_token": turn.affordances[0].token,
+                        "arguments": {"text": "The caravan left before dawn."},
+                        "expected_revision": turn.observation.context.revision,
+                    }
+                )
+                command_id = int(host._store.poll(query).split("|")[2])
+                host._store.event(
+                    "/dialogue",
+                    {"v": "2", "job": str(command_id), "event": "1"},
+                )
+
+                outcome = application.session.outcome("npc-turn:auto")
+                self.assertEqual(outcome.state.value, "observed")
+                self.assertTrue(
+                    adapter.called.wait(2), host.automatic_voice_dispatches()
+                )
+                application.session.outcome("npc-turn:auto")
+                self.assertEqual(len(adapter.requests), 1)
+                self.assertEqual(adapter.requests[0].profile_id, "trainer.default")
+                self.assertEqual(adapter.requests[0].delivery.value, "play-host")
+                self.assertEqual(player.audio_ids, ["audio:automatic"])
+                deadline = time.monotonic() + 2
+                while (
+                    host.automatic_voice_dispatches()[
+                        "speech:action:trainer:npc-turn:auto"
+                    ]["status"]
+                    == "queued"
+                    and time.monotonic() < deadline
+                ):
+                    time.sleep(0.01)
+                self.assertEqual(
+                    host.automatic_voice_dispatches()[
+                        "speech:action:trainer:npc-turn:auto"
+                    ]["status"],
+                    "played",
+                )
+            finally:
+                host.stop()
 
     def test_benchmark_bindings_expose_only_requested_ready_faction_apps(self):
         plan = AgentHostPlan(

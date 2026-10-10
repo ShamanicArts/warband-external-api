@@ -106,7 +106,9 @@ open/close event produces an observed outcome.
 After that observed outcome, `application.voice_request(...)` creates a
 deterministic `SpeechRequest` for the existing host voice API. Synthesis or
 playback remains a separate application effect and cannot promote, alter or roll
-back game evidence. See [the NPC speech guide](npc-speech.md).
+back game evidence. A trusted host-config policy may dispatch that request
+asynchronously and exactly once after reconciliation; the agent cannot choose its
+voice profile or delivery. See [the NPC speech guide](npc-speech.md).
 
 The `native-npc-dialogue` variant gates the same response affordance behind one
 trusted host-supplied player utterance and adds bounded durable conversation

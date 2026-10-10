@@ -57,8 +57,32 @@ def _faction_factory(backend, session_id, *, event_log, **settings):
     )
 
 
+def _npc_factory(
+    backend,
+    session_id,
+    *,
+    event_log,
+    conversation_mode=False,
+    automatic_voice=None,
+    **settings,
+):
+    application = NativeNpcSpeechApplication(
+        backend,
+        session_id,
+        event_log=event_log,
+        conversation_mode=conversation_mode,
+        **settings,
+    )
+    application.host_voice_policy = automatic_voice
+    return application
+
+
+def _speech_factory(backend, session_id, *, event_log, **settings):
+    return _npc_factory(backend, session_id, event_log=event_log, **settings)
+
+
 def _dialogue_factory(backend, session_id, *, event_log, **settings):
-    return NativeNpcSpeechApplication(
+    return _npc_factory(
         backend,
         session_id,
         event_log=event_log,
@@ -70,6 +94,28 @@ def _dialogue_factory(backend, session_id, *, event_log, **settings):
 def built_in_extension_registry():
     """Return a fresh registry containing only the reviewed Native applications."""
     entity_id = {"type": "integer", "minimum": 0, "maximum": 999_999}
+    npc_settings = {
+        "agent_id": {"type": "integer", "minimum": 0, "maximum": 9_999},
+        "automatic_voice": _object_schema(
+            {
+                "profile_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                },
+                "delivery": {
+                    "type": "string",
+                    "enum": ("synthesize-only", "play-host"),
+                },
+                "speed": {
+                    "type": "number",
+                    "minimum": 0.25,
+                    "maximum": 4.0,
+                },
+            },
+            ("profile_id", "delivery", "speed"),
+        ),
+    }
     extension = AgenticExtension(
         "warband.native",
         "0.2.0",
@@ -134,10 +180,7 @@ def built_in_extension_registry():
             ApplicationKind(
                 "native-npc-speech",
                 "One-turn bounded speech for one live scene NPC",
-                _object_schema(
-                    {"agent_id": {"type": "integer", "minimum": 0, "maximum": 9_999}},
-                    ("agent_id",),
-                ),
+                _object_schema(npc_settings, ("agent_id",)),
                 (RoleId.NPC_SELF,),
                 ("dialogue.speak",),
                 ("scan_agents", "npc_say"),
@@ -147,10 +190,7 @@ def built_in_extension_registry():
             ApplicationKind(
                 "native-npc-dialogue",
                 "Persistent bounded player-to-NPC conversation over one-turn speech",
-                _object_schema(
-                    {"agent_id": {"type": "integer", "minimum": 0, "maximum": 9_999}},
-                    ("agent_id",),
-                ),
+                _object_schema(npc_settings, ("agent_id",)),
                 (RoleId.NPC_SELF,),
                 ("dialogue.speak",),
                 ("scan_agents", "npc_say"),
@@ -166,7 +206,7 @@ def built_in_extension_registry():
         {
             "native-menu": NativeMenuAgentApplication,
             "native-faction": _faction_factory,
-            "native-npc-speech": NativeNpcSpeechApplication,
+            "native-npc-speech": _speech_factory,
             "native-npc-dialogue": _dialogue_factory,
         },
         {"native-faction": _validate_faction_settings},

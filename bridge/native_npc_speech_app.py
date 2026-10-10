@@ -89,6 +89,9 @@ class NativeNpcSpeechApplication:
         self._pending_response_action_id = None
         self._utterances_by_action_id = {}
         self._rejected_response_action_ids = set()
+        self._observed_speech_handler = None
+        self._notified_speech_action_ids = set()
+        self._speech_notification_failures = {}
         self._conversation_generation = 0
         self._lock = threading.RLock()
         now_ms = self._now()
@@ -138,6 +141,20 @@ class NativeNpcSpeechApplication:
             recovery_exporter=self._export_recovery,
             recovery_importer=self._import_recovery,
         )
+
+    def set_observed_speech_handler(self, handler):
+        """Register one host-side effect notified after engine observation only."""
+        if not callable(handler):
+            raise TypeError("observed speech handler must be callable")
+        with self._lock:
+            if self._observed_speech_handler is not None:
+                raise RuntimeError("observed speech handler is already configured")
+            self._observed_speech_handler = handler
+
+    def speech_notification_failures(self):
+        """Return bounded host-effect failures; they never alter game truth."""
+        with self._lock:
+            return dict(self._speech_notification_failures)
 
     def receive_player_utterance(self, utterance_id, text):
         """Add one trusted player utterance to a bounded NPC conversation."""
@@ -588,12 +605,14 @@ class NativeNpcSpeechApplication:
         if dialogue.get("event") in ("opened", "closed"):
             revision = max(previous.context.revision + 1, self._revision + 1)
             event = dialogue["event"]
+            text = command["arguments"]["text"]
             if self.conversation_mode:
                 self._record_conversation_response(
                     previous,
-                    command["arguments"]["text"],
+                    text,
                     event,
                 )
+            self._notify_observed_speech(previous.action_id, text)
             return ActionOutcome(
                 previous.action_id,
                 ActionState.OBSERVED,
@@ -710,6 +729,18 @@ class NativeNpcSpeechApplication:
                 self._conversation_generation += 1
             if self._pending_utterance_id == utterance_id:
                 self._pending_utterance_id = None
+
+    def _notify_observed_speech(self, action_id, text):
+        with self._lock:
+            handler = self._observed_speech_handler
+            if handler is None or action_id in self._notified_speech_action_ids:
+                return
+            self._notified_speech_action_ids.add(action_id)
+        try:
+            handler(action_id, text)
+        except Exception as exc:
+            with self._lock:
+                self._speech_notification_failures[action_id] = type(exc).__name__
 
     def _record_rejected_response(self, previous, command):
         with self._lock:

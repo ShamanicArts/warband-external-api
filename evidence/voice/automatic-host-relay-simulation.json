@@ -1,0 +1,24 @@
+{
+  "schema": "warband.agentic/evidence/automatic-voice-relay/v1",
+  "method": "Protocol-2 Store simulation plus real authenticated loopback host and voice HTTP services",
+  "session_kind": "native-npc-speech",
+  "policy": {
+    "profile_id": "trainer.default",
+    "delivery": "play-host",
+    "speed": 1.0
+  },
+  "dialogue": {
+    "action_request_id": "npc-turn:auto",
+    "engine_event": "opened",
+    "outcome": "observed"
+  },
+  "voice": {
+    "request_id": "speech:action:trainer:npc-turn:auto",
+    "correlation_id": "action:trainer:npc-turn:auto",
+    "terminal_state": "played",
+    "audio_id": "audio:automatic",
+    "dispatch_count_after_repeated_outcome_lookup": 1
+  },
+  "failure_isolation": "A separate application test forces the observed-speech callback to raise and retains the dialogue outcome as observed.",
+  "boundary": "The Warband bridge and audio player are deterministic test doubles. Live game-triggered PipeWire playback and automatic queue recovery across host restart remain unverified."
+}
