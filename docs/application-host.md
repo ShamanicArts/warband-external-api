@@ -95,6 +95,26 @@ The exact JSON body is `{"utterance_id":"...","text":"..."}` and is capped at
 token. See [the NPC dialogue guide](npc-speech.md) for sequencing and evidence
 boundaries.
 
+A trusted local integration can publish an exact-affordance mechanical option
+into a compatible NPC session, then inspect and resolve the proposal only after
+Warband observes the NPC line that selected it:
+
+```text
+POST /v1/host/sessions/{source_session_id}/proposal-options
+GET  /v1/host/sessions/{source_session_id}/proposals
+GET  /v1/host/proposals/{proposal_id}
+POST /v1/host/proposals/{proposal_id}/decisions
+POST /v1/host/proposals/{proposal_id}/execute
+```
+
+The host binds the option to a current affordance owned by
+`target_session_id`; it never returns that private affordance token to the NPC.
+The shared operator bearer token authenticates these routes. Named participant
+identity in a decision body is trusted integration input, not separately
+authenticated participant proof. See
+[mechanical proposals](mechanical-proposals.md) for request shapes and the exact
+evidence boundary.
+
 After an NPC response reaches engine-observed state, a trusted integration can
 request its deterministic voice payload:
 
@@ -154,6 +174,9 @@ or an external agent.
 - Automatic dispatch recovery relies on the semantic event database. The voice
   service's own request-id cache is in memory, so simultaneous host/voice restart
   after an uncertain delivery can still replay audio.
+- Mechanical proposal options, decisions and submitted outcomes are process-local.
+  Host restart recovery and participant-specific decision credentials are not
+  implemented.
 - The listeners are plaintext loopback interfaces; remote exposure is unsupported.
 - Runtime lifecycle is bridge-simulated. A live hardware-rendered multi-session
   acceptance run and final video evidence are still pending.

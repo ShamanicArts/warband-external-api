@@ -21,6 +21,7 @@ from warband_agentic import (
     GameEvent,
     LeaseBook,
     LeaseMode,
+    MechanicalProposalBroker,
     ObservationEnvelope,
     ObservationFilter,
     RoleGrant,
@@ -92,6 +93,12 @@ class NativeNpcSpeechApplication:
         self._observed_speech_handler = None
         self._notified_speech_action_ids = set()
         self._speech_notification_failures = {}
+        self._proposal_broker = None
+        self._proposal_generation = 0
+        self._current_proposal_options = ()
+        self._proposal_tokens_by_action_id = {}
+        self._proposals_by_action_id = {}
+        self._proposal_failures = {}
         self._conversation_generation = 0
         self._lock = threading.RLock()
         now_ms = self._now()
@@ -155,6 +162,40 @@ class NativeNpcSpeechApplication:
         """Return bounded host-effect failures; they never alter game truth."""
         with self._lock:
             return dict(self._speech_notification_failures)
+
+    def set_mechanical_proposal_broker(self, broker):
+        """Attach the trusted proposal broker before options are offered."""
+        if not isinstance(broker, MechanicalProposalBroker):
+            raise TypeError("proposal broker must be a MechanicalProposalBroker")
+        with self._lock:
+            if self._proposal_broker is not None:
+                raise RuntimeError("mechanical proposal broker is already configured")
+            self._proposal_broker = broker
+
+    def begin_mechanical_proposal_update(self):
+        """Advance application revision before binding new proposal options."""
+        with self._lock:
+            if self._proposal_broker is None:
+                raise RuntimeError("mechanical proposal broker is not configured")
+            self._proposal_generation += 1
+            self._snapshot_fingerprint = None
+        self.session.invalidate_turn()
+        return self.session.turn().observation.context
+
+    def refresh_mechanical_proposals(self):
+        """Rebuild the current turn after options were bound to its context."""
+        with self._lock:
+            if self._proposal_broker is None:
+                raise RuntimeError("mechanical proposal broker is not configured")
+        self.session.invalidate_turn()
+
+    def mechanical_proposal_for_action(self, action_id):
+        with self._lock:
+            return self._proposals_by_action_id.get(action_id)
+
+    def mechanical_proposal_failures(self):
+        with self._lock:
+            return dict(self._proposal_failures)
 
     def receive_player_utterance(self, utterance_id, text):
         """Add one trusted player utterance to a bounded NPC conversation."""
@@ -414,6 +455,8 @@ class NativeNpcSpeechApplication:
                 )
             pending_response = self._pending_response_action_id is not None
             conversation_generation = self._conversation_generation
+            proposal_generation = self._proposal_generation
+            proposal_broker = self._proposal_broker
         fingerprint = json.dumps(
             {
                 "scene": snapshot.get("scene_id"),
@@ -424,6 +467,7 @@ class NativeNpcSpeechApplication:
                 "pending_response": pending_response,
                 "conversation_generation": conversation_generation,
                 "conversation_memory": memory,
+                "proposal_generation": proposal_generation,
             },
             allow_nan=False,
             separators=(",", ":"),
@@ -437,6 +481,13 @@ class NativeNpcSpeechApplication:
         context = context_from_snapshot(snapshot, revision)
         if context.kind is not ContextKind.MISSION:
             raise ValueError("NPC observation escaped mission context")
+        proposal_options = (
+            proposal_broker.options(self._session_id, context)
+            if proposal_broker is not None
+            else ()
+        )
+        with self._lock:
+            self._current_proposal_options = proposal_options
         facts = []
         for name in ("agent_id", "troop_id", "name", "team", "hit_points", "position"):
             if agent.get(name) is not None:
@@ -480,6 +531,15 @@ class NativeNpcSpeechApplication:
                     revision,
                 )
             )
+        if proposal_options:
+            facts.append(
+                Fact(
+                    "dialogue.mechanical_proposals",
+                    list(proposal_options),
+                    FactSource.APPLICATION_MEMORY,
+                    revision,
+                )
+            )
         return ObservationEnvelope(
             f"npc:{self.agent_id}:revision:{revision}",
             self.controller,
@@ -497,6 +557,9 @@ class NativeNpcSpeechApplication:
                 or self._pending_response_action_id is not None
             ):
                 return ()
+            proposal_tokens = tuple(
+                item["proposal_token"] for item in self._current_proposal_options
+            )
         expires_at_ms = min(
             now_ms + self._affordance_ttl_ms,
             grant.expires_at_ms,
@@ -511,6 +574,7 @@ class NativeNpcSpeechApplication:
                 grant,
                 now_ms,
                 expires_at_ms,
+                proposal_tokens,
             ),
         )
 
@@ -527,6 +591,11 @@ class NativeNpcSpeechApplication:
         )
         self._commands_by_action_id[validated.submission.action_id] = command["id"]
         with self._lock:
+            proposal_token = validated.submission.arguments.get("proposal_token")
+            if proposal_token is not None:
+                self._proposal_tokens_by_action_id[validated.submission.action_id] = (
+                    proposal_token
+                )
             if self.conversation_mode:
                 if self._pending_utterance_id is None:
                     raise RuntimeError(
@@ -563,13 +632,21 @@ class NativeNpcSpeechApplication:
             recovery["utterance_id"] = self._utterances_by_action_id[
                 validated.submission.action_id
             ]
+        proposal_token = self._proposal_tokens_by_action_id.get(
+            validated.submission.action_id
+        )
+        if proposal_token is not None:
+            recovery["proposal_token"] = proposal_token
         return recovery
 
     def _import_recovery(self, action_id, recovery):
-        expected = (
+        required = (
             {"command_id", "utterance_id"} if self.conversation_mode else {"command_id"}
         )
-        if set(recovery) != expected or type(recovery["command_id"]) is not int:
+        if (
+            set(recovery) not in (required, required | {"proposal_token"})
+            or type(recovery["command_id"]) is not int
+        ):
             raise ValueError("Invalid NPC-speech command recovery metadata")
         command_id = recovery["command_id"]
         self.store.command(command_id)
@@ -595,6 +672,11 @@ class NativeNpcSpeechApplication:
                 if self._pending_response_action_id not in (None, action_id):
                     raise ValueError("Multiple recovered NPC responses are in flight")
                 self._pending_response_action_id = action_id
+        if "proposal_token" in recovery:
+            proposal_token = recovery["proposal_token"]
+            if not isinstance(proposal_token, str) or not proposal_token:
+                raise ValueError("Invalid NPC proposal recovery metadata")
+            self._proposal_tokens_by_action_id[action_id] = proposal_token
 
     def _refresh_outcome(self, _request_id, previous):
         if previous.state is ActionState.OBSERVED:
@@ -612,6 +694,7 @@ class NativeNpcSpeechApplication:
                     text,
                     event,
                 )
+            self._commit_mechanical_proposal(previous)
             self._notify_observed_speech(previous.action_id, text, previous.context)
             return ActionOutcome(
                 previous.action_id,
@@ -741,6 +824,25 @@ class NativeNpcSpeechApplication:
         except Exception as exc:
             with self._lock:
                 self._speech_notification_failures[action_id] = type(exc).__name__
+
+    def _commit_mechanical_proposal(self, previous):
+        with self._lock:
+            proposal_token = self._proposal_tokens_by_action_id.get(previous.action_id)
+            broker = self._proposal_broker
+        if proposal_token is None or broker is None:
+            return
+        try:
+            proposal = broker.commit(
+                proposal_token,
+                previous.action_id,
+                previous.context,
+            )
+        except Exception as exc:
+            with self._lock:
+                self._proposal_failures[previous.action_id] = type(exc).__name__
+            return
+        with self._lock:
+            self._proposals_by_action_id[previous.action_id] = proposal
 
     def _record_rejected_response(self, previous, command):
         with self._lock:

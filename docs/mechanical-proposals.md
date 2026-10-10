@@ -12,13 +12,17 @@ The speech affordance may accept that proposal token alongside `text`.
 
 The lifecycle is deliberately split:
 
-1. A trusted application binds a current target affordance with `broker.offer()`.
-2. The NPC may mention the opaque token in a speech submission.
-3. Only after Warband observes that speech does the application call
+1. A trusted application advances the NPC application revision, then binds a
+   current target affordance with `broker.offer()`.
+2. The refreshed NPC turn exposes the safe option and constrains
+   `proposal_token` to one of its currently offered opaque values.
+3. The NPC may attach one opaque token to an otherwise ordinary speech
+   submission.
+4. Only after Warband observes that speech does the application call
    `broker.commit()` to create a pending proposal.
-4. Every named participant independently accepts or one rejects through
+5. Every named participant independently accepts or one rejects through
    `broker.decide()`.
-5. `broker.execute()` submits the original exact token, arguments and revision
+6. `broker.execute()` submits the original exact token, arguments and revision
    through the target `ConstrainedAgentSession`. It refuses an expired, replaced
    or context-stale affordance.
 
@@ -50,8 +54,44 @@ broker.decide(proposal["proposal_id"], "swadia-sovereign", accept=True)
 outcome = broker.execute(proposal["proposal_id"])
 ```
 
-The current slice proves the broker and the optional speech-schema field in
-process. Packaged-host option management, participant-authenticated decision
-routes, durable proposal recovery and a live Warband consequence remain to be
-wired. Until then, this is safe application infrastructure rather than a claimed
-end-to-end dialogue mechanic.
+## Packaged-host control API
+
+The application host owns one broker and attaches it to every compatible NPC
+application. A trusted loopback integration can offer a current target-session
+affordance with:
+
+```text
+POST /v1/host/sessions/{source_session_id}/proposal-options
+```
+
+The exact body contains `title`, `target_session_id`, `affordance_token`,
+`arguments` and a non-empty `required_acceptors` array. The response and the NPC
+turn contain only the opaque proposal token and safe affordance metadata, never
+the target's private token or credential.
+
+Committed proposals are available only after the selected NPC line becomes
+engine-observed:
+
+```text
+GET  /v1/host/sessions/{source_session_id}/proposals
+GET  /v1/host/proposals/{proposal_id}
+POST /v1/host/proposals/{proposal_id}/decisions
+POST /v1/host/proposals/{proposal_id}/execute
+```
+
+The decision body is exactly `{"acceptor_id":"...","accept":true}`. Execution
+has an empty body. All routes use the host operator bearer token. In this first
+reference API, `acceptor_id` is therefore a trusted integration assertion; there
+is not yet a distinct credential proving that the named player or faction
+principal made the request.
+
+The application and host route lifecycle is covered in
+`test_native_npc_speech_app.py` and `test_agent_host.py`: unobserved or expired
+options cannot create mechanics, failed proposal bookkeeping cannot falsify an
+observed speech outcome, and approved execution preserves the exact original
+target token, arguments and revision.
+
+Proposal records and participant decisions are currently process-local. Action
+recovery preserves the selected opaque token, but a host restart does not restore
+the broker option/decision graph; durable proposal recovery and a live Warband
+consequence remain to be built and recorded.

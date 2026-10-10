@@ -2,19 +2,80 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from bridge.game_bridge import Store
 from bridge.native_npc_speech_app import NativeNpcSpeechApplication
 from bridge.test_game_bridge import mission_telemetry
 from warband_agentic import (
+    ActionOutcome,
     ActionState,
+    ActorKind,
+    ActorRef,
+    Affordance,
+    AuthorityClass,
+    ContextKind,
+    ContextRef,
     EvidenceLevel,
+    MechanicalProposalBroker,
     RiskClass,
     SemanticEventLog,
     VoiceDelivery,
     to_wire,
 )
+
+
+class ProposalTargetSession:
+    def __init__(self):
+        self.context = ContextRef(ContextKind.CAMPAIGN, "campaign:world", 7, None, 90)
+        self.actor = ActorRef("controller:faction:15", ActorKind.SYSTEM)
+        self.target = ActorRef("party:17", ActorKind.PARTY, 17)
+        self.affordance = Affordance(
+            "private:affordance:defend-praven",
+            "party.issue-order",
+            "Defend Praven",
+            self.actor,
+            (self.target,),
+            self.context,
+            AuthorityClass.PARTY_COMMAND,
+            {
+                "type": "object",
+                "properties": {
+                    "order": {"type": "string", "const": "defend"},
+                    "target_id": {"type": "integer", "const": 2},
+                },
+                "required": ("order", "target_id"),
+                "additionalProperties": False,
+            },
+            RiskClass.REVERSIBLE,
+            True,
+            "The party will abandon its current order.",
+            EvidenceLevel.ENGINE_OBSERVED,
+            1000,
+            2000,
+        )
+        self.submissions = []
+
+    def turn(self):
+        return SimpleNamespace(
+            observation=SimpleNamespace(context=self.context),
+            affordances=(self.affordance,),
+        )
+
+    def submit(self, request):
+        self.submissions.append(request)
+        return ActionOutcome(
+            "action:" + request["request_id"],
+            ActionState.ACCEPTED,
+            self.context,
+            None,
+            {"status": "queued"},
+            (),
+            (),
+            None,
+            1300,
+        )
 
 
 class NativeNpcSpeechApplicationTests(unittest.TestCase):
@@ -362,6 +423,153 @@ class NativeNpcSpeechApplicationTests(unittest.TestCase):
                 "schema": "warband.agentic/v1",
             },
         )
+
+    def test_observed_speech_commits_participant_approved_mechanical_proposal(self):
+        now = [1200]
+        target = ProposalTargetSession()
+        speech_tokens = iter(("affordance:speak:1", "affordance:speak:2"))
+        self.app = NativeNpcSpeechApplication(
+            self.store,
+            "session:trainer:1",
+            agent_id=1,
+            clock_ms=lambda: 1000,
+            token_factory=lambda: next(speech_tokens),
+            action_id_factory=lambda request_id: f"action:{request_id}",
+        )
+        broker = MechanicalProposalBroker(
+            clock_ms=lambda: now[0],
+            token_factory=lambda: "proposal-option:1",
+            proposal_id_factory=lambda: "proposal:1",
+        )
+        self.app.set_mechanical_proposal_broker(broker)
+        self._complete_agent_refresh()
+        source_context = self.app.begin_mechanical_proposal_update()
+        option = broker.offer(
+            source_session_id="session:trainer:1",
+            source_context=source_context,
+            title="Ask the Swadian patrol to defend Praven",
+            target_session_id="swadia",
+            target_session=target,
+            affordance_token=target.affordance.token,
+            arguments={"order": "defend", "target_id": 2},
+            required_acceptors=("player", "swadia-sovereign"),
+        )
+        self.app.refresh_mechanical_proposals()
+
+        turn = self.app.session.turn()
+        wire = to_wire(turn)
+        facts = {fact["key"]: fact["value"] for fact in wire["observation"]["facts"]}
+        proposal_schema = turn.affordances[0].parameters["properties"]["proposal_token"]
+        self.assertEqual(facts["dialogue.mechanical_proposals"], [option])
+        self.assertEqual(proposal_schema["enum"], ("proposal-option:1",))
+        self.assertNotIn(target.affordance.token, json.dumps(facts))
+
+        accepted = self.app.session.submit(
+            {
+                "request_id": "utterance:proposal",
+                "affordance_token": turn.affordances[0].token,
+                "arguments": {
+                    "text": "I can ask our patrol to defend Praven.",
+                    "proposal_token": option["proposal_token"],
+                },
+                "expected_revision": turn.observation.context.revision,
+            }
+        )
+        self.assertIs(accepted.state, ActionState.ACCEPTED)
+        self.assertIsNone(
+            self.app.mechanical_proposal_for_action("action:utterance:proposal")
+        )
+        self.assertEqual(target.submissions, [])
+
+        command_id = int(self.store.poll(self.query).split("|")[2])
+        self.store.event(
+            "/dialogue",
+            {"v": "2", "job": str(command_id), "event": "1"},
+        )
+        observed = self.app.session.outcome("utterance:proposal")
+        proposal = self.app.mechanical_proposal_for_action("action:utterance:proposal")
+
+        self.assertIs(observed.state, ActionState.OBSERVED)
+        self.assertEqual(proposal["state"], "pending")
+        broker.decide(proposal["proposal_id"], "player", accept=True)
+        approved = broker.decide(
+            proposal["proposal_id"], "swadia-sovereign", accept=True
+        )
+        self.assertEqual(approved["state"], "approved")
+        broker.execute(proposal["proposal_id"])
+        self.assertEqual(
+            target.submissions,
+            [
+                {
+                    "request_id": "mechanical:proposal:1",
+                    "affordance_token": target.affordance.token,
+                    "arguments": {"order": "defend", "target_id": 2},
+                    "expected_revision": 7,
+                }
+            ],
+        )
+
+    def test_expired_proposal_never_changes_observed_speech_outcome(self):
+        now = [1200]
+        target = ProposalTargetSession()
+        speech_tokens = iter(("affordance:speak:1", "affordance:speak:2"))
+        self.app = NativeNpcSpeechApplication(
+            self.store,
+            "session:trainer:1",
+            agent_id=1,
+            clock_ms=lambda: 1000,
+            token_factory=lambda: next(speech_tokens),
+            action_id_factory=lambda request_id: f"action:{request_id}",
+        )
+        broker = MechanicalProposalBroker(
+            clock_ms=lambda: now[0],
+            token_factory=lambda: "proposal-option:expired",
+            proposal_id_factory=lambda: "proposal:unused",
+        )
+        self.app.set_mechanical_proposal_broker(broker)
+        self._complete_agent_refresh()
+        source_context = self.app.begin_mechanical_proposal_update()
+        option = broker.offer(
+            source_session_id="session:trainer:1",
+            source_context=source_context,
+            title="Defend Praven",
+            target_session_id="swadia",
+            target_session=target,
+            affordance_token=target.affordance.token,
+            arguments={"order": "defend", "target_id": 2},
+            required_acceptors=("player",),
+        )
+        self.app.refresh_mechanical_proposals()
+        turn = self.app.session.turn()
+        self.app.session.submit(
+            {
+                "request_id": "utterance:expired-proposal",
+                "affordance_token": turn.affordances[0].token,
+                "arguments": {
+                    "text": "I will see what can be done.",
+                    "proposal_token": option["proposal_token"],
+                },
+                "expected_revision": turn.observation.context.revision,
+            }
+        )
+        command_id = int(self.store.poll(self.query).split("|")[2])
+        now[0] = 2000
+        self.store.event(
+            "/dialogue",
+            {"v": "2", "job": str(command_id), "event": "1"},
+        )
+
+        observed = self.app.session.outcome("utterance:expired-proposal")
+
+        self.assertIs(observed.state, ActionState.OBSERVED)
+        self.assertIsNone(
+            self.app.mechanical_proposal_for_action("action:utterance:expired-proposal")
+        )
+        self.assertEqual(
+            self.app.mechanical_proposal_failures(),
+            {"action:utterance:expired-proposal": "ValueError"},
+        )
+        self.assertEqual(target.submissions, [])
 
     def test_observed_speech_handler_is_exactly_once_and_cannot_falsify_outcome(self):
         notifications = []

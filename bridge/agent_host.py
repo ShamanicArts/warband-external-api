@@ -31,6 +31,7 @@ from warband_agentic.extensions import (
     ExtensionRegistry,
     load_named_extension_entry_points,
 )
+from warband_agentic.proposals import MechanicalProposalBroker
 from warband_agentic.voice import (
     SpeechRequest,
     VoiceDelivery,
@@ -508,6 +509,7 @@ class AgentApplicationHost:
         self._failure = None
         self._voice_dispatch_queue = queue.Queue(maxsize=256)
         self._automatic_voice_dispatches = {}
+        self._proposal_broker = MechanicalProposalBroker()
 
     def start(self):
         with self._lock:
@@ -614,6 +616,11 @@ class AgentApplicationHost:
                             policy=voice_policy,
                         )
                     )
+                configure_proposals = getattr(
+                    application, "set_mechanical_proposal_broker", None
+                )
+                if callable(configure_proposals):
+                    configure_proposals(self._proposal_broker)
                 server = make_agent_server(
                     application.session,
                     session.token,
@@ -981,6 +988,91 @@ class AgentApplicationHost:
             raise ValueError("application session does not accept player utterances")
         return receive(utterance_id, text)
 
+    def offer_mechanical_proposal(
+        self,
+        source_session_id,
+        title,
+        target_session_id,
+        affordance_token,
+        arguments,
+        required_acceptors,
+    ):
+        """Expose one exact target affordance as an NPC-visible safe option."""
+        with self._lock:
+            if self._state != "ready":
+                raise RuntimeError("application sessions are not ready")
+            try:
+                source_application = self._applications[source_session_id]
+                target_application = self._applications[target_session_id]
+            except KeyError as exc:
+                raise KeyError("Unknown application session") from exc
+        begin = getattr(source_application, "begin_mechanical_proposal_update", None)
+        refresh = getattr(source_application, "refresh_mechanical_proposals", None)
+        target_session = getattr(target_application, "session", None)
+        if not callable(begin) or not callable(refresh):
+            raise ValueError("source application does not support mechanical proposals")
+        if target_session is None:
+            raise ValueError("target application has no constrained session")
+        source_context = begin()
+        option = self._proposal_broker.offer(
+            source_session_id=source_session_id,
+            source_context=source_context,
+            title=title,
+            target_session_id=target_session_id,
+            target_session=target_session,
+            affordance_token=affordance_token,
+            arguments=arguments,
+            required_acceptors=required_acceptors,
+        )
+        refresh()
+        return {
+            "schema": "warband.agentic/mechanical-proposal-option/v1",
+            "source_session_id": source_session_id,
+            "target_session_id": target_session_id,
+            **option,
+        }
+
+    def mechanical_proposals(self, source_session_id):
+        with self._lock:
+            if self._state != "ready":
+                raise RuntimeError("application sessions are not ready")
+            if source_session_id not in self._applications:
+                raise KeyError("Unknown application session")
+        return {
+            "schema": "warband.agentic/mechanical-proposals/v1",
+            "source_session_id": source_session_id,
+            "proposals": list(self._proposal_broker.proposals(source_session_id)),
+        }
+
+    def mechanical_proposal(self, proposal_id):
+        with self._lock:
+            if self._state != "ready":
+                raise RuntimeError("application sessions are not ready")
+        return {
+            "schema": "warband.agentic/mechanical-proposal/v1",
+            **self._proposal_broker.proposal(proposal_id),
+        }
+
+    def decide_mechanical_proposal(self, proposal_id, acceptor_id, accept):
+        with self._lock:
+            if self._state != "ready":
+                raise RuntimeError("application sessions are not ready")
+        return {
+            "schema": "warband.agentic/mechanical-proposal/v1",
+            **self._proposal_broker.decide(proposal_id, acceptor_id, accept=accept),
+        }
+
+    def execute_mechanical_proposal(self, proposal_id):
+        with self._lock:
+            if self._state != "ready":
+                raise RuntimeError("application sessions are not ready")
+        outcome = self._proposal_broker.execute(proposal_id)
+        return {
+            "schema": "warband.agentic/mechanical-proposal-execution/v1",
+            "proposal": self._proposal_broker.proposal(proposal_id),
+            "outcome": to_wire(outcome),
+        }
+
     def prepare_voice_request(
         self,
         session_id,
@@ -1135,6 +1227,15 @@ def make_host_control_server(host, token, bind_host="127.0.0.1", port=8879):
             self.reply(403, {"error": "Forbidden"})
             return False
 
+        def read_json(self, label, *, maximum=8192):
+            length = int(self.headers.get("Content-Length", "0"))
+            if not 1 <= length <= maximum:
+                raise ValueError(f"{label} body must contain 1-{maximum} bytes")
+            try:
+                return json.loads(self.rfile.read(length))
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise ValueError(f"{label} body must be JSON") from exc
+
         def do_GET(self):
             if not self.authenticate():
                 return
@@ -1143,6 +1244,26 @@ def make_host_control_server(host, token, bind_host="127.0.0.1", port=8879):
                 self.reply(200, host.runtime_diagnostics())
             elif path == "/v1/host/extensions":
                 self.reply(200, host.extension_catalog())
+            elif path.startswith("/v1/host/sessions/") and path.endswith("/proposals"):
+                prefix = "/v1/host/sessions/"
+                suffix = "/proposals"
+                session_id = unquote(path[len(prefix) : -len(suffix)])
+                try:
+                    self.reply(200, host.mechanical_proposals(session_id))
+                except KeyError as exc:
+                    self.reply(404, {"error": str(exc)})
+                except RuntimeError as exc:
+                    self.reply(409, {"error": str(exc)})
+                except (TypeError, ValueError) as exc:
+                    self.reply(400, {"error": str(exc)})
+            elif path.startswith("/v1/host/proposals/"):
+                proposal_id = unquote(path.removeprefix("/v1/host/proposals/"))
+                try:
+                    self.reply(200, host.mechanical_proposal(proposal_id))
+                except RuntimeError as exc:
+                    self.reply(409, {"error": str(exc)})
+                except (TypeError, ValueError) as exc:
+                    self.reply(404, {"error": str(exc)})
             else:
                 self.reply(404, {"error": "Unknown endpoint"})
 
@@ -1151,12 +1272,61 @@ def make_host_control_server(host, token, bind_host="127.0.0.1", port=8879):
                 return
             path = urlparse(self.path).path
             prefix = "/v1/host/sessions/"
-            if not path.startswith(prefix):
-                self.reply(404, {"error": "Unknown endpoint"})
-                return
             try:
                 status = 202
-                if path.endswith("/refresh"):
+                if path.startswith("/v1/host/proposals/") and path.endswith(
+                    "/decisions"
+                ):
+                    proposal_id = unquote(
+                        path[len("/v1/host/proposals/") : -len("/decisions")]
+                    )
+                    body = self.read_json("Proposal decision", maximum=2048)
+                    if not isinstance(body, dict) or set(body) != {
+                        "acceptor_id",
+                        "accept",
+                    }:
+                        raise ValueError("Proposal decision fields do not match")
+                    result = host.decide_mechanical_proposal(
+                        proposal_id, body["acceptor_id"], body["accept"]
+                    )
+                    status = 200
+                elif path.startswith("/v1/host/proposals/") and path.endswith(
+                    "/execute"
+                ):
+                    proposal_id = unquote(
+                        path[len("/v1/host/proposals/") : -len("/execute")]
+                    )
+                    if int(self.headers.get("Content-Length", "0")) != 0:
+                        raise ValueError(
+                            "Proposal execution request body must be empty"
+                        )
+                    result = host.execute_mechanical_proposal(proposal_id)
+                    status = 200
+                elif not path.startswith(prefix):
+                    self.reply(404, {"error": "Unknown endpoint"})
+                    return
+                elif path.endswith("/proposal-options"):
+                    suffix = "/proposal-options"
+                    session_id = unquote(path[len(prefix) : -len(suffix)])
+                    body = self.read_json("Proposal option")
+                    if not isinstance(body, dict) or set(body) != {
+                        "title",
+                        "target_session_id",
+                        "affordance_token",
+                        "arguments",
+                        "required_acceptors",
+                    }:
+                        raise ValueError("Proposal option fields do not match")
+                    result = host.offer_mechanical_proposal(
+                        session_id,
+                        body["title"],
+                        body["target_session_id"],
+                        body["affordance_token"],
+                        body["arguments"],
+                        body["required_acceptors"],
+                    )
+                    status = 201
+                elif path.endswith("/refresh"):
                     suffix = "/refresh"
                     session_id = unquote(path[len(prefix) : -len(suffix)])
                     if int(self.headers.get("Content-Length", "0")) != 0:
@@ -1165,15 +1335,7 @@ def make_host_control_server(host, token, bind_host="127.0.0.1", port=8879):
                 elif path.endswith("/utterances"):
                     suffix = "/utterances"
                     session_id = unquote(path[len(prefix) : -len(suffix)])
-                    length = int(self.headers.get("Content-Length", "0"))
-                    if not 1 <= length <= 2048:
-                        raise ValueError(
-                            "Player utterance body must contain 1-2048 bytes"
-                        )
-                    try:
-                        body = json.loads(self.rfile.read(length))
-                    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-                        raise ValueError("Player utterance body must be JSON") from exc
+                    body = self.read_json("Player utterance", maximum=2048)
                     if not isinstance(body, dict) or set(body) != {
                         "utterance_id",
                         "text",
@@ -1188,13 +1350,7 @@ def make_host_control_server(host, token, bind_host="127.0.0.1", port=8879):
                     dispatch = path.endswith("/voice-dispatches")
                     suffix = "/voice-dispatches" if dispatch else "/voice-requests"
                     session_id = unquote(path[len(prefix) : -len(suffix)])
-                    length = int(self.headers.get("Content-Length", "0"))
-                    if not 1 <= length <= 2048:
-                        raise ValueError("Voice handoff body must contain 1-2048 bytes")
-                    try:
-                        body = json.loads(self.rfile.read(length))
-                    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-                        raise ValueError("Voice handoff body must be JSON") from exc
+                    body = self.read_json("Voice handoff", maximum=2048)
                     if not isinstance(body, dict) or set(body) != {
                         "action_request_id",
                         "profile_id",

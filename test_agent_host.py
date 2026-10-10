@@ -21,10 +21,12 @@ from bridge.application_extensions import built_in_extension_registry
 from bridge.native_npc_speech_app import NativeNpcSpeechApplication
 from bridge.test_game_bridge import mission_telemetry
 from test_agentic_extensions import example_extension, grant_gold_operation
+from test_agentic_proposals import FakeTargetSession
 from warband_agentic import (
     AudioArtifact,
     ContextKind,
     ContextRef,
+    MechanicalProposalBroker,
     SemanticEventLog,
     SpeechRequest,
     VoiceProfile,
@@ -263,6 +265,113 @@ class AgentApplicationHostCliTests(unittest.TestCase):
             voice_server.shutdown()
             voice_server.server_close()
             voice_thread.join()
+
+    def test_operator_routes_observed_mechanical_proposal_to_exact_target(self):
+        class SourceApplication:
+            def __init__(self):
+                self.context = ContextRef(
+                    ContextKind.MISSION, "mission:scene-42", 3, 1, 90
+                )
+                self.refreshes = 0
+
+            def begin_mechanical_proposal_update(self):
+                return self.context
+
+            def refresh_mechanical_proposals(self):
+                self.refreshes += 1
+
+        source = SourceApplication()
+        target = FakeTargetSession()
+        plan = AgentHostPlan(
+            None,
+            None,
+            Path("unused-events.sqlite3"),
+            (),
+            2,
+            16,
+            built_in_extension_registry(),
+        )
+        host = AgentApplicationHost(plan)
+        host._proposal_broker = MechanicalProposalBroker(clock_ms=lambda: 1200)
+        host._state = "ready"
+        host._applications = {
+            "trainer": source,
+            "swadia": SimpleNamespace(session=target),
+        }
+        control = make_host_control_server(host, "c" * 64, port=0)
+        control_thread = threading.Thread(target=control.serve_forever, daemon=True)
+        control_thread.start()
+
+        def request(path, body=None, method="POST"):
+            data = None if body is None else json.dumps(body).encode()
+            call = Request(
+                f"http://127.0.0.1:{control.server_port}{path}",
+                data=data,
+                method=method,
+                headers={
+                    "Authorization": "Bearer " + "c" * 64,
+                    "Content-Type": "application/json",
+                },
+            )
+            with urlopen(call, timeout=2) as response:
+                return response.status, json.load(response)
+
+        try:
+            status, option = request(
+                "/v1/host/sessions/trainer/proposal-options",
+                {
+                    "title": "Ask the patrol to defend Praven",
+                    "target_session_id": "swadia",
+                    "affordance_token": target.affordance.token,
+                    "arguments": {"order": "defend", "target_id": 2},
+                    "required_acceptors": ["player"],
+                },
+            )
+            self.assertEqual(status, 201)
+            self.assertEqual(source.refreshes, 1)
+            self.assertNotIn(target.affordance.token, json.dumps(option))
+
+            proposal = host._proposal_broker.commit(
+                option["proposal_token"], "action:npc-turn:1", source.context
+            )
+            status, listing = request(
+                "/v1/host/sessions/trainer/proposals", method="GET"
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(listing["proposals"], [proposal])
+            status, fetched = request(
+                f"/v1/host/proposals/{proposal['proposal_id']}", method="GET"
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(fetched["source_session_id"], "trainer")
+            self.assertEqual(fetched["target_session_id"], "swadia")
+
+            status, approved = request(
+                f"/v1/host/proposals/{proposal['proposal_id']}/decisions",
+                {"acceptor_id": "player", "accept": True},
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(approved["state"], "approved")
+            status, execution = request(
+                f"/v1/host/proposals/{proposal['proposal_id']}/execute"
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(execution["proposal"]["state"], "submitted")
+            self.assertEqual(
+                target.submissions,
+                [
+                    {
+                        "request_id": "mechanical:" + proposal["proposal_id"],
+                        "affordance_token": target.affordance.token,
+                        "arguments": {"order": "defend", "target_id": 2},
+                        "expected_revision": 7,
+                    }
+                ],
+            )
+        finally:
+            control.shutdown()
+            control.server_close()
+            control_thread.join()
 
     def test_observed_npc_speech_uses_configured_automatic_voice_policy(self):
         class Adapter:

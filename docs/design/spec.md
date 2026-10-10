@@ -209,8 +209,10 @@ any required participant acceptance. Free text is never treated as execution.
 The implemented core broker now binds an opaque proposal option to one exact
 current affordance, delays proposal creation until the source dialogue is
 engine-observed, records independent participant decisions and refuses stale
-execution. Packaged-host routes, durable broker recovery and live consequence
-evidence remain application work.
+execution. The NPC application and packaged host expose the option through the
+current speech affordance and provide trusted loopback listing, decision and
+execution routes. Durable broker recovery, participant-specific authentication
+and live consequence evidence remain application work.
 
 ## 8. Authority, control leases and multi-agent arbitration
 

@@ -132,10 +132,11 @@ and one session is capped at 64 player/NPC turns.
 Every NPC response still uses the existing one-turn custom speech path with a
 fixed Native return choice. The persistent loop does not yet provide an in-game
 text-entry UI, speech recognition, remote execution of original Native choices,
-NPC-to-NPC dialogue, long-term character memory or packaged-host proposal routes.
-The separate [mechanical-proposal broker](mechanical-proposals.md) now provides
-the exact-affordance and participant-acceptance core, but is not yet wired into
-this application. Automatic voice begins only when an observed outcome is reconciled;
+NPC-to-NPC dialogue or long-term character memory. The
+[mechanical-proposal broker](mechanical-proposals.md) is now wired into the NPC
+application and packaged host: a current opaque option can accompany speech, but
+it becomes a pending proposal only after the matching dialogue event is observed.
+Automatic voice begins only when an observed outcome is reconciled;
 the host does not independently poll unreconciled agent actions. Its semantic
 event outbox restores unfinished requests after application-host restart using
 the same request ID. The current voice service's idempotency cache is not durable,

@@ -205,6 +205,26 @@ class MechanicalProposalBrokerTests(unittest.TestCase):
         self.now = 2000
         self.assertEqual(self.broker.options("village-elder", self.source_context), ())
 
+    def test_listing_is_source_scoped_and_acceptors_are_structured(self):
+        option = self.offer()
+        proposal = self.broker.commit(
+            option["proposal_token"], "action:npc-turn:1", self.source_context
+        )
+
+        self.assertEqual(self.broker.proposals("village-elder"), (proposal,))
+        self.assertEqual(self.broker.proposals("another-npc"), ())
+        with self.assertRaisesRegex(TypeError, "list or tuple"):
+            self.broker.offer(
+                source_session_id="village-elder",
+                source_context=self.source_context,
+                title="Bad acceptors",
+                target_session_id="swadia",
+                target_session=self.target,
+                affordance_token=self.target.affordance.token,
+                arguments={"order": "defend", "target_id": 2},
+                required_acceptors="player",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

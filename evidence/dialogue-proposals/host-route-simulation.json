@@ -1,0 +1,44 @@
+{
+  "schema": "warband.agentic/evidence/dialogue-mechanical-proposal/v1",
+  "method": "Protocol-2 Store simulation plus authenticated loopback host control HTTP",
+  "source_application": "native-npc-speech",
+  "target_application": "faction constrained-session test double",
+  "lifecycle": {
+    "option_bound_to_current_target_affordance": true,
+    "npc_option_omits_private_target_token": true,
+    "speech_submission_enumerates_current_option_token": true,
+    "proposal_absent_before_dialogue_observation": true,
+    "dialogue_engine_event": "opened",
+    "proposal_state_after_observation": "pending",
+    "required_acceptors": [
+      "player",
+      "swadia-sovereign"
+    ],
+    "state_after_all_accept": "approved",
+    "state_after_execution": "submitted"
+  },
+  "target_submission": {
+    "capability": "party.issue-order",
+    "arguments": {
+      "order": "defend",
+      "target_id": 2
+    },
+    "expected_revision": 7,
+    "exact_original_affordance_used": true
+  },
+  "failure_proof": {
+    "expired_option_creates_no_proposal": true,
+    "expired_option_executes_no_target_action": true,
+    "speech_outcome_remains_engine_observed": true
+  },
+  "tests": [
+    "test_native_npc_speech_app.NativeNpcSpeechApplicationTests.test_observed_speech_commits_participant_approved_mechanical_proposal",
+    "test_native_npc_speech_app.NativeNpcSpeechApplicationTests.test_expired_proposal_never_changes_observed_speech_outcome",
+    "test_agent_host.AgentApplicationHostCliTests.test_operator_routes_observed_mechanical_proposal_to_exact_target"
+  ],
+  "verification": {
+    "command": "python -m unittest discover",
+    "result": "177 tests passed"
+  },
+  "boundary": "The Warband bridge and faction target are deterministic test fixtures. Decision routes trust the shared operator credential to assert participant identity. Proposal state is process-local. No live Warband consequence or video is claimed."
+}

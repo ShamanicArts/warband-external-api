@@ -120,8 +120,11 @@ dialogue applications. It binds an opaque NPC-visible proposal option to an exac
 current affordance in its owning constrained session, waits for engine-observed
 speech and all named acceptors, then submits that unchanged affordance. See the
 [mechanical-proposal guide](mechanical-proposals.md). The packaged NPC host does
-not yet expose option/decision routes, so this core contract is not claimed as a
-live reference-application feature.
+expose trusted option, listing, decision and execution routes. The NPC sees only
+safe option manifests and a current enum-bounded `proposal_token`; it never sees
+the target session's private affordance token. Proposal state is not yet durable,
+and the operator credential—not a participant-specific credential—authenticates
+decisions.
 
 ## HTTP adapter
 
@@ -171,5 +174,5 @@ acknowledgement is not promoted to observed outcome.
   orders, one-turn NPC speech and host-fed persistent NPC dialogue, including
   their command-correlation recovery. Diplomacy, synchronized multi-faction
   epochs, autonomous faction options, in-game player text/speech capture,
-  NPC-to-NPC conversations and packaged-host mechanical-proposal routing remain
-  to be wired.
+  NPC-to-NPC conversations, durable mechanical-proposal recovery and
+  participant-specific decision authentication remain to be wired.

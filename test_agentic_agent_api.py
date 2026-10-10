@@ -217,6 +217,15 @@ class ConstrainedAgentSessionTests(unittest.TestCase):
         self.assertNotIn("private:lease", manifest)
         self.assertIn("turn.observation.context.revision", manifest)
 
+    def test_trusted_application_can_invalidate_a_cached_turn(self):
+        first = self.harness.session.turn()
+        self.harness.session.invalidate_turn()
+        refreshed = self.harness.session.turn()
+
+        self.assertIsNot(first, refreshed)
+        self.assertEqual(first.observation.context, refreshed.observation.context)
+        self.assertNotEqual(first.affordances[0].token, refreshed.affordances[0].token)
+
     def test_manifest_explains_argument_binding_and_affordance_time(self):
         submission = self.harness.session.manifest()["submission"]
         self.assertEqual(

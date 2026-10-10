@@ -299,6 +299,11 @@ class ConstrainedAgentSession:
             )
             return self._turn
 
+    def invalidate_turn(self):
+        """Discard one cached public turn after trusted application-state change."""
+        with self._lock:
+            self._turn = None
+
     def submit(self, request):
         allowed = {
             "request_id",

@@ -85,6 +85,8 @@ class MechanicalProposalBroker:
             getattr(target_session, "submit", None)
         ):
             raise TypeError("target_session must provide turn() and submit()")
+        if not isinstance(required_acceptors, (list, tuple)):
+            raise TypeError("required_acceptors must be a list or tuple")
         acceptors = tuple(required_acceptors)
         if not 1 <= len(acceptors) <= 16 or len(set(acceptors)) != len(acceptors):
             raise ValueError("required_acceptors must contain 1-16 unique IDs")
@@ -261,6 +263,10 @@ class MechanicalProposalBroker:
                 record.state = MechanicalProposalState.STALE
                 self._executing.discard(proposal_id)
             raise
+        except Exception:
+            with self._lock:
+                self._executing.discard(proposal_id)
+            raise
         if not isinstance(outcome, ActionOutcome):
             with self._lock:
                 self._executing.discard(proposal_id)
@@ -275,6 +281,19 @@ class MechanicalProposalBroker:
         self._identifier("proposal_id", proposal_id)
         with self._lock:
             return self._public_proposal(self._proposal(proposal_id))
+
+    def proposals(self, source_session_id=None):
+        """List committed proposals, optionally scoped to one source session."""
+        if source_session_id is not None:
+            self._identifier("source_session_id", source_session_id)
+        with self._lock:
+            records = tuple(self._proposals.values())
+        return tuple(
+            self._public_proposal(record)
+            for record in sorted(records, key=lambda item: item.proposal_id)
+            if source_session_id is None
+            or record.option.source_session_id == source_session_id
+        )
 
     @staticmethod
     def _public_option(option):
@@ -295,9 +314,13 @@ class MechanicalProposalBroker:
         return {
             "proposal_id": record.proposal_id,
             "source_action_id": record.source_action_id,
+            "source_session_id": record.option.source_session_id,
+            "target_session_id": record.option.target_session_id,
             "title": record.option.title,
             "capability": record.option.affordance.capability,
             "arguments": to_wire(record.option.arguments),
+            "risk": record.option.affordance.risk.value,
+            "reversible": record.option.affordance.reversible,
             "required_acceptors": list(record.option.required_acceptors),
             "accepted_by": sorted(
                 item for item, accepted in record.decisions.items() if accepted
@@ -307,6 +330,7 @@ class MechanicalProposalBroker:
             ),
             "state": record.state.value,
             "consequence_warning": record.option.affordance.consequence_warning,
+            "expires_at_ms": record.option.affordance.expires_at_ms,
         }
 
     def _proposal(self, proposal_id):
