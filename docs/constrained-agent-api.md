@@ -126,14 +126,17 @@ acknowledgement is not promoted to observed outcome.
 
 - Construction is Python-first; packaged application loading and multi-session
   lifecycle management are not implemented yet.
-- Outcome idempotency is in-memory for the running session. Action events are
-  durable when a `SemanticEventLog` is supplied and Native-menu/faction outcomes
-  reconcile against the Store, but full request/outcome reconstruction after an
-  application restart remains pending.
+- When a `SemanticEventLog` is supplied, new action records durably reconstruct
+  exact request idempotency, the latest public outcome and private
+  application-owned bridge correlation after restart. Recovery never dispatches
+  an action. Older action events that predate the recovery envelope are retained
+  but their request IDs are blocked from replay and their outcome lookup remains
+  unavailable.
 - The default event view exposes only action events emitted for this session.
   Role-filtered delivery of broader world/dialogue events needs an explicit event
   audience policy and must not expose the shared log wholesale.
 - Production composition currently covers Native menus, reviewed faction party
-  orders and one-turn NPC speech. Diplomacy, synchronized multi-faction epochs,
+  orders and one-turn NPC speech, including their command-correlation recovery.
+  Diplomacy, synchronized multi-faction epochs,
   autonomous faction options, arbitrary player replies, persistent conversations
   and mechanical dialogue proposals remain to be wired.

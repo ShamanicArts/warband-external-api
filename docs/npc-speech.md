@@ -36,6 +36,11 @@ Voice can instead remain synthesis-only or be sent through the authenticated
 voice HTTP API. The voice profile is selected by trusted host policy, not by a
 provider voice ID supplied to the game-facing agent.
 
+With a `SemanticEventLog`, restart recovery restores the exact action outcome and
+private bridge command correlation without replay. A later Warband dialogue event
+can still promote the recovered action to observed, and `voice_request()` can
+recover the original bounded text from the durable bridge command.
+
 ## Trust and evidence boundary
 
 - A fresh engine census must contain the configured living, non-player agent in

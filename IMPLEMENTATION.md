@@ -691,3 +691,20 @@ This is structural installability, not public-release acceptance. A project
 license is still unselected; dependency/source licensing verdicts, guided client
 registration, packaged application discovery, fresh-Native end-to-end acceptance
 and final hardware-rendered video evidence remain open. See `docs/packaging.md`.
+
+## Constrained action restart recovery
+
+New constrained-session action events now carry a private recovery envelope with
+the exact request fingerprint, complete public outcome and application-owned
+correlation state. Session construction strictly decodes the history and rebuilds
+lookup/idempotency state without invoking a dispatcher. The public event cursor
+strips the private envelope. Contradictory records fail closed; older records that
+predate the envelope quarantine their request IDs instead of risking replay.
+
+Native menu, faction-order and NPC-speech applications persist and restore their
+action-to-bridge-command mapping. Restart tests continue queued command lifecycle,
+promote later game evidence, and preserve NPC voice handoff text while asserting
+that no duplicate command is inserted. This raises separated discovery to **237
+tests**: 103 root, 86 bridge and 48 module-system. Recovery is bridge-simulated;
+live process-restart acceptance, multi-session hosting and benchmark checkpoint
+resume remain open.

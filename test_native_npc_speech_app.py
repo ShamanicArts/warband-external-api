@@ -11,6 +11,7 @@ from warband_agentic import (
     ActionState,
     EvidenceLevel,
     RiskClass,
+    SemanticEventLog,
     VoiceDelivery,
     to_wire,
 )
@@ -194,6 +195,58 @@ class NativeNpcSpeechApplicationTests(unittest.TestCase):
         )
         observed = self.app.session.outcome("utterance:late")
         self.assertIs(observed.state, ActionState.OBSERVED)
+
+    def test_restart_recovers_speech_for_outcome_and_voice_handoff(self):
+        events_path = Path(self.temp.name) / "speech-events.sqlite3"
+        event_log = SemanticEventLog(events_path)
+        self.app = NativeNpcSpeechApplication(
+            self.store,
+            "session:trainer:restart",
+            agent_id=1,
+            event_log=event_log,
+            clock_ms=lambda: 1000,
+            token_factory=lambda: "affordance:speech:first",
+            action_id_factory=lambda request_id: f"action:{request_id}",
+        )
+        self._complete_agent_refresh()
+        turn = self.app.session.turn()
+        accepted = self.app.session.submit(
+            {
+                "request_id": "utterance:restart",
+                "affordance_token": turn.affordances[0].token,
+                "arguments": {"text": "I remember where we left off."},
+                "expected_revision": turn.observation.context.revision,
+            }
+        )
+        event_log.close()
+
+        reopened_log = SemanticEventLog(events_path)
+        try:
+            self.app = NativeNpcSpeechApplication(
+                self.store,
+                "session:trainer:restart",
+                agent_id=1,
+                event_log=reopened_log,
+                clock_ms=lambda: 1000,
+                token_factory=lambda: "affordance:speech:second",
+                action_id_factory=lambda request_id: f"action:{request_id}",
+            )
+            self.assertEqual(
+                self.app.session.outcome("utterance:restart"), accepted
+            )
+            command_id = int(self.store.poll(self.query).split("|")[2])
+            self.store.event(
+                "/dialogue",
+                {"v": "2", "job": str(command_id), "event": "1"},
+            )
+            observed = self.app.session.outcome("utterance:restart")
+            self.assertIs(observed.state, ActionState.OBSERVED)
+            voice = self.app.voice_request(
+                "utterance:restart", "trainer.default"
+            )
+            self.assertEqual(voice.text, "I remember where we left off.")
+        finally:
+            reopened_log.close()
 
 
 if __name__ == "__main__":

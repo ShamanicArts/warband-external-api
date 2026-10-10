@@ -4,7 +4,8 @@ import hashlib
 import json
 import threading
 import time
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, replace
 
 from warband_agentic.authority import ObservationFilter
 from warband_agentic.capabilities import CapabilityRegistry
@@ -14,8 +15,12 @@ from warband_agentic.contracts import (
     ActionState,
     ActionSubmission,
     Affordance,
+    ContextKind,
+    ContextRef,
     Evidence,
     EvidenceLevel,
+    Fact,
+    FactSource,
     GameEvent,
     ObservationEnvelope,
     RoleGrant,
@@ -42,6 +47,97 @@ class AgentTurn:
     schema: str = CONTRACT_VERSION
 
 
+@dataclass(frozen=True, slots=True)
+class _StoredRequest:
+    request_hash: str
+    outcome: ActionOutcome
+    capability: str
+    targets: tuple
+    application_recovery: dict | None
+
+
+def _exact_fields(value, expected, label):
+    if not isinstance(value, Mapping) or set(value) != set(expected):
+        raise ValueError(f"Invalid recovered {label} fields")
+
+
+def _outcome_from_wire(value):
+    _exact_fields(
+        value,
+        (
+            "action_id",
+            "state",
+            "context",
+            "resulting_revision",
+            "engine_result",
+            "facts",
+            "evidence",
+            "reason",
+            "recorded_at_ms",
+            "schema",
+        ),
+        "outcome",
+    )
+    context = value["context"]
+    _exact_fields(
+        context,
+        ("kind", "scope_id", "revision", "session_id", "game_time"),
+        "outcome context",
+    )
+    if not isinstance(value["facts"], (list, tuple)):
+        raise ValueError("Invalid recovered outcome facts")
+    facts = []
+    for item in value["facts"]:
+        _exact_fields(
+            item,
+            ("key", "value", "source", "observed_revision"),
+            "outcome fact",
+        )
+        facts.append(
+            Fact(
+                item["key"],
+                item["value"],
+                FactSource(item["source"]),
+                item["observed_revision"],
+            )
+        )
+    if not isinstance(value["evidence"], (list, tuple)):
+        raise ValueError("Invalid recovered outcome evidence")
+    evidence = []
+    for item in value["evidence"]:
+        _exact_fields(
+            item,
+            ("level", "source", "detail", "event_sequence"),
+            "outcome evidence",
+        )
+        evidence.append(
+            Evidence(
+                EvidenceLevel(item["level"]),
+                item["source"],
+                item["detail"],
+                item["event_sequence"],
+            )
+        )
+    return ActionOutcome(
+        value["action_id"],
+        ActionState(value["state"]),
+        ContextRef(
+            ContextKind(context["kind"]),
+            context["scope_id"],
+            context["revision"],
+            context["session_id"],
+            context["game_time"],
+        ),
+        value["resulting_revision"],
+        value["engine_result"],
+        tuple(facts),
+        tuple(evidence),
+        value["reason"],
+        value["recorded_at_ms"],
+        value["schema"],
+    )
+
+
 class ConstrainedAgentSession:
     """Bind one role grant to filtered perception and server-issued actions."""
 
@@ -59,6 +155,8 @@ class ConstrainedAgentSession:
         clock_ms=None,
         action_id_factory=None,
         outcome_refresher=None,
+        recovery_exporter=None,
+        recovery_importer=None,
     ):
         if not isinstance(session_id, str) or not session_id.strip():
             raise ValueError("session_id must be a non-empty string")
@@ -81,6 +179,14 @@ class ConstrainedAgentSession:
             raise TypeError("lease_selector must be callable")
         if outcome_refresher is not None and not callable(outcome_refresher):
             raise TypeError("outcome_refresher must be callable")
+        if (recovery_exporter is None) != (recovery_importer is None):
+            raise ValueError(
+                "recovery_exporter and recovery_importer must be supplied together"
+            )
+        if recovery_exporter is not None and not callable(recovery_exporter):
+            raise TypeError("recovery_exporter must be callable")
+        if recovery_importer is not None and not callable(recovery_importer):
+            raise TypeError("recovery_importer must be callable")
         self.session_id = session_id
         self._grant = grant
         self._registry = registry
@@ -95,9 +201,13 @@ class ConstrainedAgentSession:
             lambda request_id: f"action:{self.session_id}:{request_id}"
         )
         self._outcome_refresher = outcome_refresher
+        self._recovery_exporter = recovery_exporter
+        self._recovery_importer = recovery_importer
         self._turn = None
         self._requests = {}
+        self._unrecoverable_requests = set()
         self._lock = threading.RLock()
+        self._restore_requests()
 
     def manifest(self):
         return {
@@ -193,9 +303,14 @@ class ConstrainedAgentSession:
         with self._lock:
             prior = self._requests.get(request_id)
             if prior is not None:
-                if prior[0] != request_hash:
+                if prior.request_hash != request_hash:
                     raise AgentConflict("request_id was reused with different input")
-                return prior[1]
+                return prior.outcome
+            if request_id in self._unrecoverable_requests:
+                raise AgentConflict(
+                    "request_id exists in older durable history and cannot be "
+                    "safely replayed"
+                )
             now_ms = self._now()
             current = self._canonical_observation().context
             active_turn = self.turn()
@@ -226,8 +341,28 @@ class ConstrainedAgentSession:
             except ValueError as exc:
                 raise AgentConflict(str(exc)) from exc
             outcome = self._dispatch(validated, current, now_ms)
-            self._requests[request_id] = (request_hash, outcome, validated.affordance)
-            self._record_action_event(request_id, validated.affordance, outcome)
+            application_recovery = None
+            if self._recovery_exporter is not None:
+                application_recovery = self._recovery_exporter(validated, outcome)
+                if not isinstance(application_recovery, Mapping):
+                    raise TypeError("recovery_exporter must return a mapping")
+                application_recovery = json.loads(
+                    json.dumps(
+                        application_recovery,
+                        allow_nan=False,
+                        separators=(",", ":"),
+                        sort_keys=True,
+                    )
+                )
+            record = _StoredRequest(
+                request_hash,
+                outcome,
+                validated.affordance.capability,
+                validated.affordance.targets,
+                application_recovery,
+            )
+            self._requests[request_id] = record
+            self._record_action_event(request_id, record)
             self._turn = None
             return outcome
 
@@ -269,21 +404,23 @@ class ConstrainedAgentSession:
         if not isinstance(request_id, str) or not request_id.strip():
             raise ValueError("request_id must be a non-empty string")
         with self._lock:
+            if request_id in self._unrecoverable_requests:
+                raise AgentNotFound(
+                    "Request predates durable recovery; outcome lookup is unavailable"
+                )
             try:
-                request_hash, outcome, affordance = self._requests[request_id]
+                record = self._requests[request_id]
             except KeyError as exc:
                 raise AgentNotFound("Unknown session request") from exc
+            outcome = record.outcome
             if self._outcome_refresher is None:
                 return outcome
             refreshed = self._outcome_refresher(request_id, outcome)
             self._validate_refreshed_outcome(outcome, refreshed)
             if refreshed != outcome:
-                self._requests[request_id] = (
-                    request_hash,
-                    refreshed,
-                    affordance,
-                )
-                self._record_action_event(request_id, affordance, refreshed)
+                record = replace(record, outcome=refreshed)
+                self._requests[request_id] = record
+                self._record_action_event(request_id, record)
             return refreshed
 
     @staticmethod
@@ -352,7 +489,7 @@ class ConstrainedAgentSession:
             high_watermark = page.high_watermark
             for event in page.events:
                 if event.payload.get("agent_session_id") == self.session_id:
-                    selected.append(event)
+                    selected.append(self._public_event(event))
                     if len(selected) == limit:
                         return EventPage(
                             tuple(selected), event.sequence, high_watermark
@@ -363,9 +500,23 @@ class ConstrainedAgentSession:
             cursor = page.next_sequence
         return EventPage(tuple(selected), cursor, high_watermark)
 
-    def _record_action_event(self, request_id, affordance, outcome):
+    @staticmethod
+    def _public_event(event):
+        if "_recovery" not in event.payload:
+            return event
+        return replace(
+            event,
+            payload={
+                key: value
+                for key, value in event.payload.items()
+                if key != "_recovery"
+            },
+        )
+
+    def _record_action_event(self, request_id, record):
         if self._event_log is None:
             return
+        outcome = record.outcome
         evidence = max(
             outcome.evidence,
             key=lambda item: item.level.rank,
@@ -379,14 +530,19 @@ class ConstrainedAgentSession:
             0,
             f"action.{outcome.state.value}",
             outcome.context,
-            affordance.targets,
+            record.targets,
             {
                 "agent_session_id": self.session_id,
                 "request_id": request_id,
-                "capability": affordance.capability,
+                "capability": record.capability,
                 "engine_result": outcome.engine_result,
                 "facts": [to_wire(fact) for fact in outcome.facts],
                 "reason": outcome.reason,
+                "_recovery": {
+                    "request_hash": record.request_hash,
+                    "outcome": to_wire(outcome),
+                    "application": record.application_recovery,
+                },
             },
             Evidence(evidence.level, evidence.source, evidence.detail),
             outcome.recorded_at_ms,
@@ -397,6 +553,95 @@ class ConstrainedAgentSession:
             f"agent-session:{self.session_id}:request:{request_id}:"
             f"state:{outcome.state.value}",
         )
+
+    def _restore_requests(self):
+        if self._event_log is None:
+            return
+        cursor = 0
+        while True:
+            page = self._event_log.read(cursor, 1000)
+            for event in page.events:
+                payload = event.payload
+                if payload.get("agent_session_id") != self.session_id:
+                    continue
+                if not event.event_type.startswith("action."):
+                    continue
+                recovery = payload.get("_recovery")
+                if recovery is None:
+                    request_id = payload.get("request_id")
+                    if isinstance(request_id, str) and request_id:
+                        self._unrecoverable_requests.add(request_id)
+                    continue
+                _exact_fields(
+                    recovery,
+                    ("request_hash", "outcome", "application"),
+                    "request metadata",
+                )
+                request_id = payload.get("request_id")
+                capability = payload.get("capability")
+                request_hash = recovery["request_hash"]
+                if not isinstance(request_id, str) or not request_id:
+                    raise ValueError("Invalid recovered request ID")
+                if not isinstance(capability, str) or not capability:
+                    raise ValueError("Invalid recovered capability")
+                if (
+                    not isinstance(request_hash, str)
+                    or len(request_hash) != 64
+                    or any(c not in "0123456789abcdef" for c in request_hash)
+                ):
+                    raise ValueError("Invalid recovered request hash")
+                outcome = _outcome_from_wire(recovery["outcome"])
+                application_recovery = recovery["application"]
+                if application_recovery is not None:
+                    if not isinstance(application_recovery, Mapping):
+                        raise ValueError("Invalid application recovery metadata")
+                    application_recovery = to_wire(application_recovery)
+                if event.event_type != f"action.{outcome.state.value}":
+                    raise ValueError("Recovered action event state does not match")
+                if event.cause_action_id != outcome.action_id:
+                    raise ValueError("Recovered action ID does not match event")
+                if event.context != outcome.context:
+                    raise ValueError("Recovered action context does not match event")
+                record = _StoredRequest(
+                    request_hash,
+                    outcome,
+                    capability,
+                    event.subjects,
+                    application_recovery,
+                )
+                previous = self._requests.get(request_id)
+                if previous is not None:
+                    if (
+                        previous.request_hash != record.request_hash
+                        or previous.capability != record.capability
+                        or previous.targets != record.targets
+                        or previous.application_recovery
+                        != record.application_recovery
+                        or previous.outcome.action_id != record.outcome.action_id
+                        or previous.outcome.context != record.outcome.context
+                    ):
+                        raise ValueError("Conflicting recovered request history")
+                    self._validate_refreshed_outcome(
+                        previous.outcome, record.outcome
+                    )
+                self._requests[request_id] = record
+                self._unrecoverable_requests.discard(request_id)
+            if (
+                page.next_sequence == cursor
+                or page.next_sequence >= page.high_watermark
+            ):
+                break
+            cursor = page.next_sequence
+        if self._recovery_importer is not None:
+            for record in self._requests.values():
+                if record.application_recovery is None:
+                    raise ValueError(
+                        "Application recovery metadata is missing from action history"
+                    )
+                self._recovery_importer(
+                    record.outcome.action_id,
+                    record.application_recovery,
+                )
 
     def _canonical_observation(self):
         observation = self._observation_provider()

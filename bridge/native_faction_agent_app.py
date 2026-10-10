@@ -162,6 +162,8 @@ class NativeFactionAgentApplication:
             clock_ms=self._clock_ms,
             action_id_factory=action_id_factory,
             outcome_refresher=self._refresh_outcome,
+            recovery_exporter=self._export_recovery,
+            recovery_importer=self._import_recovery,
         )
 
     @property
@@ -366,6 +368,22 @@ class NativeFactionAgentApplication:
             None,
             self._now(),
         )
+
+    def _export_recovery(self, validated, _outcome):
+        return {
+            "command_id": self._commands_by_action_id[
+                validated.submission.action_id
+            ]
+        }
+
+    def _import_recovery(self, action_id, recovery):
+        if set(recovery) != {"command_id"} or type(recovery["command_id"]) is not int:
+            raise ValueError("Invalid faction command recovery metadata")
+        command_id = recovery["command_id"]
+        self.store.command(command_id)
+        previous = self._commands_by_action_id.setdefault(action_id, command_id)
+        if previous != command_id:
+            raise ValueError("Conflicting faction command recovery metadata")
 
     def _refresh_outcome(self, _request_id, previous):
         if previous.state is ActionState.OBSERVED:

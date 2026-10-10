@@ -40,6 +40,10 @@ equal budgets, commit non-conflicting orders, then advance one fixed epoch.
 authenticated loopback HTTP surface. Agents only submit request ID, opaque
 affordance token, exact bounded arguments and observation revision.
 
+With a `SemanticEventLog`, a restarted application restores request idempotency,
+the latest outcome and its private bridge command correlation. It can continue
+polling an accepted/dispatched order, but it never re-enqueues one from history.
+
 ## Trust and evidence boundary
 
 - The host must review the controlled parties and offered options.

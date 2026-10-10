@@ -4,7 +4,7 @@ from pathlib import Path
 
 from bridge.game_bridge import Store
 from bridge.native_menu_agent_app import NativeMenuAgentApplication
-from warband_agentic import ActionState, EvidenceLevel, to_wire
+from warband_agentic import ActionState, EvidenceLevel, SemanticEventLog, to_wire
 
 
 def menu_telemetry(ack=0, result=0, menu_session=10):
@@ -138,6 +138,52 @@ class NativeMenuAgentApplicationTests(unittest.TestCase):
             to_wire(rejected.engine_result),
             {"result": -1, "status": "rejected"},
         )
+
+    def test_restart_restores_private_command_correlation_without_replay(self):
+        events_path = Path(self.temp.name) / "events.sqlite3"
+        event_log = SemanticEventLog(events_path)
+        self.app = NativeMenuAgentApplication(
+            self.store,
+            "session:player-menu:restart",
+            event_log=event_log,
+            clock_ms=lambda: 1000,
+            token_factory=lambda: "affordance:resume:first",
+            action_id_factory=lambda request_id: f"action:{request_id}",
+        )
+        turn = self.app.session.turn()
+        request = {
+            "request_id": "resume:restart",
+            "affordance_token": turn.affordances[0].token,
+            "arguments": {"action_id": 0},
+            "expected_revision": turn.observation.context.revision,
+        }
+        accepted = self.app.session.submit(request)
+        command_id = self.store.db.execute(
+            "SELECT id FROM commands ORDER BY id DESC LIMIT 1"
+        ).fetchone()[0]
+        self.assertEqual(self.store.command(command_id)["status"], "queued")
+        event_log.close()
+
+        reopened_log = SemanticEventLog(events_path)
+        try:
+            self.app = NativeMenuAgentApplication(
+                self.store,
+                "session:player-menu:restart",
+                event_log=reopened_log,
+                clock_ms=lambda: 1000,
+                token_factory=lambda: "affordance:resume:second",
+                action_id_factory=lambda request_id: f"action:{request_id}",
+            )
+            recovered = self.app.session.outcome("resume:restart")
+            self.assertEqual(recovered, accepted)
+            dispatched_id = int(self.store.poll(self.query).split("|")[2])
+            self.assertEqual(dispatched_id, command_id)
+            self.assertIs(
+                self.app.session.outcome("resume:restart").state,
+                ActionState.DISPATCHED,
+            )
+        finally:
+            reopened_log.close()
 
 
 if __name__ == "__main__":

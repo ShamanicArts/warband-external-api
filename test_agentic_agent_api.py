@@ -246,6 +246,62 @@ class ConstrainedAgentSessionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "different input"):
             self.harness.session.submit(changed)
 
+    def test_restart_recovers_lookup_and_idempotency_without_replay(self):
+        database = Path(self.temp.name) / "events.sqlite3"
+        self.harness.session.turn()
+        original = self.harness.session.submit(self.harness.request())
+        self.harness.close()
+        self.harness = SessionHarness(database)
+
+        self.assertEqual(self.harness.session.outcome("request:1"), original)
+        self.assertEqual(
+            self.harness.session.submit(self.harness.request()), original
+        )
+        self.assertEqual(self.harness.dispatches, [])
+        changed = self.harness.request()
+        changed["arguments"] = {"order": "raid"}
+        with self.assertRaisesRegex(ValueError, "different input"):
+            self.harness.session.submit(changed)
+        public_events = json.dumps(to_wire(self.harness.session.events()))
+        self.assertNotIn("request_hash", public_events)
+        self.assertNotIn("_recovery", public_events)
+
+    def test_old_action_history_blocks_unsafe_post_upgrade_replay(self):
+        database = Path(self.temp.name) / "events.sqlite3"
+        self.harness.log.append(
+            GameEvent(
+                0,
+                "action.observed",
+                self.harness.context(),
+                (self.harness.party,),
+                {
+                    "agent_session_id": "session:faction:1",
+                    "request_id": "legacy:1",
+                    "capability": "party.issue-order",
+                    "engine_result": {"result": 0},
+                    "facts": [],
+                    "reason": None,
+                },
+                Evidence(
+                    EvidenceLevel.ENGINE_OBSERVED,
+                    "older runtime",
+                    "Action predates durable request recovery",
+                ),
+                1300,
+                "action:legacy:1",
+            ),
+            "old-agent-action:1",
+        )
+        self.harness.close()
+        self.harness = SessionHarness(database)
+        self.harness.session.turn()
+
+        with self.assertRaisesRegex(ValueError, "cannot be safely replayed"):
+            self.harness.session.submit(self.harness.request("legacy:1"))
+        with self.assertRaisesRegex(ValueError, "predates durable recovery"):
+            self.harness.session.outcome("legacy:1")
+        self.assertEqual(self.harness.dispatches, [])
+
     def test_stale_turn_and_client_owned_identity_fields_are_rejected(self):
         self.harness.session.turn()
         self.harness.revision = 8
