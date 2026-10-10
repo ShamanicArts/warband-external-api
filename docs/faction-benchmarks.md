@@ -101,9 +101,25 @@ containing the scenario, metadata, exact epoch records, metric snapshots, final
 scorecard and report hash. Calling `report()` finalizes the run against later
 mutation.
 
-This is not yet the full benchmark harness. The next layer must orchestrate the
-driver and metric collector against a live campaign, capture save/checkpoints,
-resume from a game save when the game process itself is lost, and schedule
-providers under equal budgets. External
-model runs still require the user-visible preflight notice described in the design
-specification.
+## Non-blocking live-run harness
+
+`bridge.faction_benchmark_harness.FactionBenchmarkHarness` composes the pieces
+above into one provider-neutral state machine. It collects an evidenced baseline,
+freezes an equal-time turn set, accepts one externally obtained decision per
+faction, resolves every accepted action, advances and explicitly stops the
+campaign clock, collects post-epoch metrics, and appends the validated epoch to a
+scored run. `finalize()` freezes the canonical report; `write_report(path)` uses
+the run artifact's atomic writer.
+
+The harness does not own a busy loop. A host pumps Warband telemetry and calls
+`poll()`; each call advances at most one orchestration step. Turn collection and
+decision submission are explicit boundaries, so provider latency cannot advance
+game time. A metric-collection interruption or failed/interrupted clock advance
+puts the harness in an honest terminal `interrupted` state instead of inventing a
+baseline, result, or score.
+
+The remaining full-harness work is save capture and game-process recovery,
+durable reconstruction of the top-level harness around the existing epoch/driver
+checkpoints, scenario configuration/CLI, and provider scheduling with enforced
+equal token/time/cost budgets. External model runs still require the user-visible
+preflight notice described in the design specification.

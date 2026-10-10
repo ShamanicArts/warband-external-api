@@ -902,3 +902,26 @@ This slice does not claim an
 in-game player text box, speech recognition, NPC-to-NPC dialogue, mechanical
 proposals or a live integrated run; it provides the bounded host contract those
 layers can use.
+
+## Provider-neutral faction benchmark orchestration
+
+`bridge.faction_benchmark_harness.FactionBenchmarkHarness` now composes the
+existing production-facing benchmark pieces into one non-blocking run lifecycle:
+fixed-clock baseline metrics, synchronized role-filtered turns, deterministic
+decision commits, terminal action resolution, bounded campaign wait plus explicit
+stop, post-epoch metrics and canonical scenario scoring. The host remains
+responsible for pumping game telemetry, while model/provider calls stay outside
+the core and cannot advance campaign time while decisions are being collected.
+
+The harness advances at most one phase per `poll()` and exposes explicit turn and
+decision boundaries. Metric drift and interrupted/failed clock advancement move
+the run to an honest terminal interruption rather than fabricating a baseline or
+result. Three bridge regressions exercise the complete lifecycle with the real
+synchronized-epoch and scoring contracts, deterministic fake engine adapters,
+and the interruption/state guards. Separated discovery passes **262 tests**: 121
+root, 91 bridge and 50 module-system.
+
+This remains structural composition, not a live campaign benchmark. Durable
+top-level harness reconstruction, game-save/process recovery, scenario CLI and
+provider scheduling with enforced equal token/time/cost budgets remain open. No
+Warband process or external model was launched for this slice.

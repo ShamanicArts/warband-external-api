@@ -33,8 +33,10 @@ turn = application.session.turn()
 ```
 
 The application deliberately does not advance campaign time or wait for model
-responses. A future benchmark runner must collect all faction decisions under
-equal budgets, commit non-conflicting orders, then advance one fixed epoch.
+responses. `FactionBenchmarkHarness` composes multiple applications around an
+equal-time decision boundary, deterministic commits and one fixed epoch. Provider
+budget enforcement remains outside the application and is not yet implemented by
+the harness.
 
 `application.session` may be passed directly to `make_agent_server` for the
 authenticated loopback HTTP surface. Agents only submit request ID, opaque
@@ -61,5 +63,4 @@ polling an accepted/dispatched order, but it never re-enqueues one from history.
 
 The application currently refreshes only parties referenced by its reviewed
 options. Faction treasury, settlements, reports, diplomacy, fog of war,
-hierarchical lord agents, automatic option generation and synchronized benchmark
-epochs remain future layers.
+hierarchical lord agents and automatic option generation remain future layers.
