@@ -18,7 +18,9 @@ An `AgenticExtension` declares:
 Extensions whose application depends on compiled game support set
 `module_required=True`. The generated `mcp-build.json` inventories exact extension
 IDs and versions, and host validation refuses to start when a required entry is
-missing or mismatched. Host-only composition extensions leave this false.
+missing or mismatched. For compiled operations it also compares the complete
+operation contract, not only the package version. Host-only composition
+extensions leave this false.
 
 `ExtensionRegistry.register()` atomically rejects duplicate extension IDs,
 application kinds, incompatible protocol/revision ranges and colliding resource
@@ -67,6 +69,17 @@ warband-agent-host \
   --check
 ```
 
+Use the same explicit extension selection when generating the isolated game
+module:
+
+```bash
+warband-build-module \
+  --extension my.mod \
+  --native /path/to/Native \
+  --output /path/to/NewAgentModule \
+  --token-file /private/path/bridge.token
+```
+
 Missing, ambiguous, incompatible or malformed named extensions fail before
 database creation or socket binding. Unnamed entry points are not imported.
 
@@ -105,6 +118,61 @@ This constrains accidental authority and makes review concrete. It cannot contai
 malicious installed Python, which already has process-level access; extensions
 must therefore be installed and registered as trusted code.
 
+## Compiled operations
+
+An `ExtensionBundle` may carry declarative `CompiledOperation` values. Each one
+has a namespaced command name, an opcode in the extension-reserved `1000-9999`
+range, an exact integration revision, one engine context, up to three bounded
+integer arguments and a short allowlisted handler. Its name must begin with the
+owning extension ID and appear in at least one application kind's
+`backend_operations`. Any compiled operation also requires
+`module_required=True`.
+
+```python
+from warband_agentic import (
+    CompiledContext,
+    CompiledInstruction,
+    CompiledIntegerArgument,
+    CompiledOperation,
+    ExtensionBundle,
+    HandlerOperand,
+)
+
+grant_gold = CompiledOperation(
+    name="my.mod.grant-gold",
+    opcode=1001,
+    context=CompiledContext.CAMPAIGN,
+    arguments=(CompiledIntegerArgument("amount", 1, 100),),
+    handler=(
+        CompiledInstruction(
+            "troop_add_gold",
+            (HandlerOperand.PLAYER_TROOP, HandlerOperand.ARG0),
+        ),
+    ),
+)
+
+bundle = ExtensionBundle(
+    extension_definition,
+    {"my-mod-faction": MyFactionApplication},
+    compiled_operations=(grant_gold,),
+)
+```
+
+The declaration is used at all three trust boundaries:
+
+1. the Store rejects unknown fields, non-integers, bounds violations and the
+   wrong live engine context before queueing;
+2. the authenticated wire frame uses the declared opcode and deterministic
+   integer slots; and
+3. the builder emits an isolated callback branch with independent context,
+   scene/session and bounds guards before the handler.
+
+Extension operation names and opcodes are globally collision-checked. The host
+requires the generated `mcp-build.json` operation manifests to exactly equal the
+loaded registry before it creates databases or binds sockets. The current
+reviewed instruction allowlist is intentionally tiny: `troop_add_gold` and
+`troop_remove_gold`. Integer literals cannot encode raw Warband register values.
+
 The authenticated operator endpoint exposes the loaded declaration catalog:
 
 ```text
@@ -116,11 +184,15 @@ GET /v1/host/extensions
 - The stock `warband-agent-host` CLI registers only `warband.native` 0.2.0 unless
   the operator supplies one or more explicit `--extension` IDs. There is no
   automatic package loading, runtime dynamic loading or hot reload.
-- The SDK composes applications over existing reviewed bridge operation families.
-  It does not yet compile new ModSys handlers, allocate slots/registers/globals or
-  merge new callback seams; declarations can reserve those resource names for
-  future builder integration, but that is structural metadata only. Marking such
-  an extension module-required therefore fails closed until its build integration
-  exists.
+- Compiled extension operations are restricted to three integer arguments and the
+  reviewed handler allowlist. There is no general ModSys bytecode escape hatch,
+  automatic slot/register/global allocator, custom telemetry/result schema or
+  arbitrary callback-seam merger yet.
+- The current builder emits integration revision 16 and rejects other operation
+  revisions. It also refuses to inventory a non-built-in module extension unless
+  that extension actually owns generated operation code.
+- Structural and bridge-simulated tests prove declaration-to-wire-to-generated
+  bytecode continuity. No third-party compiled operation has yet been acknowledged
+  by a live Warband engine, so that acceptance evidence remains open.
 - Broad compatibility with other Warband modules is not implied. The current
   protocol/revision target remains the generated revision-16 Native module.

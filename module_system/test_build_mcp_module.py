@@ -4,6 +4,28 @@ import unittest
 from pathlib import Path
 
 from module_system.build_mcp_module import OPS, build, callback
+from warband_agentic import (
+    CompiledContext,
+    CompiledInstruction,
+    CompiledIntegerArgument,
+    CompiledOperation,
+    HandlerOperand,
+)
+
+
+def grant_gold_operation():
+    return CompiledOperation(
+        name="example.dialogue.grant-gold",
+        opcode=1001,
+        context=CompiledContext.CAMPAIGN,
+        arguments=(CompiledIntegerArgument("amount", minimum=1, maximum=100),),
+        handler=(
+            CompiledInstruction(
+                "troop_add_gold",
+                (HandlerOperand.PLAYER_TROOP, HandlerOperand.ARG0),
+            ),
+        ),
+    )
 
 
 class ModuleBuildTests(unittest.TestCase):
@@ -84,6 +106,54 @@ class ModuleBuildTests(unittest.TestCase):
             build_manifest["extensions"],
             [{"extension_id": "warband.native", "version": "0.2.0"}],
         )
+
+    def test_build_compiles_declared_operation_and_exports_its_contract(self):
+        output = self.root / "CompiledExtension"
+
+        build(
+            self.native,
+            output,
+            "http://127.0.0.1",
+            "a" * 64,
+            compiled_operations=(grant_gold_operation(),),
+            module_extensions=(
+                {"extension_id": "warband.native", "version": "0.2.0"},
+                {"extension_id": "example.dialogue", "version": "1.2.3"},
+            ),
+        )
+
+        scripts = (output / "scripts.txt").read_text()
+        self.assertIn(f"{OPS['eq']} 2 {17 << 56 | 4} 1001", scripts)
+        self.assertIn(f"{OPS['troop_add_gold']} 2 {5 << 56} {17 << 56 | 5}", scripts)
+        manifest = json.loads((output / "mcp-build.json").read_text())
+        self.assertIn("example.dialogue.grant-gold", manifest["commands"])
+        self.assertEqual(
+            manifest["compiled_operations"], [grant_gold_operation().manifest()]
+        )
+        self.assertEqual(
+            manifest["extensions"],
+            [
+                {"extension_id": "example.dialogue", "version": "1.2.3"},
+                {"extension_id": "warband.native", "version": "0.2.0"},
+            ],
+        )
+
+    def test_refuses_to_inventory_an_extension_without_generated_code(self):
+        output = self.root / "FalseInventory"
+
+        with self.assertRaisesRegex(ValueError, "no compiled operations"):
+            build(
+                self.native,
+                output,
+                "http://127.0.0.1",
+                "a" * 64,
+                module_extensions=(
+                    {"extension_id": "warband.native", "version": "0.2.0"},
+                    {"extension_id": "example.empty", "version": "1.0.0"},
+                ),
+            )
+
+        self.assertFalse(output.exists())
 
     def test_callback_control_blocks_are_balanced(self):
         self.assert_balanced(callback())

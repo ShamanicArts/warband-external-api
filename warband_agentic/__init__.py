@@ -35,6 +35,14 @@ from warband_agentic.capabilities import (
     CapabilityRegistry,
     ValidatedAction,
 )
+from warband_agentic.compiled_extensions import (
+    CompiledContext,
+    CompiledInstruction,
+    CompiledIntegerArgument,
+    CompiledOperation,
+    HandlerOperand,
+    index_compiled_operations,
+)
 from warband_agentic.contracts import (
     CONTRACT_VERSION,
     ActionOutcome,
@@ -117,6 +125,10 @@ __all__ = [
     "CONTRACT_VERSION",
     "CapabilityDefinition",
     "CapabilityRegistry",
+    "CompiledContext",
+    "CompiledInstruction",
+    "CompiledIntegerArgument",
+    "CompiledOperation",
     "ActionOutcome",
     "ActionState",
     "ActionSubmission",
@@ -153,6 +165,7 @@ __all__ = [
     "FactionBenchmarkRun",
     "FactionMetricSnapshot",
     "GameEvent",
+    "HandlerOperand",
     "LeaseMode",
     "KokoroAdapter",
     "LeaseBook",
@@ -193,6 +206,7 @@ __all__ = [
     "issue_menu_affordances",
     "issue_npc_speech_affordance",
     "issue_party_order_affordance",
+    "index_compiled_operations",
     "game_event_from_wire",
     "make_voice_server",
     "make_agent_server",

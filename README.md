@@ -29,7 +29,8 @@ Current foundations include:
 - a trusted [Python extension SDK](docs/extension-sdk.md) with versioned
   declarations, collision checks, validated settings, explicit factories and
   scoped access to reviewed game-operation families, including exact-ID installed
-  extension loading without automatic imports;
+  extension loading and bounded declarative Module System handlers without
+  automatic imports;
 - trusted control-lease arbitration and role/context/source-filtered observations
   that report omissions without leaking hidden facts;
 - semantic adapters for canonical engine observations, committed dialogue events,

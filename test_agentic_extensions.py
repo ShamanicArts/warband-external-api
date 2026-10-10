@@ -5,7 +5,13 @@ from warband_agentic import (
     CONTRACT_VERSION,
     AgenticExtension,
     ApplicationKind,
+    CompiledContext,
+    CompiledInstruction,
+    CompiledIntegerArgument,
+    CompiledOperation,
+    ExtensionBundle,
     ExtensionRegistry,
+    HandlerOperand,
     OwnershipRule,
     ResourceClaim,
     RoleId,
@@ -45,7 +51,13 @@ class FakeStore:
         return {"command": self.command(command_id), "complete": False}
 
 
-def example_extension(*, revision_min=16, resource="npc-dialogue-hook"):
+def example_extension(
+    *,
+    revision_min=16,
+    resource="npc-dialogue-hook",
+    module_required=False,
+    backend_operations=("scan_agents", "npc_say"),
+):
     return AgenticExtension(
         "example.dialogue",
         "1.2.3",
@@ -59,24 +71,103 @@ def example_extension(*, revision_min=16, resource="npc-dialogue-hook"):
                 "Example NPC application",
                 {
                     "type": "object",
-                    "properties": {
-                        "agent_id": {"type": "integer", "minimum": 0}
-                    },
+                    "properties": {"agent_id": {"type": "integer", "minimum": 0}},
                     "required": ("agent_id",),
                     "additionalProperties": False,
                 },
                 (RoleId.NPC_SELF,),
                 ("dialogue.speak",),
-                ("scan_agents", "npc_say"),
+                backend_operations,
                 (OwnershipRule("agent", setting="agent_id"),),
                 True,
             ),
         ),
         (ResourceClaim("patch-seam", resource),),
+        module_required=module_required,
+    )
+
+
+def grant_gold_operation(name="example.dialogue.grant-gold", opcode=1001):
+    return CompiledOperation(
+        name,
+        opcode,
+        CompiledContext.CAMPAIGN,
+        (CompiledIntegerArgument("amount", 1, 100),),
+        (
+            CompiledInstruction(
+                "troop_add_gold",
+                (HandlerOperand.PLAYER_TROOP, HandlerOperand.ARG0),
+            ),
+        ),
     )
 
 
 class ExtensionSdkTests(unittest.TestCase):
+    def test_bundle_registers_compiled_operations_for_host_composition(self):
+        def factory(*args, **kwargs):
+            return None
+
+        extension = example_extension(
+            backend_operations=(
+                "scan_agents",
+                "npc_say",
+                "example.dialogue.grant-gold",
+            )
+        )
+        extension = AgenticExtension(
+            extension.extension_id,
+            extension.version,
+            extension.description,
+            extension.protocol,
+            extension.integration_revision_min,
+            extension.integration_revision_max,
+            extension.applications,
+            extension.resources,
+            module_required=True,
+        )
+        bundle = ExtensionBundle(
+            extension,
+            {"example-npc": factory},
+            compiled_operations=(grant_gold_operation(),),
+        )
+        registry = ExtensionRegistry(protocol=2, integration_revision=16)
+
+        bundle.register(registry)
+
+        self.assertEqual(registry.compiled_operations(), (grant_gold_operation(),))
+        with self.assertRaisesRegex(ValueError, "opcode 1001 collides"):
+            ExtensionBundle(
+                AgenticExtension(
+                    "example.other",
+                    "1.0.0",
+                    "Other compiled extension",
+                    2,
+                    16,
+                    16,
+                    (
+                        ApplicationKind(
+                            "other-app",
+                            "Other application",
+                            {
+                                "type": "object",
+                                "properties": {},
+                                "required": (),
+                                "additionalProperties": False,
+                            },
+                            (RoleId.OBSERVER_READONLY,),
+                            (),
+                            (),
+                            (),
+                            False,
+                        ),
+                    ),
+                    (ResourceClaim("patch-seam", "other"),),
+                    module_required=True,
+                ),
+                {"other-app": factory},
+                compiled_operations=(grant_gold_operation("example.other.grant-gold"),),
+            ).register(registry)
+
     def test_builtin_faction_settings_are_bounded_before_runtime(self):
         registry = built_in_extension_registry()
         settings = {

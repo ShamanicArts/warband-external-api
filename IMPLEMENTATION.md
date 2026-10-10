@@ -846,3 +846,30 @@ CLI regression mutates the module version to 0.1.0 and proves secret-free,
 side-effect-free refusal. Separated discovery remains **251 tests**: 115 root, 88
 bridge and 48 module-system. This is the compatibility anchor for future compiled
 third-party handlers; it does not claim those handlers can be generated yet.
+
+## Declarative compiled extension operation tracer bullet
+
+`warband_agentic.compiled_extensions` now defines a deliberately narrow public
+contract for namespaced extension commands: reserved opcodes, campaign/menu/
+mission context, up to three bounded integer arguments and short allowlisted
+Module System handlers. `ExtensionBundle` carries these declarations, the
+registry collision-checks them and requires each command to be exposed by an
+owning application's scoped backend, and the packaged host gives the exact
+registry set to its Store.
+
+The first vertical proof declares a bounded campaign `grant-gold` operation. The
+same immutable declaration rejects malformed Store payloads, produces opcode
+1001 and deterministic wire arguments, emits independent callback context,
+scope and bounds guards around official `troop_add_gold`, and appears in the
+generated build manifest. Both `warband-build-module` and `warband-agent-host`
+load only explicitly named extension entry points. Host planning compares the
+full generated operation manifests—not merely extension ID/version—and refuses
+same-version drift before database or socket side effects.
+
+Separated discovery passes **255 tests**: 117 root, 88 bridge and 50 module-system.
+The wheel/sdist build, lock check and maintained-scope Ruff checks also pass. This
+is structural and bridge-simulated evidence; no Warband process was launched and
+there is not yet a live engine acknowledgement or visual claim for a third-party
+compiled operation. The initial handler allowlist contains only player-troop gold
+add/remove; general slot/global allocation, custom result telemetry and arbitrary
+callback composition remain open.

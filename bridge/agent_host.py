@@ -236,6 +236,15 @@ def load_agent_host_plan(path, extensions=None):
             raise ValueError(
                 f"Module does not provide required extension {extension_id} {version}"
             )
+    expected_operations = [
+        operation.manifest() for operation in extensions.compiled_operations()
+    ]
+    built_operations = build.get("compiled_operations", [])
+    if (
+        not isinstance(built_operations, list)
+        or built_operations != expected_operations
+    ):
+        raise ValueError("Module compiled operation contract does not match this host")
     bridge_token_file, bridge_token = _read_token(
         base, bridge["token_file"], "bridge token file"
     )
@@ -288,9 +297,7 @@ def load_agent_host_plan(path, extensions=None):
     return AgentHostPlan(
         bridge_plan,
         control_plan,
-        _database_path(
-            base, config["events_database"], "semantic events database"
-        ),
+        _database_path(base, config["events_database"], "semantic events database"),
         plans,
         build["protocol"],
         build["integration_revision"],
@@ -328,7 +335,11 @@ class AgentApplicationHost:
                     "module catalog",
                     32 * 1024 * 1024,
                 )
-                self._store = Store(self.plan.bridge.database, catalog)
+                self._store = Store(
+                    self.plan.bridge.database,
+                    catalog,
+                    compiled_operations=self.plan.extensions.compiled_operations(),
+                )
                 self._event_log = SemanticEventLog(self.plan.events_database)
                 self._bridge_server = make_server(
                     self._store,

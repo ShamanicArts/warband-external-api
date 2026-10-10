@@ -14,10 +14,11 @@ from urllib.parse import parse_qs, urlparse
 from bridge.campaign import CampaignExports
 from bridge.market import MerchantExports
 from bridge.protocol import OPERATIONS, validate_operation, wire_arguments
+from warband_agentic.compiled_extensions import index_compiled_operations
 
 
 class Store:
-    def __init__(self, database: Path, catalog=None):
+    def __init__(self, database: Path, catalog=None, compiled_operations=()):
         self.lock = threading.RLock()
         self.wakeup = threading.Condition(self.lock)
         self.db = sqlite3.connect(database, check_same_thread=False)
@@ -55,6 +56,11 @@ class Store:
         self.diagnostics = {}
         self.scans = {}
         self.dialogues = {}
+        self.compiled_operations = index_compiled_operations(
+            compiled_operations,
+            reserved_names=OPERATIONS,
+            reserved_opcodes=OPERATIONS.values(),
+        )
         self.catalog = (catalog or {}).get("troops", {})
         self.module_catalog = catalog or {}
         self._dialogue_entries = {
@@ -117,7 +123,11 @@ class Store:
     def enqueue_operation(self, kind, arguments):
         with self.lock:
             state = self.snapshot()
-            validate_operation(kind, arguments, state)
+            compiled_operation = self.compiled_operations.get(kind)
+            if compiled_operation is None:
+                validate_operation(kind, arguments, state)
+            else:
+                compiled_operation.validate(arguments, state)
             if kind == "leave_village" and state.get(
                 "mission_template_id"
             ) not in self.module_catalog.get("village_departure_missions", []):
@@ -135,6 +145,15 @@ class Store:
                         "This action is not allowlisted for the current menu"
                     )
             if kind in ("select_menu", "scan_merchant", "goods_trade"):
+                state = {
+                    **state,
+                    "scene_id": state["menu_id"],
+                    "mission_session": state["menu_session"],
+                }
+            elif (
+                compiled_operation is not None
+                and compiled_operation.context.value == "menu"
+            ):
                 state = {
                     **state,
                     "scene_id": state["menu_id"],
@@ -284,6 +303,9 @@ class Store:
                     self.wakeup.wait(timeout=min(max(wait_seconds, 0), 2))
                     waited = True
                     continue
+                compiled_operation = (
+                    self.compiled_operations.get(row["kind"]) if row else None
+                )
                 if (
                     row is None
                     or row["kind"] == "message"
@@ -323,7 +345,24 @@ class Store:
                         )
                     )
                     or (
-                        row["kind"]
+                        compiled_operation is not None
+                        and query["context"] == compiled_operation.context.value
+                        and row["scene"]
+                        == (
+                            values.get("menu")
+                            if compiled_operation.context.value == "menu"
+                            else values.get("scene")
+                        )
+                        and row["session"]
+                        == (
+                            values.get("menu-session")
+                            if compiled_operation.context.value == "menu"
+                            else values.get("session")
+                        )
+                    )
+                    or (
+                        compiled_operation is None
+                        and row["kind"]
                         not in (
                             "scan_campaign",
                             "select_menu",
@@ -382,13 +421,20 @@ class Store:
                     if "pulse" in values
                     else "741731|2|0|0|0|0|0|0|0|idle"
                 )
-            args = wire_arguments(row["kind"], json.loads(row["arguments"]))
+            compiled_operation = self.compiled_operations.get(row["kind"])
+            args = (
+                compiled_operation.wire_arguments(json.loads(row["arguments"]))
+                if compiled_operation is not None
+                else wire_arguments(row["kind"], json.loads(row["arguments"]))
+            )
             args[3] = row["session"] if row["session"] is not None else -1
             fields = [
                 741731,
                 2,
                 row["id"],
-                OPERATIONS[row["kind"]],
+                compiled_operation.opcode
+                if compiled_operation is not None
+                else OPERATIONS[row["kind"]],
                 *args,
                 row["scene"] if row["scene"] is not None else -1,
             ]
@@ -709,9 +755,7 @@ class Store:
                 events.append(event)
             return {
                 "events": events,
-                "latest_sequence": events[-1]["sequence"]
-                if events
-                else after_sequence,
+                "latest_sequence": events[-1]["sequence"] if events else after_sequence,
                 "durable": True,
                 "caveat": (
                     "Events prove committed Native entries, not remote choice "

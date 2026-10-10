@@ -14,6 +14,10 @@ from typing import Mapping
 
 from warband_agentic.agent_api import ConstrainedAgentSession
 from warband_agentic.capabilities import validate_json_object, validate_object_schema
+from warband_agentic.compiled_extensions import (
+    CompiledOperation,
+    index_compiled_operations,
+)
 from warband_agentic.contracts import (
     CONTRACT_VERSION,
     RoleId,
@@ -257,6 +261,7 @@ class ExtensionBundle:
     extension: AgenticExtension
     factories: Mapping
     settings_validators: Mapping = field(default_factory=dict)
+    compiled_operations: tuple[CompiledOperation, ...] = ()
 
     def __post_init__(self):
         if not isinstance(self.extension, AgenticExtension):
@@ -268,6 +273,16 @@ class ExtensionBundle:
             if not isinstance(value, Mapping):
                 raise TypeError(f"extension bundle {name} must be a mapping")
             object.__setattr__(self, name, MappingProxyType(dict(value)))
+        operations = tuple(self.compiled_operations)
+        index_compiled_operations(operations)
+        if operations and not self.extension.module_required:
+            raise ValueError("compiled operations require module_required=True")
+        prefix = self.extension.extension_id + "."
+        if any(not operation.name.startswith(prefix) for operation in operations):
+            raise ValueError(
+                "compiled operation names must use the extension namespace"
+            )
+        object.__setattr__(self, "compiled_operations", operations)
 
     def register(self, registry):
         if not isinstance(registry, ExtensionRegistry):
@@ -276,6 +291,7 @@ class ExtensionBundle:
             self.extension,
             self.factories,
             self.settings_validators,
+            compiled_operations=self.compiled_operations,
         )
 
 
@@ -349,8 +365,17 @@ class ExtensionRegistry:
         self._extensions = {}
         self._applications = {}
         self._resource_owners = {}
+        self._compiled_operations = {}
+        self._extension_operations = {}
 
-    def register(self, extension, factories, settings_validators=None):
+    def register(
+        self,
+        extension,
+        factories,
+        settings_validators=None,
+        *,
+        compiled_operations=(),
+    ):
         if not isinstance(extension, AgenticExtension):
             raise TypeError("extension must be an AgenticExtension")
         if extension.protocol != self.protocol:
@@ -386,8 +411,42 @@ class ExtensionRegistry:
                 raise ValueError(
                     "resource claim collision with " + self._resource_owners[key]
                 )
+        operations = tuple(compiled_operations)
+        operation_index = index_compiled_operations(
+            operations,
+            reserved_names=self._compiled_operations,
+            reserved_opcodes=(
+                operation.opcode for operation in self._compiled_operations.values()
+            ),
+        )
+        if operations and not extension.module_required:
+            raise ValueError("compiled operations require module_required=True")
+        if any(
+            operation.integration_revision != self.integration_revision
+            for operation in operations
+        ):
+            raise ValueError("compiled operation integration revision is incompatible")
+        prefix = extension.extension_id + "."
+        if any(not operation.name.startswith(prefix) for operation in operations):
+            raise ValueError(
+                "compiled operation names must use the extension namespace"
+            )
+        declared_backend_operations = {
+            operation
+            for application in extension.applications
+            for operation in application.backend_operations
+        }
+        if any(
+            operation.name not in declared_backend_operations
+            for operation in operations
+        ):
+            raise ValueError(
+                "compiled operations must be declared by an application backend"
+            )
 
         self._extensions[extension.extension_id] = extension
+        self._extension_operations[extension.extension_id] = operations
+        self._compiled_operations.update(operation_index)
         for definition in extension.applications:
             self._applications[definition.kind] = (
                 extension,
@@ -462,18 +521,32 @@ class ExtensionRegistry:
         return application
 
     def catalog(self):
+        def manifest(extension):
+            result = extension.manifest()
+            result["compiled_operations"] = [
+                operation.manifest()
+                for operation in self._extension_operations[extension.extension_id]
+            ]
+            return result
+
         return {
             "schema": EXTENSION_CATALOG_SCHEMA,
             "contract_schema": CONTRACT_VERSION,
             "protocol": self.protocol,
             "integration_revision": self.integration_revision,
             "extensions": [
-                extension.manifest()
+                manifest(extension)
                 for extension in sorted(
                     self._extensions.values(), key=lambda item: item.extension_id
                 )
             ],
         }
+
+    def compiled_operations(self):
+        return tuple(
+            self._compiled_operations[name]
+            for name in sorted(self._compiled_operations)
+        )
 
     def summaries(self):
         return tuple(

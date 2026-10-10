@@ -32,7 +32,9 @@ session IDs, more than one player-menu controller, and overlapping faction-party
 or NPC-agent ownership. Its JSON diagnostics contain no paths, tokens, private
 command IDs or handler names.
 It also requires the build manifest to provide the exact ID/version of every
-loaded extension marked as needing compiled module support.
+loaded extension marked as needing compiled module support. If any loaded bundle
+declares compiled operations, their full manifests must also exactly match the
+generated module; a version match alone is not accepted.
 
 ## Run
 

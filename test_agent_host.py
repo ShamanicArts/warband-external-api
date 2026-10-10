@@ -10,7 +10,7 @@ from urllib.request import Request, urlopen
 from bridge.agent_host import AgentApplicationHost, load_agent_host_plan
 from bridge.application_extensions import built_in_extension_registry
 from bridge.native_npc_speech_app import NativeNpcSpeechApplication
-from test_agentic_extensions import example_extension
+from test_agentic_extensions import example_extension, grant_gold_operation
 
 
 def available_port():
@@ -305,7 +305,8 @@ class AgentApplicationHostCliTests(unittest.TestCase):
                     "v=2&context=mission&ack=0&gold=355&troop=0&hp=50&x=0&y=0&z=0"
                     "&clock=90&scene=42&session=1&agent=0&result=0&build=16"
                     "&menu=-1&menu-session=0&dialogue=0&captive=0&flags=0&token="
-                    + "a" * 64
+                    + "a"
+                    * 64
                 )
                 with urlopen(
                     f"http://127.0.0.1:{bridge_port}/poll?{query}", timeout=2
@@ -350,9 +351,7 @@ class AgentApplicationHostCliTests(unittest.TestCase):
                 with self.subTest(port=port):
                     with socket.socket() as probe:
                         probe.settimeout(0.1)
-                        self.assertNotEqual(
-                            probe.connect_ex(("127.0.0.1", port)), 0
-                        )
+                        self.assertNotEqual(probe.connect_ex(("127.0.0.1", port)), 0)
 
     def test_explicit_extension_registry_hosts_custom_kind_without_import_paths(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -380,7 +379,11 @@ class AgentApplicationHostCliTests(unittest.TestCase):
                             {
                                 "extension_id": "warband.native",
                                 "version": "0.2.0",
-                            }
+                            },
+                            {
+                                "extension_id": "example.dialogue",
+                                "version": "1.2.3",
+                            },
                         ],
                     }
                 )
@@ -424,9 +427,23 @@ class AgentApplicationHostCliTests(unittest.TestCase):
             )
             registry = built_in_extension_registry()
             registry.register(
-                example_extension(),
+                example_extension(
+                    module_required=True,
+                    backend_operations=(
+                        "scan_agents",
+                        "npc_say",
+                        "example.dialogue.grant-gold",
+                    ),
+                ),
                 {"example-npc": NativeNpcSpeechApplication},
+                compiled_operations=(grant_gold_operation(),),
             )
+            with self.assertRaisesRegex(ValueError, "compiled operation contract"):
+                load_agent_host_plan(config, registry)
+            build_path = root / "mcp-build.json"
+            build_manifest = json.loads(build_path.read_text())
+            build_manifest["compiled_operations"] = [grant_gold_operation().manifest()]
+            build_path.write_text(json.dumps(build_manifest))
             plan = load_agent_host_plan(config, registry)
             self.assertEqual(
                 plan.diagnostics()["extensions"],
@@ -438,11 +455,15 @@ class AgentApplicationHostCliTests(unittest.TestCase):
             host = AgentApplicationHost(plan)
             try:
                 host.start()
+                self.assertIn(
+                    "example.dialogue.grant-gold", host._store.compiled_operations
+                )
                 query = (
                     "v=2&context=mission&ack=0&gold=355&troop=0&hp=50&x=0&y=0&z=0"
                     "&clock=90&scene=42&session=1&agent=0&result=0&build=16"
                     "&menu=-1&menu-session=0&dialogue=0&captive=0&flags=0&token="
-                    + "1" * 64
+                    + "1"
+                    * 64
                 )
                 with urlopen(
                     f"http://127.0.0.1:{bridge_port}/poll?{query}", timeout=2
@@ -464,10 +485,7 @@ class AgentApplicationHostCliTests(unittest.TestCase):
                 with urlopen(catalog_request, timeout=2) as response:
                     extension_catalog = json.load(response)
                 self.assertEqual(
-                    [
-                        item["extension_id"]
-                        for item in extension_catalog["extensions"]
-                    ],
+                    [item["extension_id"] for item in extension_catalog["extensions"]],
                     ["example.dialogue", "warband.native"],
                 )
                 self.assertNotIn("factory", json.dumps(extension_catalog).lower())

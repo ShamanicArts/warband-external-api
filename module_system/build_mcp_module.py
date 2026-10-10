@@ -38,6 +38,11 @@ from module_system.native_dialogue import dialogue_sampler, native_entry
 from module_system.scene_ops import agent_combat, agent_move, agent_release, agent_wield
 from module_system.world_ops import diplomacy, party_order, world_encounter
 from module_system.world_ops import query as world_query
+from warband_agentic.compiled_extensions import (
+    CompiledContext,
+    HandlerOperand,
+    index_compiled_operations,
+)
 
 REG = 1 << 56
 STR = 3 << 56
@@ -52,8 +57,30 @@ MISSION_SLOT, MISSION_FLAGS_SLOT = 99991, 99990
 MENU_SLOT, POLL_NONCE_SLOT, DIALOG_ACTIVE_SLOT = 99989, 99988, 99986
 MENU_SESSION_SLOT, MENU_RESULT_SLOT, MENU_REG_BASE = 99985, 99984, 99940
 SCRIPT = 13 << 56
-BUILTIN_MODULE_EXTENSIONS = (
-    {"extension_id": "warband.native", "version": "0.2.0"},
+BUILTIN_MODULE_EXTENSIONS = ({"extension_id": "warband.native", "version": "0.2.0"},)
+CORE_COMMANDS = (
+    "message",
+    "scan_agents",
+    "relocate_player",
+    "npc_say",
+    "scan_campaign",
+    "select_menu",
+    "battle_order",
+    "formation_position",
+    "agent_combat",
+    "agent_move",
+    "agent_release",
+    "agent_wield",
+    "world_query",
+    "diplomacy",
+    "party_order",
+    "campaign_wait",
+    "scan_merchant",
+    "goods_trade",
+    "world_encounter",
+    "leave_scene",
+    "leave_village",
+    "native_dialogue",
 )
 
 # Official operation names and values, not the previous prototype's headers.
@@ -202,6 +229,33 @@ def compile_ops(operations):
     )
 
 
+def module_extension_inventory(extensions):
+    """Validate and canonicalize the exact extensions compiled into a module."""
+    result = []
+    for item in tuple(extensions):
+        if not isinstance(item, dict) or set(item) != {"extension_id", "version"}:
+            raise ValueError("module extension inventory entries must be exact objects")
+        extension_id, version = item["extension_id"], item["version"]
+        if (
+            not isinstance(extension_id, str)
+            or not re.fullmatch(
+                r"[a-z][a-z0-9]*(?:[.-][a-z0-9][a-z0-9-]*)+", extension_id
+            )
+            or not isinstance(version, str)
+            or not re.fullmatch(
+                r"[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?", version
+            )
+        ):
+            raise ValueError("module extension inventory entry is invalid")
+        result.append({"extension_id": extension_id, "version": version})
+    identifiers = [item["extension_id"] for item in result]
+    if len(identifiers) != len(set(identifiers)):
+        raise ValueError("module extension inventory IDs must be unique")
+    if BUILTIN_MODULE_EXTENSIONS[0] not in result:
+        raise ValueError("module extension inventory must include warband.native 0.2.0")
+    return tuple(sorted(result, key=lambda item: item["extension_id"]))
+
+
 def telemetry_ops(url_string, mission, native_globals=None, context=None):
     ops = [
         ("not_multiplayer",),
@@ -279,6 +333,69 @@ def telemetry(url_string, mission, native_globals=None, context=None):
     return compile_ops(telemetry_ops(url_string, mission, native_globals, context))
 
 
+def compiled_operation_ops(operation, kind, a, b, third, session, scene, result, tmp):
+    """Compile one declaration behind context, scope, and argument guards."""
+    context_code = {
+        CompiledContext.CAMPAIGN: 0,
+        CompiledContext.MISSION: 1,
+        CompiledContext.MENU: 2,
+    }[operation.context]
+    operations = [
+        ("else_try",),
+        ("eq", kind, operation.opcode),
+        ("troop_get_slot", tmp, TROOP, CONTEXT_SLOT),
+        ("eq", tmp, context_code),
+    ]
+    if operation.context is CompiledContext.CAMPAIGN:
+        operations.extend((("eq", scene, -1), ("eq", session, -1)))
+    elif operation.context is CompiledContext.MENU:
+        operations.extend(
+            (
+                ("troop_get_slot", tmp, TROOP, MENU_SESSION_SLOT),
+                ("eq", tmp, session),
+                ("troop_get_slot", tmp, TROOP, MENU_SLOT),
+                ("eq", tmp, scene),
+            )
+        )
+    else:
+        operations.extend(
+            (
+                ("troop_get_slot", tmp, TROOP, SESSION_SLOT),
+                ("eq", tmp, session),
+                ("store_current_scene", tmp),
+                ("eq", tmp, scene),
+            )
+        )
+    argument_locals = (a, b, third)
+    for argument, local in zip(
+        operation.arguments,
+        argument_locals[: len(operation.arguments)],
+        strict=True,
+    ):
+        operations.extend(
+            (("ge", local, argument.minimum), ("le", local, argument.maximum))
+        )
+    operands = {
+        HandlerOperand.ARG0: a,
+        HandlerOperand.ARG1: b,
+        HandlerOperand.ARG2: third,
+        HandlerOperand.PLAYER_TROOP: TROOP,
+    }
+    for instruction in operation.handler:
+        if instruction.operation not in OPS:
+            raise ValueError(
+                f"unknown Module System operation {instruction.operation!r}"
+            )
+        operations.append(
+            (
+                instruction.operation,
+                *(operands.get(operand, operand) for operand in instruction.operands),
+            )
+        )
+    operations.append(("assign", result, 0))
+    return operations
+
+
 def callback(
     agent_url=0,
     end_url=0,
@@ -305,7 +422,18 @@ def callback(
     village_departure_id=None,
     village_quest_effects=None,
     native_dialogue_missions=None,
+    compiled_operations=(),
 ):
+    compiled_operations = tuple(
+        sorted(
+            index_compiled_operations(
+                compiled_operations,
+                reserved_names=CORE_COMMANDS,
+                reserved_opcodes=range(1, 23),
+            ).values(),
+            key=lambda operation: operation.name,
+        )
+    )
     cmd, kind, a, b, session, scene, result, tmp, agent, count = [
         LOCAL + i for i in (3, 4, 5, 6, 8, 9, 10, 11, 12, 13)
     ]
@@ -628,6 +756,21 @@ def callback(
             ("eq", session, -1),
             ("eq", (native_globals or {}).get("g_player_is_captive", -1), 0),
             *world_encounter(world_result_url, native_globals or {}),
+            *[
+                compiled_op
+                for declaration in compiled_operations
+                for compiled_op in compiled_operation_ops(
+                    declaration,
+                    kind,
+                    a,
+                    b,
+                    LOCAL + 16,
+                    session,
+                    scene,
+                    result,
+                    tmp,
+                )
+            ],
             ("try_end",),
             ("troop_set_slot", TROOP, RESULT_SLOT, result),
             ("troop_set_slot", TROOP, ACK_SLOT, cmd),
@@ -738,7 +881,41 @@ def dialogue_evidence_ops(entry, event_url):
     ]
 
 
-def build(native: Path, output: Path, endpoint: str, token: str):
+def build(
+    native: Path,
+    output: Path,
+    endpoint: str,
+    token: str,
+    *,
+    compiled_operations=(),
+    module_extensions=None,
+):
+    compiled_operations = tuple(
+        sorted(
+            index_compiled_operations(
+                compiled_operations,
+                reserved_names=CORE_COMMANDS,
+                reserved_opcodes=range(1, 23),
+            ).values(),
+            key=lambda operation: operation.name,
+        )
+    )
+    if any(operation.integration_revision != 16 for operation in compiled_operations):
+        raise ValueError("compiled operations must target integration revision 16")
+    module_extensions = module_extension_inventory(
+        BUILTIN_MODULE_EXTENSIONS if module_extensions is None else module_extensions
+    )
+    for extension in module_extensions:
+        if extension == BUILTIN_MODULE_EXTENSIONS[0]:
+            continue
+        prefix = extension["extension_id"] + "."
+        if not any(
+            operation.name.startswith(prefix) for operation in compiled_operations
+        ):
+            raise ValueError(
+                f"module extension {extension['extension_id']} has no "
+                "compiled operations"
+            )
     native, output = native.resolve(), output.resolve()
     if native.name != "Native" or not (native / "module.ini").is_file():
         raise ValueError("Source must be an installed Native module")
@@ -1112,6 +1289,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                             else [village_departure_id]
                         ),
                     ],
+                    compiled_operations=compiled_operations,
                 )
                 + "\n"
             ),
@@ -1172,9 +1350,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     "player_choice_count": sum(
                         entry["player_choice"] for entry in native_dialogues
                     ),
-                    "player_choice_candidates": player_choice_catalog(
-                        native_dialogues
-                    ),
+                    "player_choice_candidates": player_choice_catalog(native_dialogues),
                     "entries": dialogue_catalog(native_dialogues),
                     "availability": (
                         "Static candidates are not availability claims. Engine events "
@@ -1194,7 +1370,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             {
                 "protocol": 2,
                 "integration_revision": 16,
-                "extensions": list(BUILTIN_MODULE_EXTENSIONS),
+                "extensions": list(module_extensions),
                 "scene_departure_missions": departure_ids,
                 "source": str(native),
                 "transport": "engine HTTP opcode 380",
@@ -1210,28 +1386,11 @@ def build(native: Path, output: Path, endpoint: str, token: str):
                     "menus.txt",
                 ],
                 "commands": [
-                    "message",
-                    "scan_agents",
-                    "relocate_player",
-                    "npc_say",
-                    "scan_campaign",
-                    "select_menu",
-                    "battle_order",
-                    "formation_position",
-                    "agent_combat",
-                    "agent_move",
-                    "agent_release",
-                    "agent_wield",
-                    "world_query",
-                    "diplomacy",
-                    "party_order",
-                    "campaign_wait",
-                    "scan_merchant",
-                    "goods_trade",
-                    "world_encounter",
-                    "leave_scene",
-                    "leave_village",
-                    "native_dialogue",
+                    *CORE_COMMANDS,
+                    *(operation.name for operation in compiled_operations),
+                ],
+                "compiled_operations": [
+                    operation.manifest() for operation in compiled_operations
                 ],
             },
             indent=2,
@@ -1245,8 +1404,21 @@ def main(argv=None):
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--endpoint", default="http://127.0.0.1")
     parser.add_argument("--token-file", type=Path, required=True)
+    parser.add_argument("--extension", action="append", default=[])
     args = parser.parse_args(argv)
-    build(args.native, args.output, args.endpoint, args.token_file.read_text().strip())
+    from bridge.application_extensions import built_in_extension_registry
+    from warband_agentic.extensions import load_named_extension_entry_points
+
+    extensions = built_in_extension_registry()
+    load_named_extension_entry_points(extensions, args.extension)
+    build(
+        args.native,
+        args.output,
+        args.endpoint,
+        args.token_file.read_text().strip(),
+        compiled_operations=extensions.compiled_operations(),
+        module_extensions=extensions.required_module_extensions(),
+    )
 
 
 if __name__ == "__main__":
