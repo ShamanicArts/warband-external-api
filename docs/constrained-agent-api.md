@@ -35,6 +35,9 @@ the runtime never replays the uncertain mutation to obtain that evidence.
 versioned JSON configuration, gives every session a separate loopback port/token,
 and exposes explicit trusted faction/NPC refresh through a distinct operator
 control listener. See [the application-host guide](application-host.md).
+Trusted launchers can add declared application kinds through the
+[Python extension SDK](extension-sdk.md); agent-facing session semantics remain
+the same.
 
 ## Native menu application
 
@@ -129,9 +132,9 @@ acknowledgement is not promoted to observed outcome.
 
 ## Current limitations
 
-- Packaged loading and lifecycle management cover the three static built-in
-  applications. Third-party discovery, hot reload and dynamic session creation
-  are not implemented.
+- The stock CLI covers the three static built-in applications. Explicit trusted
+  extension registration is supported, while installed-package discovery, hot
+  reload and dynamic session creation are not implemented.
 - When a `SemanticEventLog` is supplied, new action records durably reconstruct
   exact request idempotency, the latest public outcome and private
   application-owned bridge correlation after restart. Recovery never dispatches

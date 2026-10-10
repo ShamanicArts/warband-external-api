@@ -24,6 +24,7 @@ separate engine facts support it.
 | NPC speech application | bridge simulated over visually proven mechanic | `test_native_npc_speech_app.py`, `docs/npc-speech.md`, `evidence/scene-control/` | new composition and integrated voice handoff not yet live-tested; one-turn speech only |
 | Python package and commands | installed-wheel structural proof | `test_packaging.py`, `docs/packaging.md`, `pyproject.toml` | no project license, guided installer, client registration or fresh-install game acceptance yet |
 | Packaged application host | loopback runtime simulation | `test_agent_host.py`, `docs/application-host.md`, `config/agent-host.example.json` | one NPC session lifecycle/refresh exercised; three-session plan structurally validated; no live game or multi-session runtime acceptance yet |
+| Python extension SDK | loopback runtime simulation | `test_agentic_extensions.py`, `test_agent_host.py`, `docs/extension-sdk.md` | explicit trusted registration and one custom-kind host lifecycle proven; no package discovery or generated ModSys handler extension yet |
 | GPU-safe live test harness | physical-GPU probe + live private launcher capture | `test_gpu_safe_runner.py`, `test_warband_gpu_supervisor.py`, `evidence/runtime/gpu-probe.json`, `evidence/runtime/gpu-safety-validation.json` | launcher capture is safe; unattended Play and game-process GPU proof remain open |
 
 ## Video ledger

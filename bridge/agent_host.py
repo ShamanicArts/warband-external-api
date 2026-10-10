@@ -11,15 +11,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+from bridge.application_extensions import built_in_extension_registry
 from bridge.game_bridge import Store, make_server
-from bridge.native_faction_agent_app import (
-    NativeFactionAgentApplication,
-    PartyOrderOption,
-)
-from bridge.native_menu_agent_app import NativeMenuAgentApplication
-from bridge.native_npc_speech_app import NativeNpcSpeechApplication
 from warband_agentic.agent_http import make_agent_server
 from warband_agentic.events import SemanticEventLog
+from warband_agentic.extensions import ExtensionRegistry
 
 HOST_CONFIG_SCHEMA = "warband.agentic/host-config/v1"
 HOST_DIAGNOSTICS_SCHEMA = "warband.agentic/host-diagnostics/v1"
@@ -62,6 +58,7 @@ class AgentHostPlan:
     sessions: tuple[SessionHostPlan, ...]
     module_protocol: int
     integration_revision: int
+    extensions: ExtensionRegistry
 
     def diagnostics(self):
         return {
@@ -73,6 +70,7 @@ class AgentHostPlan:
             },
             "bridge": {"host": "127.0.0.1", "port": self.bridge.port},
             "control": {"host": "127.0.0.1", "port": self.control.port},
+            "extensions": list(self.extensions.summaries()),
             "sessions": [
                 {
                     "kind": session.kind,
@@ -146,69 +144,26 @@ def _identifier(value, label):
     return value
 
 
-def _entity_id(value, label):
-    if type(value) is not int or not 0 <= value < 1_000_000:
-        raise ValueError(f"{label} must be a bounded non-negative integer")
-    return value
-
-
-def _session_plan(base, value, index):
+def _session_plan(base, value, index, extensions):
     if not isinstance(value, dict):
         raise ValueError(f"session {index} must be an object")
     common = {"kind", "session_id", "token_file", "port"}
     kind = value.get("kind")
-    specific = {
-        "native-menu": set(),
-        "native-faction": {
-            "faction_id",
-            "controlled_party_ids",
-            "order_options",
-        },
-        "native-npc-speech": {"agent_id"},
-    }
-    if kind not in specific:
+    if not isinstance(kind, str):
         raise ValueError(f"session {index} has an unsupported kind")
-    _exact_fields(value, common | specific[kind], f"session {index}")
+    try:
+        definition = extensions.application(kind)
+    except ValueError as exc:
+        raise ValueError(f"session {index} has an unsupported kind") from exc
+    properties = set(definition.settings_schema.get("properties", {}))
+    if not common <= set(value) or set(value) - common - properties:
+        raise ValueError(f"session {index} fields do not match the host schema")
     token_file, token = _read_token(
         base, value["token_file"], f"session {index} token file"
     )
-    settings = {}
-    if kind == "native-faction":
-        faction_id = _entity_id(value["faction_id"], "faction_id")
-        parties = value["controlled_party_ids"]
-        if not isinstance(parties, list) or not parties:
-            raise ValueError("controlled_party_ids must be a non-empty list")
-        controlled = tuple(
-            _entity_id(party_id, "controlled party ID") for party_id in parties
-        )
-        if len(controlled) != len(set(controlled)):
-            raise ValueError("controlled_party_ids must be unique")
-        options = value["order_options"]
-        if not isinstance(options, list) or not options:
-            raise ValueError("order_options must be a non-empty list")
-        parsed_options = []
-        for option in options:
-            _exact_fields(
-                option,
-                ("party_id", "order", "target_party_id", "title"),
-                "party order option",
-            )
-            parsed = PartyOrderOption(
-                option["party_id"],
-                option["order"],
-                option["target_party_id"],
-                option["title"],
-            )
-            if parsed.party_id not in controlled:
-                raise ValueError("party order option uses an uncontrolled party")
-            parsed_options.append(parsed)
-        settings = {
-            "faction_id": faction_id,
-            "controlled_party_ids": controlled,
-            "order_options": tuple(parsed_options),
-        }
-    elif kind == "native-npc-speech":
-        settings = {"agent_id": _entity_id(value["agent_id"], "agent_id")}
+    settings = extensions.validate_settings(
+        kind, {name: value[name] for name in properties if name in value}
+    )
     return SessionHostPlan(
         kind,
         _identifier(value["session_id"], "session_id"),
@@ -219,7 +174,11 @@ def _session_plan(base, value, index):
     )
 
 
-def load_agent_host_plan(path):
+def load_agent_host_plan(path, extensions=None):
+    if extensions is None:
+        extensions = built_in_extension_registry()
+    if not isinstance(extensions, ExtensionRegistry):
+        raise TypeError("extensions must be an ExtensionRegistry")
     config_path = Path(path).resolve()
     config = _read_json(config_path, "host configuration", 256 * 1024)
     _exact_fields(
@@ -275,7 +234,7 @@ def load_agent_host_plan(path):
     if not isinstance(sessions, list) or not 1 <= len(sessions) <= 32:
         raise ValueError("sessions must contain 1-32 entries")
     plans = tuple(
-        _session_plan(base, session, index)
+        _session_plan(base, session, index, extensions)
         for index, session in enumerate(sessions)
     )
     session_ids = [plan.session_id for plan in plans]
@@ -287,19 +246,18 @@ def load_agent_host_plan(path):
     tokens = [bridge_plan.token, control_plan.token, *(plan.token for plan in plans)]
     if len(tokens) != len(set(tokens)):
         raise ValueError("bridge and session tokens must be distinct")
-    menu_count = sum(plan.kind == "native-menu" for plan in plans)
-    if menu_count > 1:
-        raise ValueError("only one native-menu session may control the player")
-    controlled_parties = []
-    controlled_agents = []
+    control_claims = {}
     for plan in plans:
-        controlled_parties.extend(plan.settings.get("controlled_party_ids", ()))
-        if "agent_id" in plan.settings:
-            controlled_agents.append(plan.settings["agent_id"])
-    if len(controlled_parties) != len(set(controlled_parties)):
-        raise ValueError("controlled parties overlap between sessions")
-    if len(controlled_agents) != len(set(controlled_agents)):
-        raise ValueError("controlled agents overlap between sessions")
+        for claim in extensions.control_claims(plan.kind, plan.settings):
+            if claim in control_claims:
+                if claim[0] == "party":
+                    raise ValueError("controlled parties overlap between sessions")
+                if claim[0] == "agent":
+                    raise ValueError("controlled agents overlap between sessions")
+                if claim[0] == "player":
+                    raise ValueError("only one session may control the player")
+                raise ValueError("exclusive application ownership overlaps")
+            control_claims[claim] = plan.session_id
     return AgentHostPlan(
         bridge_plan,
         control_plan,
@@ -309,6 +267,7 @@ def load_agent_host_plan(path):
         plans,
         build["protocol"],
         build["integration_revision"],
+        extensions,
     )
 
 
@@ -401,26 +360,13 @@ class AgentApplicationHost:
         applications = {}
         try:
             for session in self.plan.sessions:
-                if session.kind == "native-menu":
-                    application = NativeMenuAgentApplication(
-                        self._store,
-                        session.session_id,
-                        event_log=self._event_log,
-                    )
-                elif session.kind == "native-faction":
-                    application = NativeFactionAgentApplication(
-                        self._store,
-                        session.session_id,
-                        event_log=self._event_log,
-                        **session.settings,
-                    )
-                else:
-                    application = NativeNpcSpeechApplication(
-                        self._store,
-                        session.session_id,
-                        event_log=self._event_log,
-                        **session.settings,
-                    )
+                application = self.plan.extensions.create(
+                    session.kind,
+                    self._store,
+                    session.session_id,
+                    self._event_log,
+                    session.settings,
+                )
                 server = make_agent_server(
                     application.session,
                     session.token,
@@ -492,8 +438,12 @@ class AgentApplicationHost:
                 if status in ("waiting-for-game", "ready")
                 else status,
             },
+            "extensions": list(self.plan.extensions.summaries()),
             "sessions": sessions,
         }
+
+    def extension_catalog(self):
+        return self.plan.extensions.catalog()
 
     def refresh(self, session_id):
         if not isinstance(session_id, str) or not session_id:
@@ -602,8 +552,11 @@ def make_host_control_server(host, token, bind_host="127.0.0.1", port=8879):
         def do_GET(self):
             if not self.authenticate():
                 return
-            if urlparse(self.path).path == "/v1/host/diagnostics":
+            path = urlparse(self.path).path
+            if path == "/v1/host/diagnostics":
                 self.reply(200, host.runtime_diagnostics())
+            elif path == "/v1/host/extensions":
+                self.reply(200, host.extension_catalog())
             else:
                 self.reply(404, {"error": "Unknown endpoint"})
 

@@ -2,9 +2,10 @@
 
 `warband-agent-host` owns one game bridge, one durable semantic event log, a
 trusted operator control listener and one authenticated constrained HTTP listener
-per configured application. It packages the three built-in reference
+per configured application. The stock CLI packages the three built-in reference
 applications without giving agents bridge credentials or requiring handwritten
-Python composition.
+Python composition. Trusted custom launchers can explicitly supply an extension
+registry as documented in [the extension SDK guide](extension-sdk.md).
 
 The versioned example is
 [`config/agent-host.example.json`](../config/agent-host.example.json). Relative
@@ -37,7 +38,7 @@ warband-agent-host --config /private/path/agent-host.json
 
 The bridge and control listeners bind immediately to `127.0.0.1`. The host reports
 `waiting-for-game` until valid protocol-2 telemetry arrives, then constructs the
-configured built-in applications and binds their individual constrained-agent
+configured registered applications and binds their individual constrained-agent
 listeners. Startup is fail-closed: all session sockets must bind before the host
 reports `ready`.
 
@@ -47,7 +48,11 @@ token can read safe lifecycle diagnostics:
 
 ```text
 GET /v1/host/diagnostics
+GET /v1/host/extensions
 ```
+
+The extension endpoint returns compatible declarations and safe resource claims,
+not Python factories, paths, tokens or live application objects.
 
 Faction and NPC observations require explicit fresh engine reads. A trusted host
 or benchmark runner queues them without exposing bridge command IDs:
@@ -67,8 +72,9 @@ or an external agent.
 ## Current limits
 
 - The application set is static for one host process; there is no hot reload.
-- Only the three reviewed built-in application kinds are loadable. Third-party
-  extension discovery remains an SDK milestone, not arbitrary Python import.
+- The stock CLI loads only the three reviewed built-in kinds. Trusted Python
+  launchers can explicitly register custom kinds, but installed-package discovery
+  and dynamic loading are not implemented; JSON never names an import path.
 - Refresh scheduling is explicit host/runner policy. The host does not silently
   choose faction decision epochs or repeatedly scan an NPC scene.
 - Voice remains a separately authenticated host process. It is not co-hosted.

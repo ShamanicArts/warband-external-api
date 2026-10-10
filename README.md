@@ -26,6 +26,9 @@ Current foundations include:
 - a constrained [NPC speech application](docs/npc-speech.md) that binds one
   freshly scanned scene agent to bounded dialogue, then creates an optional host
   voice request only after Warband reports the utterance;
+- a trusted [Python extension SDK](docs/extension-sdk.md) with versioned
+  declarations, collision checks, validated settings, explicit factories and
+  scoped access to reviewed game-operation families;
 - trusted control-lease arbitration and role/context/source-filtered observations
   that report omissions without leaking hidden facts;
 - semantic adapters for canonical engine observations, committed dialogue events,
@@ -67,7 +70,8 @@ uv run warband-agent-usability --help
 See [the packaging guide](docs/packaging.md) for reproducible sdist-to-wheel
 builds and isolated Native module generation. See the
 [application-host guide](docs/application-host.md) for validated multi-session
-runtime startup. The repository is
+runtime startup and the [extension SDK guide](docs/extension-sdk.md) for explicit
+custom application registration. The repository is
 not ready for public release yet: no project license has been selected, and
 fresh-install/live acceptance plus final video evidence remain open.
 

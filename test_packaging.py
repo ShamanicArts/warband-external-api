@@ -46,8 +46,10 @@ class PackagingTests(unittest.TestCase):
             with zipfile.ZipFile(wheel) as archive:
                 names = set(archive.namelist())
                 self.assertIn("warband_agentic/contracts.py", names)
+                self.assertIn("warband_agentic/extensions.py", names)
                 self.assertIn("warband_agentic/benchmark.py", names)
                 self.assertIn("bridge/game_bridge.py", names)
+                self.assertIn("bridge/application_extensions.py", names)
                 self.assertIn("bridge/native_faction_agent_app.py", names)
                 self.assertIn("bridge/native_npc_speech_app.py", names)
                 self.assertIn("module_system/build_mcp_module.py", names)
@@ -108,8 +110,10 @@ class PackagingTests(unittest.TestCase):
                     "-c",
                     (
                         "import bridge.native_faction_agent_app; "
+                        "import bridge.application_extensions; "
                         "import module_system.build_mcp_module; "
-                        "import warband_agentic.benchmark"
+                        "import warband_agentic.benchmark; "
+                        "import warband_agentic.extensions"
                     ),
                 ],
                 cwd=directory,

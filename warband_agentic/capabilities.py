@@ -80,6 +80,14 @@ def _validate_value(schema, value, path):
         if "maxLength" in schema and len(value) > schema["maxLength"]:
             raise ValueError(f"{path} is too long")
     if isinstance(value, tuple) and "items" in schema:
+        if "minItems" in schema and len(value) < schema["minItems"]:
+            raise ValueError(f"{path} has too few items")
+        if "maxItems" in schema and len(value) > schema["maxItems"]:
+            raise ValueError(f"{path} has too many items")
+        if schema.get("uniqueItems") and any(
+            item in value[:index] for index, item in enumerate(value)
+        ):
+            raise ValueError(f"{path} must contain unique items")
         for index, item in enumerate(value):
             _validate_value(schema["items"], item, f"{path}[{index}]")
     if isinstance(value, Mapping):
@@ -115,6 +123,25 @@ def _validate_parameter_schema(schema):
         raise ValueError("Schema requires an undeclared property")
     if schema.get("additionalProperties", False) not in (False, True):
         raise ValueError("Schema additionalProperties must be boolean")
+
+
+def validate_object_schema(schema):
+    """Validate and freeze the bounded JSON-schema subset used by the kit."""
+    frozen = _freeze_json(schema, "schema")
+    if not isinstance(frozen, Mapping):
+        raise TypeError("schema must be an object")
+    _validate_parameter_schema(frozen)
+    return frozen
+
+
+def validate_json_object(schema, value, label="value"):
+    """Validate one object against the kit's schema subset and freeze its data."""
+    frozen_schema = validate_object_schema(schema)
+    frozen_value = _freeze_json(value, label)
+    if not isinstance(frozen_value, Mapping):
+        raise ValueError(f"{label} must be object")
+    _validate_object(frozen_schema, frozen_value, label)
+    return frozen_value
 
 
 @dataclass(frozen=True, slots=True)

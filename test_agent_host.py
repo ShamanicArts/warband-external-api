@@ -8,6 +8,9 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 from bridge.agent_host import AgentApplicationHost, load_agent_host_plan
+from bridge.application_extensions import built_in_extension_registry
+from bridge.native_npc_speech_app import NativeNpcSpeechApplication
+from test_agentic_extensions import example_extension
 
 
 def available_port():
@@ -113,6 +116,9 @@ class AgentApplicationHostCliTests(unittest.TestCase):
                     "module": {"protocol": 2, "integration_revision": 16},
                     "bridge": {"host": "127.0.0.1", "port": 8765},
                     "control": {"host": "127.0.0.1", "port": 8766},
+                    "extensions": [
+                        {"extension_id": "warband.native", "version": "0.2.0"}
+                    ],
                     "sessions": [
                         {
                             "kind": "native-menu",
@@ -295,6 +301,115 @@ class AgentApplicationHostCliTests(unittest.TestCase):
                         self.assertNotEqual(
                             probe.connect_ex(("127.0.0.1", port)), 0
                         )
+
+    def test_explicit_extension_registry_hosts_custom_kind_without_import_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            bridge_port, control_port, session_port = (
+                available_port(),
+                available_port(),
+                available_port(),
+            )
+            while len({bridge_port, control_port, session_port}) != 3:
+                bridge_port, control_port, session_port = (
+                    available_port(),
+                    available_port(),
+                    available_port(),
+                )
+            (root / "mcp-catalog.json").write_text(
+                json.dumps({"troops": {"7": "Trainer"}})
+            )
+            (root / "mcp-build.json").write_text(
+                json.dumps({"protocol": 2, "integration_revision": 16})
+            )
+            for name, token in (
+                ("bridge", "1" * 64),
+                ("control", "2" * 64),
+                ("agent", "3" * 64),
+            ):
+                path = root / f"{name}.token"
+                path.write_text(token)
+                path.chmod(0o600)
+            config = root / "host.json"
+            config.write_text(
+                json.dumps(
+                    {
+                        "schema": "warband.agentic/host-config/v1",
+                        "bridge": {
+                            "database": "bridge.sqlite3",
+                            "catalog": "mcp-catalog.json",
+                            "build_manifest": "mcp-build.json",
+                            "token_file": "bridge.token",
+                            "port": bridge_port,
+                        },
+                        "control": {
+                            "token_file": "control.token",
+                            "port": control_port,
+                        },
+                        "events_database": "events.sqlite3",
+                        "sessions": [
+                            {
+                                "kind": "example-npc",
+                                "session_id": "custom-trainer",
+                                "token_file": "agent.token",
+                                "port": session_port,
+                                "agent_id": 7,
+                            }
+                        ],
+                    }
+                )
+            )
+            registry = built_in_extension_registry()
+            registry.register(
+                example_extension(),
+                {"example-npc": NativeNpcSpeechApplication},
+            )
+            plan = load_agent_host_plan(config, registry)
+            self.assertEqual(
+                plan.diagnostics()["extensions"],
+                [
+                    {"extension_id": "example.dialogue", "version": "1.2.3"},
+                    {"extension_id": "warband.native", "version": "0.2.0"},
+                ],
+            )
+            host = AgentApplicationHost(plan)
+            try:
+                host.start()
+                query = (
+                    "v=2&context=mission&ack=0&gold=355&troop=0&hp=50&x=0&y=0&z=0"
+                    "&clock=90&scene=42&session=1&agent=0&result=0&build=16"
+                    "&menu=-1&menu-session=0&dialogue=0&captive=0&flags=0&token="
+                    + "1" * 64
+                )
+                with urlopen(
+                    f"http://127.0.0.1:{bridge_port}/poll?{query}", timeout=2
+                ) as response:
+                    self.assertEqual(response.status, 200)
+                self.assertTrue(host.wait_until_ready(timeout=2))
+                request = Request(
+                    f"http://127.0.0.1:{session_port}/v1/agent/manifest",
+                    headers={"Authorization": "Bearer " + "3" * 64},
+                )
+                with urlopen(request, timeout=2) as response:
+                    manifest = json.load(response)
+                self.assertEqual(manifest["session_id"], "custom-trainer")
+                self.assertEqual(manifest["role"], "npc.self")
+                catalog_request = Request(
+                    f"http://127.0.0.1:{control_port}/v1/host/extensions",
+                    headers={"Authorization": "Bearer " + "2" * 64},
+                )
+                with urlopen(catalog_request, timeout=2) as response:
+                    extension_catalog = json.load(response)
+                self.assertEqual(
+                    [
+                        item["extension_id"]
+                        for item in extension_catalog["extensions"]
+                    ],
+                    ["example.dialogue", "warband.native"],
+                )
+                self.assertNotIn("factory", json.dumps(extension_catalog).lower())
+            finally:
+                host.stop()
 
 
 if __name__ == "__main__":

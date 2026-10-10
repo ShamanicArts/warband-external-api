@@ -743,3 +743,29 @@ The wheel installs the host command and both host/voice examples. Two host tests
 raise separated discovery to **241 tests**: 107 root, 86 bridge and 48
 module-system. Third-party discovery, hot reload, client registration and live
 multi-session acceptance remain open.
+
+## Explicit Python extension SDK
+
+`warband_agentic.extensions` now defines versioned `AgenticExtension` and
+`ApplicationKind` declarations, semantic-version/protocol/revision compatibility,
+validated settings schemas, host-level ownership rules and exact resource claims.
+`ExtensionRegistry` registers declarations, private factories and optional
+cross-field validators atomically; duplicate IDs/kinds and resource collisions
+fail before the registry changes. Its public catalog never exposes factories or
+credentials.
+
+Factories receive a `ScopedGameBackend` instead of the raw bridge Store. It
+permits telemetry/catalog reads but rejects queueing or reading command families
+not declared by that application kind. The three Native applications are now a
+reviewed `warband.native` 0.2.0 extension, and the application host constructs all
+sessions through the same registry. An explicit custom registry can host a new
+kind without a config-supplied import path; the stock CLI still loads built-ins
+only. Authenticated host control exposes the safe declaration catalog at
+`GET /v1/host/extensions`.
+
+Four regression tests cover compatibility/settings/resource rejection, bounded
+faction configuration, scoped command denial and a real loopback custom-kind host
+lifecycle. Separated discovery passes **245 tests**: 111 root, 86 bridge and 48
+module-system. Installed-package discovery, hot reload, malicious-Python
+sandboxing and generation/merging of new ModSys handlers are explicitly not
+implemented.

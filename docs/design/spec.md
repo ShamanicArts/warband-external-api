@@ -543,5 +543,9 @@ The kit is ready for an initial public developer release when:
       while DeepSeek 4.1 was unavailable and not substituted.
 - [x] Add a Python-first constrained session and authenticated loopback API that
       keeps identity/lease/handler bindings private and filters session events.
+- [x] Add explicit trusted Python extension registration with versioned
+      declarations, collision checks, settings/ownership validation, scoped
+      backend operations and host integration. Installed-package discovery and
+      generated ModSys handlers remain open.
 - [ ] Complete the collated test/live/video evidence report before final handoff.
 - [ ] Resolve Q1 licensing before calling any artifact publicly releasable.
