@@ -58,7 +58,9 @@ The CUA session label defaults to a value unique to the outer runner process, so
 completed daemon sessions are never accidentally reused. A positive
 `--post-acceptance-seconds` keeps every safety guard active for that additional
 bounded interval and writes `game-final.png` plus `cua-final-capture.json` before
-teardown. Use zero when the first non-black rendered frame is sufficient.
+teardown. `session.json` retains the exact resource limits plus cgroup-v2 CPU
+seconds, memory peak and PID peak before the transient unit disappears. Use zero
+when the first non-black rendered frame is sufficient.
 
 For manual diagnostics only, omit `--auto-play`, then inspect the launcher in a
 second terminal through the existing X11 CUA daemon:
@@ -82,6 +84,13 @@ Success is not the CUA acknowledgement. It requires all of:
   gfx-engine counter increased on `/dev/dri/renderD129`;
 - no software-renderer marker in the owned cgroup or logs;
 - a CUA capture whose mean luminance passes the non-black game-frame gate.
+
+Background input beyond the launcher has an explicit current boundary. A fresh
+2026-10-10 run reached the main menu and changed `Play Tutorial` into its yellow
+hover state through exact-window background delivery, but background Enter and
+double-click produced byte-identical frames and no bridge connection. Do not
+repeat blind clicks or escalate to foreground delivery. The retained proof is in
+`evidence/runtime/background-input-boundary/`.
 
 The accepted 2026-10-10 artifacts are in
 `evidence/runtime/desktop-gpu-safe/`.

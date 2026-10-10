@@ -1,0 +1,52 @@
+{
+  "schema": "warband.agentic/background-input-boundary/v1",
+  "accepted_at": "2026-10-10",
+  "module": "WarbandAgenticSemanticAcceptance",
+  "resource_limits": {
+    "cpu_quota_percent": 200,
+    "memory_high": "1500M",
+    "memory_max": "2G",
+    "tasks_max": 192,
+    "max_runtime_seconds": 180
+  },
+  "target": {
+    "app_name": "steam_app_48700",
+    "pid": 704372,
+    "window_id": 67108876,
+    "window_size": [1600, 919],
+    "captured_size": [1414, 813],
+    "frame_scale": 0.88375
+  },
+  "actions": [
+    {
+      "action": "click",
+      "delivery_mode": "background",
+      "route": "synthetic_events",
+      "native_route": "x11_xsendevent",
+      "capture_point": [205, 292],
+      "resolved_window_point": [231, 330],
+      "verified_effect": "Play Tutorial hover changed from black to yellow"
+    },
+    {
+      "action": "press_key",
+      "key": "enter",
+      "delivery_mode": "background",
+      "route": "synthetic_events",
+      "verified_effect": "none; post-action frame was byte-identical"
+    },
+    {
+      "action": "double_click",
+      "delivery_mode": "background",
+      "route": "synthetic_events",
+      "native_route": "x11_xsendevent",
+      "capture_point": [205, 292],
+      "resolved_window_point": [231, 330],
+      "verified_effect": "none; post-action and final frames were byte-identical"
+    }
+  ],
+  "post_hover_sha256": "9413517bfb691e95f9d15ce2c5854c112136e791aa545b8002514f002a8438cb",
+  "host_status": "waiting-for-game",
+  "session_port_8890_opened": false,
+  "foreground_input_attempted": false,
+  "semantic_connectivity_proven": false
+}

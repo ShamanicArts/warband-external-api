@@ -16,6 +16,7 @@ from bridge.warband_desktop_runner import (
     build_systemd_command,
     call_cua,
     cua_window_target,
+    current_control_group_metrics,
     current_control_group_pids,
     desktop_violations,
     image_mean_luminance,
@@ -149,9 +150,13 @@ class WarbandDesktopRunnerTests(unittest.TestCase):
         )
         command = build_systemd_command(args, Path("/runner.py"), "unit.service")
         self.assertIn("CPUQuota=200%", command)
+        self.assertIn("--cpu-quota", command)
         self.assertIn("MemoryHigh=1500M", command)
+        self.assertIn("--memory-high", command)
         self.assertIn("MemoryMax=2G", command)
+        self.assertIn("--memory-max", command)
         self.assertIn("TasksMax=192", command)
+        self.assertIn("--tasks-max", command)
         self.assertIn("KillMode=control-group", command)
         self.assertIn("--auto-play", command)
         self.assertIn("/cua", command)
@@ -320,6 +325,34 @@ class WarbandDesktopRunnerTests(unittest.TestCase):
             proof = process_driver_evidence((30, 31), proc_root=proc)
             self.assertEqual(len(proof), 1)
             self.assertEqual(proof[0]["pid"], 31)
+
+    def test_cgroup_metrics_retain_cpu_memory_and_process_peaks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            proc = root / "proc"
+            cgroup = root / "cgroup"
+            (proc / "self").mkdir(parents=True)
+            (proc / "self/cgroup").write_text("0::/user.slice/warband.service\n")
+            group = cgroup / "user.slice/warband.service"
+            group.mkdir(parents=True)
+            (group / "cpu.stat").write_text(
+                "usage_usec 47346000\nuser_usec 41000000\nsystem_usec 6346000\n"
+            )
+            (group / "memory.current").write_text("104857600\n")
+            (group / "memory.peak").write_text("1363148800\n")
+            (group / "pids.current").write_text("1\n")
+            (group / "pids.peak").write_text("17\n")
+
+            self.assertEqual(
+                current_control_group_metrics(proc, cgroup),
+                {
+                    "cpu_seconds": 47.346,
+                    "memory_current_bytes": 104857600,
+                    "memory_peak_bytes": 1363148800,
+                    "pids_current": 1,
+                    "pids_peak": 17,
+                },
+            )
 
     def test_drm_proof_requires_owned_amd_gfx_engine_to_advance(self):
         with tempfile.TemporaryDirectory() as directory:

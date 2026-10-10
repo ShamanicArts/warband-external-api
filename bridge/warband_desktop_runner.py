@@ -389,6 +389,14 @@ def build_systemd_command(
         args.cua_session,
         "--post-acceptance-seconds",
         str(args.post_acceptance_seconds),
+        "--cpu-quota",
+        str(args.cpu_quota),
+        "--memory-high",
+        args.memory_high,
+        "--memory-max",
+        args.memory_max,
+        "--tasks-max",
+        str(args.tasks_max),
     ]
     if args.auto_play:
         inner.append("--auto-play")
@@ -441,6 +449,44 @@ def current_control_group_pids(
         return tuple(sorted(int(value) for value in values if value.isdigit()))
     except (FileNotFoundError, OSError, StopIteration, ValueError):
         return (os.getpid(),)
+
+
+def current_control_group_metrics(
+    proc_root: Path = Path("/proc"), cgroup_root: Path = Path("/sys/fs/cgroup")
+) -> dict[str, int | float]:
+    """Retain authoritative cgroup-v2 usage before the transient unit vanishes."""
+    try:
+        line = next(
+            item
+            for item in (proc_root / "self/cgroup").read_text().splitlines()
+            if item.startswith("0::")
+        )
+        path = line.removeprefix("0::").lstrip("/")
+        group = cgroup_root / path
+        cpu = {
+            name: int(value)
+            for name, value in (
+                row.split(maxsplit=1)
+                for row in (group / "cpu.stat").read_text().splitlines()
+            )
+            if value.isdigit()
+        }
+        metrics: dict[str, int | float] = {}
+        usage_usec = cpu.get("usage_usec")
+        if usage_usec is not None:
+            metrics["cpu_seconds"] = round(usage_usec / 1_000_000, 6)
+        for filename, field in (
+            ("memory.current", "memory_current_bytes"),
+            ("memory.peak", "memory_peak_bytes"),
+            ("pids.current", "pids_current"),
+            ("pids.peak", "pids_peak"),
+        ):
+            value = (group / filename).read_text().strip()
+            if value.isdigit():
+                metrics[field] = int(value)
+        return metrics
+    except (FileNotFoundError, OSError, StopIteration, ValueError):
+        return {}
 
 
 def process_driver_evidence(
@@ -1058,6 +1104,14 @@ def run_bounded(args: argparse.Namespace) -> int:
                 "graphics_backend": args.graphics_backend,
                 "renderer": probe.renderer,
                 "post_acceptance_seconds": args.post_acceptance_seconds,
+                "resource_limits": {
+                    "cpu_quota_percent": args.cpu_quota,
+                    "memory_high": args.memory_high,
+                    "memory_max": args.memory_max,
+                    "tasks_max": args.tasks_max,
+                },
+                "resource_usage": current_control_group_metrics(),
+                "elapsed_seconds": round(time.monotonic() - started, 3),
                 "started_at": started_at,
                 "state": "stopped",
                 "workspace": args.workspace,

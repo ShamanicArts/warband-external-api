@@ -66,7 +66,9 @@ Current foundations include:
   automatically drives the owned launcher through background delivery, enforces
   systemd limits, and refuses software rendering, missing game-PID DRM proof or
   black transition-frame evidence; accepted evidence is in
-  [`evidence/runtime/desktop-gpu-safe/`](evidence/runtime/desktop-gpu-safe/);
+  [`evidence/runtime/desktop-gpu-safe/`](evidence/runtime/desktop-gpu-safe/),
+  with the honest unfocused main-menu input boundary in
+  [`evidence/runtime/background-input-boundary/`](evidence/runtime/background-input-boundary/);
 - reproducible tests and retained engine/visual evidence.
 
 The current evidence index and final video ledger live in

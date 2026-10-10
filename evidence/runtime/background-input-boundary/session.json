@@ -1,0 +1,44 @@
+{
+  "auto_play": true,
+  "cleanup_signals": {
+    "sigkill": [
+      704395
+    ],
+    "sigterm": [
+      704372,
+      704374,
+      704379,
+      704382,
+      704395,
+      704431,
+      704440,
+      704523,
+      704586,
+      704599
+    ]
+  },
+  "cua_play_dispatched": true,
+  "cua_socket": "/home/shamanic/.cache/cua-driver/cua-driver-x11.sock",
+  "ended_at": "2026-10-10T11:44:23.609815+00:00",
+  "final_capture_valid": true,
+  "focus_after": {
+    "address": "0x5f286ded07d0",
+    "class": "chromium",
+    "monitor": 1,
+    "workspace": "13"
+  },
+  "focus_before": {
+    "address": "0x5f286ddcfa20",
+    "class": "bb-desktop",
+    "monitor": 1,
+    "workspace": "11"
+  },
+  "game_capture_valid": true,
+  "graphics_backend": "wined3d",
+  "hardware_renderer_proven": true,
+  "post_acceptance_seconds": 120.0,
+  "renderer": "AMD Radeon RX 6600 XT (RADV NAVI23)",
+  "started_at": "2026-10-10T11:41:55.173350+00:00",
+  "state": "stopped",
+  "workspace": "name:warband-agent"
+}

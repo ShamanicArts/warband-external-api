@@ -122,5 +122,6 @@ opening either runtime database or any listener.
 - Explicit Python extension registration and exact-ID installed entry-point
   loading are packaged. Automatic loading, new compiled-handler generation and
   hot reload are not.
-- Hardware-rendered boot from an installer-generated module is proven. Live bridge
+- Hardware-rendered boot from an installer-generated module is proven. Exact-window
+  unfocused input reaches main-menu hover but not activation, so live bridge
   connectivity, semantic interaction evidence and final video clips remain open.

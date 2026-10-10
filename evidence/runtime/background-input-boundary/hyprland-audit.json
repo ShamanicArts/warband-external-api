@@ -1,0 +1,11 @@
+{
+  "schema": "warband.agentic/hyprland-event-audit/v1",
+  "source_line_count": 133,
+  "warband_activewindow_line_count": 0,
+  "agent_workspace_selected_line_count": 0,
+  "warband_window_open_line_count": 3,
+  "agent_workspace_created_line_count": 4,
+  "agent_workspace_destroyed_line_count": 2,
+  "raw_event_log_retained": false,
+  "raw_event_log_omission_reason": "Unrelated user and agent window titles are private and unnecessary for the bounded claim."
+}
