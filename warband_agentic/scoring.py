@@ -1,6 +1,7 @@
 """Evidence-gated scenario scoring and canonical faction benchmark reports."""
 
 import hashlib
+import hmac
 import json
 import math
 import os
@@ -17,6 +18,7 @@ from warband_agentic.contracts import Evidence, EvidenceLevel, to_wire
 
 SCORECARD_SCHEMA = "warband.agentic/scorecard/v1"
 BENCHMARK_RUN_SCHEMA = "warband.agentic/benchmark-run/v1"
+BENCHMARK_RUN_CHECKPOINT_SCHEMA = "warband.agentic/benchmark-run-checkpoint/v1"
 METRIC_SNAPSHOT_SCHEMA = "warband.agentic/metric-snapshot/v1"
 SCENARIO_SCHEMA = "warband.agentic/benchmark-scenario/v1"
 _SEMVER = re.compile(
@@ -54,6 +56,107 @@ def _canonical_hash(value):
         value, allow_nan=False, separators=(",", ":"), sort_keys=True
     ).encode()
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _scenario_from_manifest(value):
+    expected = {
+        "schema",
+        "scenario_id",
+        "version",
+        "description",
+        "faction_ids",
+        "metrics",
+    }
+    if not isinstance(value, dict) or set(value) != expected:
+        raise ValueError("invalid benchmark scenario checkpoint")
+    metrics = value["metrics"]
+    if not isinstance(metrics, list):
+        raise ValueError("invalid benchmark scenario metrics checkpoint")
+    rules = []
+    rule_fields = {"key", "description", "unit", "objective", "weight", "scale"}
+    for item in metrics:
+        if not isinstance(item, dict) or set(item) != rule_fields:
+            raise ValueError("invalid benchmark metric rule checkpoint")
+        try:
+            objective = MetricObjective(item["objective"])
+        except (TypeError, ValueError) as exc:
+            raise ValueError("invalid benchmark metric objective checkpoint") from exc
+        rules.append(
+            MetricRule(
+                item["key"],
+                item["description"],
+                item["unit"],
+                objective,
+                item["weight"],
+                item["scale"],
+            )
+        )
+    return BenchmarkScenario(
+        value["scenario_id"],
+        value["version"],
+        value["description"],
+        tuple(value["faction_ids"]),
+        tuple(rules),
+        value["schema"],
+    )
+
+
+def _snapshot_from_manifest(value):
+    expected = {"schema", "snapshot_id", "game_time", "factions"}
+    if not isinstance(value, dict) or set(value) != expected:
+        raise ValueError("invalid metric snapshot checkpoint")
+    factions = value["factions"]
+    if not isinstance(factions, dict):
+        raise ValueError("invalid metric snapshot factions checkpoint")
+    decoded = {}
+    for raw_faction_id, items in factions.items():
+        try:
+            faction_id = int(raw_faction_id)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("invalid metric snapshot faction ID checkpoint") from exc
+        if str(faction_id) != raw_faction_id or faction_id in decoded:
+            raise ValueError("invalid metric snapshot faction ID checkpoint")
+        if not isinstance(items, list):
+            raise ValueError("invalid metric observations checkpoint")
+        observations = []
+        for item in items:
+            if not isinstance(item, dict) or set(item) != {
+                "key",
+                "value",
+                "evidence",
+            }:
+                raise ValueError("invalid metric observation checkpoint")
+            evidence = item["evidence"]
+            if not isinstance(evidence, dict) or set(evidence) != {
+                "level",
+                "source",
+                "detail",
+                "event_sequence",
+            }:
+                raise ValueError("invalid metric evidence checkpoint")
+            try:
+                level = EvidenceLevel(evidence["level"])
+            except (TypeError, ValueError) as exc:
+                raise ValueError("invalid metric evidence level checkpoint") from exc
+            observations.append(
+                MetricObservation(
+                    item["key"],
+                    item["value"],
+                    Evidence(
+                        level,
+                        evidence["source"],
+                        evidence["detail"],
+                        evidence["event_sequence"],
+                    ),
+                )
+            )
+        decoded[faction_id] = tuple(observations)
+    return FactionMetricSnapshot(
+        value["snapshot_id"],
+        value["game_time"],
+        decoded,
+        value["schema"],
+    )
 
 
 class MetricObjective(StrEnum):
@@ -103,8 +206,7 @@ class BenchmarkScenario:
         _nonempty("description", self.description)
         factions = tuple(self.faction_ids)
         if len(factions) < 2 or any(
-            type(faction_id) is not int or faction_id < 0
-            for faction_id in factions
+            type(faction_id) is not int or faction_id < 0 for faction_id in factions
         ):
             raise ValueError("scenario requires at least two non-negative factions")
         if len(factions) != len(set(factions)):
@@ -241,9 +343,10 @@ def score_scenario(scenario, baseline, final):
                 delta = None
                 normalized = 1.0 if after.value else 0.0
             else:
-                if type(before.value) not in (int, float) or type(
-                    after.value
-                ) not in (int, float):
+                if type(before.value) not in (int, float) or type(after.value) not in (
+                    int,
+                    float,
+                ):
                     raise ValueError("continuous metric values must be numbers")
                 delta = after.value - before.value
                 direction = 1 if rule.objective is MetricObjective.MAXIMIZE else -1
@@ -362,9 +465,10 @@ class FactionBenchmarkRun:
             raise ValueError("benchmark epoch turn-set hash is invalid")
         if value["turn_set_sha256"] != _canonical_hash(value["turns"]):
             raise ValueError("benchmark epoch turn-set hash does not match")
-        if type(value["campaign_game_time"]) is not int or value[
-            "campaign_game_time"
-        ] < 0:
+        if (
+            type(value["campaign_game_time"]) is not int
+            or value["campaign_game_time"] < 0
+        ):
             raise ValueError("benchmark epoch campaign game time is invalid")
         advance = value["campaign_advance"]
         if not isinstance(advance, dict) or (
@@ -424,6 +528,100 @@ class FactionBenchmarkRun:
             }
             self._report = {**body, "report_sha256": _canonical_hash(body)}
         return deepcopy(self._report)
+
+    def write_checkpoint(self, path):
+        """Atomically persist an unfinished run without creating a scorecard."""
+        wrapper = self.checkpoint()
+        target = Path(path)
+        if not target.name or not target.parent.is_dir():
+            raise ValueError("benchmark checkpoint parent directory must already exist")
+        encoded = json.dumps(wrapper, allow_nan=False, indent=2, sort_keys=True)
+        descriptor, temporary_name = tempfile.mkstemp(
+            dir=target.parent,
+            prefix=f".{target.name}.",
+            suffix=".tmp",
+        )
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as file:
+                file.write(encoded + "\n")
+                file.flush()
+                os.fsync(file.fileno())
+            os.replace(temporary_name, target)
+        finally:
+            if os.path.exists(temporary_name):
+                os.unlink(temporary_name)
+        return target
+
+    def checkpoint(self):
+        """Return a checksummed JSON checkpoint for an unfinished run."""
+        if self._report is not None:
+            raise RuntimeError("finalized benchmark runs do not need checkpoints")
+        if self._baseline is None:
+            raise RuntimeError("benchmark checkpoint requires a baseline")
+        payload = {
+            "run_id": self.run_id,
+            "scenario": self.scenario.manifest(),
+            "run_metadata": self.run_metadata,
+            "baseline": self._baseline.manifest(),
+            "epochs": [
+                {"transcript": transcript, "metrics": metrics.manifest()}
+                for transcript, metrics in self._epochs
+            ],
+        }
+        return {
+            "schema": BENCHMARK_RUN_CHECKPOINT_SCHEMA,
+            "payload_sha256": _canonical_hash(payload),
+            "payload": payload,
+        }
+
+    @classmethod
+    def load_checkpoint(cls, path):
+        """Restore a partial run and revalidate every retained epoch."""
+        try:
+            wrapper = json.loads(Path(path).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError("Cannot read benchmark run checkpoint") from exc
+        return cls.from_checkpoint(wrapper)
+
+    @classmethod
+    def from_checkpoint(cls, wrapper):
+        """Restore a partial run from a decoded checkpoint object."""
+        if not isinstance(wrapper, dict) or set(wrapper) != {
+            "schema",
+            "payload_sha256",
+            "payload",
+        }:
+            raise ValueError("Invalid benchmark run checkpoint fields")
+        if wrapper["schema"] != BENCHMARK_RUN_CHECKPOINT_SCHEMA:
+            raise ValueError("Unsupported benchmark run checkpoint schema")
+        payload = wrapper["payload"]
+        if not isinstance(payload, dict) or set(payload) != {
+            "run_id",
+            "scenario",
+            "run_metadata",
+            "baseline",
+            "epochs",
+        }:
+            raise ValueError("Invalid benchmark run checkpoint payload")
+        checksum = wrapper["payload_sha256"]
+        if not isinstance(checksum, str) or not hmac.compare_digest(
+            checksum, _canonical_hash(payload)
+        ):
+            raise ValueError("Benchmark run checkpoint checksum does not match")
+        scenario = _scenario_from_manifest(payload["scenario"])
+        run = cls(payload["run_id"], scenario, run_metadata=payload["run_metadata"])
+        run.set_baseline(_snapshot_from_manifest(payload["baseline"]))
+        epochs = payload["epochs"]
+        if not isinstance(epochs, list):
+            raise ValueError("Invalid benchmark run checkpoint epochs")
+        for item in epochs:
+            if not isinstance(item, dict) or set(item) != {"transcript", "metrics"}:
+                raise ValueError("Invalid benchmark run checkpoint epoch")
+            run.append_epoch(
+                item["transcript"],
+                _snapshot_from_manifest(item["metrics"]),
+            )
+        return run
 
     def write_report(self, path):
         target = Path(path)

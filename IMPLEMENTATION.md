@@ -916,12 +916,21 @@ the core and cannot advance campaign time while decisions are being collected.
 The harness advances at most one phase per `poll()` and exposes explicit turn and
 decision boundaries. Metric drift and interrupted/failed clock advancement move
 the run to an honest terminal interruption rather than fabricating a baseline or
-result. Three bridge regressions exercise the complete lifecycle with the real
+result. Five bridge regressions exercise the complete lifecycle with the real
 synchronized-epoch and scoring contracts, deterministic fake engine adapters,
-and the interruption/state guards. Separated discovery passes **262 tests**: 121
-root, 91 bridge and 50 module-system.
+the interruption/state guards and safe-phase recovery.
 
-This remains structural composition, not a live campaign benchmark. Durable
-top-level harness reconstruction, game-save/process recovery, scenario CLI and
-provider scheduling with enforced equal token/time/cost budgets remain open. No
-Warband process or external model was launched for this slice.
+The accumulated run, active epoch and campaign driver now share one atomically
+written top-level harness checkpoint. Recovery revalidates scenario/metric
+objects and every completed epoch, does not resubmit committed decisions, and
+restores the existing bounded wait/stop commands rather than enqueueing another.
+Post-advance recovery restarts only the read-only fixed-clock metric collection;
+baseline refresh and uncommitted affordance states remain deliberately
+non-resumable. The recovery regressions cover advancing and metric-phase restart,
+and a root regression covers appendable run-state recovery. Separated
+discovery now passes **265 tests**: 122 root, 93 bridge and 50 module-system.
+
+This remains structural composition, not a live campaign benchmark. Game-save/
+process recovery, scenario CLI and provider scheduling with enforced equal token/
+time/cost budgets remain open. No Warband process or external model was launched
+for this slice.

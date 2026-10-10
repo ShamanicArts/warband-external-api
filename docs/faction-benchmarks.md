@@ -118,8 +118,19 @@ game time. A metric-collection interruption or failed/interrupted clock advance
 puts the harness in an honest terminal `interrupted` state instead of inventing a
 baseline, result, or score.
 
-The remaining full-harness work is save capture and game-process recovery,
-durable reconstruction of the top-level harness around the existing epoch/driver
-checkpoints, scenario configuration/CLI, and provider scheduling with enforced
-equal token/time/cost budgets. External model runs still require the user-visible
-preflight notice described in the design specification.
+An unfinished `FactionBenchmarkRun` can emit and restore a checksummed checkpoint;
+restore strictly rebuilds its scenario and engine-evidenced metric objects and
+revalidates every retained epoch. The harness wraps that state together with the
+active epoch and clock-driver checkpoints in one atomically replaced document.
+Safe restore points are: ready between epochs, resolving committed actions,
+advancing an already-started clock interval, and post-advance metrics. Restore
+never resubmits decisions or starts a replacement wait. Post-advance recovery may
+restart the read-only fixed-clock metric scan. Baseline collection, refresh jobs
+and uncommitted affordance tokens are intentionally not checkpointable.
+
+The remaining full-harness work is game-supported save capture and process-loss
+recovery, scenario configuration/CLI, and provider scheduling with enforced equal
+token/time/cost budgets. The SHA-256 fields detect corruption and inconsistency;
+they are not signatures against a malicious local editor. External model runs
+still require the user-visible preflight notice described in the design
+specification.

@@ -1,7 +1,13 @@
 """Non-blocking orchestration for evidenced multi-faction benchmark runs."""
 
+import hashlib
+import hmac
+import json
+import os
+import tempfile
 from dataclasses import dataclass
 from enum import StrEnum
+from pathlib import Path
 
 from bridge.campaign_epoch_driver import CampaignAdvanceState, CampaignEpochDriver
 from bridge.campaign_metric_collector import (
@@ -180,6 +186,179 @@ class FactionBenchmarkHarness:
             self.finalize()
         return self._run.write_report(path)
 
+    def write_checkpoint(self, path):
+        """Atomically retain a safely resumable top-level orchestration state."""
+        resumable = {
+            FactionBenchmarkHarnessState.READY,
+            FactionBenchmarkHarnessState.RESOLVING,
+            FactionBenchmarkHarnessState.ADVANCING,
+            FactionBenchmarkHarnessState.METRICS,
+        }
+        if self.state not in resumable:
+            raise RuntimeError("benchmark harness state is not safely resumable")
+        epoch = self._epoch.checkpoint() if self._epoch is not None else None
+        driver = (
+            self._driver.checkpoint()
+            if self.state is FactionBenchmarkHarnessState.ADVANCING
+            else None
+        )
+        payload = {
+            "run_id": self.run_id,
+            "state": self.state.value,
+            "epoch_id": self._epoch_id,
+            "epoch_hours": self.epoch_hours,
+            "epoch_speed": self.epoch_speed,
+            "settlement_party_ids": list(self.settlement_party_ids),
+            "run": self._run.checkpoint(),
+            "epoch": epoch,
+            "driver": driver,
+        }
+        wrapper = {
+            "schema": "warband.agentic/benchmark-harness-checkpoint/v1",
+            "payload_sha256": self._canonical_hash(payload),
+            "payload": payload,
+        }
+        target = Path(path)
+        if not target.name or not target.parent.is_dir():
+            raise ValueError("harness checkpoint parent directory must already exist")
+        encoded = json.dumps(wrapper, allow_nan=False, indent=2, sort_keys=True)
+        descriptor, temporary_name = tempfile.mkstemp(
+            dir=target.parent,
+            prefix=f".{target.name}.",
+            suffix=".tmp",
+        )
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as file:
+                file.write(encoded + "\n")
+                file.flush()
+                os.fsync(file.fileno())
+            os.replace(temporary_name, target)
+        finally:
+            if os.path.exists(temporary_name):
+                os.unlink(temporary_name)
+        return target
+
+    @classmethod
+    def load_checkpoint(
+        cls,
+        path,
+        store,
+        applications,
+        *,
+        metric_collector_factory=CampaignMetricCollector,
+        advance_driver_factory=CampaignEpochDriver,
+        epoch_factory=SynchronizedFactionEpoch,
+    ):
+        """Restore safe state without replaying decisions or campaign waits."""
+        try:
+            wrapper = json.loads(Path(path).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError("Cannot read benchmark harness checkpoint") from exc
+        if not isinstance(wrapper, dict) or set(wrapper) != {
+            "schema",
+            "payload_sha256",
+            "payload",
+        }:
+            raise ValueError("Invalid benchmark harness checkpoint fields")
+        if wrapper["schema"] != "warband.agentic/benchmark-harness-checkpoint/v1":
+            raise ValueError("Unsupported benchmark harness checkpoint schema")
+        payload = wrapper["payload"]
+        expected = {
+            "run_id",
+            "state",
+            "epoch_id",
+            "epoch_hours",
+            "epoch_speed",
+            "settlement_party_ids",
+            "run",
+            "epoch",
+            "driver",
+        }
+        if not isinstance(payload, dict) or set(payload) != expected:
+            raise ValueError("Invalid benchmark harness checkpoint payload")
+        checksum = wrapper["payload_sha256"]
+        if not isinstance(checksum, str) or not hmac.compare_digest(
+            checksum, cls._canonical_hash(payload)
+        ):
+            raise ValueError("Benchmark harness checkpoint checksum does not match")
+        try:
+            state = FactionBenchmarkHarnessState(payload["state"])
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Invalid benchmark harness checkpoint state") from exc
+        if state not in {
+            FactionBenchmarkHarnessState.READY,
+            FactionBenchmarkHarnessState.RESOLVING,
+            FactionBenchmarkHarnessState.ADVANCING,
+            FactionBenchmarkHarnessState.METRICS,
+        }:
+            raise ValueError("Benchmark harness checkpoint is not safely resumable")
+        run = FactionBenchmarkRun.from_checkpoint(payload["run"])
+        if run.run_id != payload["run_id"]:
+            raise ValueError("Benchmark harness run ID does not match run checkpoint")
+        harness = cls(
+            store,
+            payload["run_id"],
+            run.scenario,
+            applications,
+            settlement_party_ids=tuple(payload["settlement_party_ids"]),
+            run_metadata=run.run_metadata,
+            epoch_hours=payload["epoch_hours"],
+            epoch_speed=payload["epoch_speed"],
+            metric_collector_factory=metric_collector_factory,
+            advance_driver_factory=advance_driver_factory,
+            epoch_factory=epoch_factory,
+        )
+        harness._run = run
+        harness._completed_epochs = len(payload["run"]["payload"]["epochs"])
+        harness.state = state
+        harness._epoch_id = payload["epoch_id"]
+        if state is FactionBenchmarkHarnessState.READY:
+            if any(
+                value is not None
+                for value in (payload["epoch_id"], payload["epoch"], payload["driver"])
+            ):
+                raise ValueError("Ready harness checkpoint contains active state")
+            return harness
+        if not isinstance(payload["epoch_id"], str) or not payload["epoch_id"].strip():
+            raise ValueError("Active harness checkpoint has no epoch ID")
+        if payload["epoch"] is None:
+            raise ValueError("Active harness checkpoint has no epoch state")
+        restore_epoch = getattr(epoch_factory, "from_checkpoint", None)
+        if not callable(restore_epoch):
+            raise ValueError("Harness epoch factory cannot restore checkpoints")
+        harness._epoch = restore_epoch(payload["epoch"], applications)
+        if harness._epoch.epoch_id != payload["epoch_id"]:
+            raise ValueError("Harness and epoch checkpoint IDs do not match")
+        if harness._epoch.run_metadata != run.run_metadata:
+            raise ValueError("Harness and epoch run metadata do not match")
+        if state is FactionBenchmarkHarnessState.RESOLVING:
+            if payload["driver"] is not None:
+                raise ValueError("Resolving harness checkpoint contains a driver")
+        elif state is FactionBenchmarkHarnessState.ADVANCING:
+            if harness._epoch.state is not BenchmarkEpochState.RESOLVED:
+                raise ValueError("Advancing harness epoch is not resolved")
+            restore = getattr(advance_driver_factory, "restore", None)
+            if not callable(restore) or payload["driver"] is None:
+                raise ValueError(
+                    "Advancing harness checkpoint has no restorable driver"
+                )
+            harness._driver = restore(store, payload["driver"])
+            if harness._driver.epoch_id != harness._epoch_id:
+                raise ValueError("Harness and driver checkpoint IDs do not match")
+        else:
+            if harness._epoch.state is not BenchmarkEpochState.RESOLVED:
+                raise ValueError("Metric harness epoch is not resolved")
+            if payload["driver"] is not None:
+                raise ValueError("Metric harness checkpoint contains an active driver")
+            advance = harness._epoch.transcript()["campaign_advance"]
+            if not isinstance(advance, dict) or advance.get("state") != "complete":
+                raise ValueError("Metric harness checkpoint lacks campaign advance")
+            harness._collector = harness._new_collector(
+                f"{harness.run_id}:{harness._epoch_id}:metrics"
+            )
+            harness._collector.begin()
+        return harness
+
     def status(self):
         return FactionBenchmarkHarnessStatus(
             self.state,
@@ -247,3 +426,13 @@ class FactionBenchmarkHarness:
     def _interrupt(self, reason):
         self._reason = reason
         self.state = FactionBenchmarkHarnessState.INTERRUPTED
+
+    @staticmethod
+    def _canonical_hash(value):
+        encoded = json.dumps(
+            value,
+            allow_nan=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
+        return hashlib.sha256(encoded).hexdigest()

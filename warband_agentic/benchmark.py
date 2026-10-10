@@ -249,6 +249,10 @@ class SynchronizedFactionEpoch:
 
     def write_checkpoint(self, path):
         """Persist a committed/resolved coordinator state without replaying it."""
+        return self._atomic_write(path, self.checkpoint(), "checkpoint")
+
+    def checkpoint(self):
+        """Return a checksummed JSON checkpoint for committed coordinator state."""
         if self.state not in (
             BenchmarkEpochState.COMMITTED,
             BenchmarkEpochState.RESOLVED,
@@ -258,15 +262,11 @@ class SynchronizedFactionEpoch:
         canonical = json.dumps(
             payload, allow_nan=False, separators=(",", ":"), sort_keys=True
         ).encode()
-        return self._atomic_write(
-            path,
-            {
-                "schema": "warband.agentic/benchmark-checkpoint/v1",
-                "payload_sha256": hashlib.sha256(canonical).hexdigest(),
-                "payload": payload,
-            },
-            "checkpoint",
-        )
+        return {
+            "schema": "warband.agentic/benchmark-checkpoint/v1",
+            "payload_sha256": hashlib.sha256(canonical).hexdigest(),
+            "payload": payload,
+        }
 
     @classmethod
     def load_checkpoint(cls, path, applications):
@@ -276,6 +276,11 @@ class SynchronizedFactionEpoch:
             wrapper = json.loads(target.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
             raise ValueError("Cannot read benchmark checkpoint") from exc
+        return cls.from_checkpoint(wrapper, applications)
+
+    @classmethod
+    def from_checkpoint(cls, wrapper, applications):
+        """Restore coordinator state from a decoded checkpoint object."""
         if not isinstance(wrapper, dict) or set(wrapper) != {
             "schema",
             "payload_sha256",
@@ -370,9 +375,7 @@ class SynchronizedFactionEpoch:
         target = Path(path)
         if not target.name or not target.parent.is_dir():
             raise ValueError(f"{label} parent directory must already exist")
-        payload = (
-            json.dumps(value, allow_nan=False, indent=2, sort_keys=True) + "\n"
-        )
+        payload = json.dumps(value, allow_nan=False, indent=2, sort_keys=True) + "\n"
         descriptor, temporary_name = tempfile.mkstemp(
             dir=target.parent,
             prefix=f".{target.name}.",

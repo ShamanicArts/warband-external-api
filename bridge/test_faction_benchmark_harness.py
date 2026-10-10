@@ -1,4 +1,7 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from bridge.campaign_epoch_driver import (
     CampaignAdvanceState,
@@ -85,6 +88,9 @@ class FakeMetricCollector:
 
 
 class FakeAdvanceDriver:
+    begins = []
+    restores = []
+
     def __init__(self, _store, epoch_id):
         self.epoch_id = epoch_id
         self.stop_requested = False
@@ -113,6 +119,7 @@ class FakeAdvanceDriver:
     def begin(self, *, hours, speed):
         if (hours, speed) != (1, 2):
             raise AssertionError("harness changed the configured epoch bounds")
+        self.begins.append(self.epoch_id)
         return self._status(CampaignAdvanceState.STARTING)
 
     def status(self):
@@ -125,6 +132,22 @@ class FakeAdvanceDriver:
     def request_stop(self):
         self.stop_requested = True
         return self._status(CampaignAdvanceState.STOPPING)
+
+    def checkpoint(self):
+        return {
+            "schema": "test/campaign-advance-checkpoint/v1",
+            "epoch_id": self.epoch_id,
+            "stop_requested": self.stop_requested,
+        }
+
+    @classmethod
+    def restore(cls, store, checkpoint):
+        if set(checkpoint) != {"schema", "epoch_id", "stop_requested"}:
+            raise ValueError("invalid fake advance checkpoint")
+        restored = cls(store, checkpoint["epoch_id"])
+        restored.stop_requested = checkpoint["stop_requested"]
+        cls.restores.append(checkpoint["epoch_id"])
+        return restored
 
 
 class FakeSession:
@@ -211,6 +234,8 @@ class FakeFactionApplication:
 
 class FactionBenchmarkHarnessTests(unittest.TestCase):
     def setUp(self):
+        FakeAdvanceDriver.begins.clear()
+        FakeAdvanceDriver.restores.clear()
         self.calls = []
         self.scenario = BenchmarkScenario(
             "two-factions",
@@ -316,6 +341,106 @@ class FactionBenchmarkHarnessTests(unittest.TestCase):
             harness.start_epoch("epoch:2")
         with self.assertRaisesRegex(RuntimeError, "turns"):
             harness.submit_decisions({})
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(RuntimeError, "safely resumable"):
+                harness.write_checkpoint(Path(directory) / "too-early.json")
+
+    def test_advancing_checkpoint_restores_without_resubmitting_or_restarting_wait(
+        self,
+    ):
+        harness = self._harness()
+        harness.begin()
+        harness.poll()
+        harness.start_epoch("epoch:1")
+        harness.collect_turns()
+        harness.submit_decisions(
+            {
+                15: {"request_id": "decision:15"},
+                16: {"request_id": "decision:16"},
+            }
+        )
+        harness.poll()
+        self.assertEqual(FakeAdvanceDriver.begins, ["epoch:1"])
+        submits_before = [call for call in self.calls if call[0] == "submit"]
+
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "harness.checkpoint.json"
+            harness.write_checkpoint(checkpoint)
+            restored = FactionBenchmarkHarness.load_checkpoint(
+                checkpoint,
+                object(),
+                self.apps,
+                metric_collector_factory=lambda _store, snapshot_id, **_kwargs: (
+                    FakeMetricCollector(self.final)
+                ),
+                advance_driver_factory=FakeAdvanceDriver,
+            )
+
+            self.assertIs(
+                restored.status().state, FactionBenchmarkHarnessState.ADVANCING
+            )
+            self.assertEqual(FakeAdvanceDriver.begins, ["epoch:1"])
+            self.assertEqual(FakeAdvanceDriver.restores, ["epoch:1"])
+            self.assertEqual(
+                [call for call in self.calls if call[0] == "submit"], submits_before
+            )
+            restored.poll()
+            restored.poll()
+            restored.poll()
+            self.assertIs(restored.status().state, FactionBenchmarkHarnessState.READY)
+            self.assertEqual(restored.finalize()["epoch_count"], 1)
+
+            damaged = json.loads(checkpoint.read_text())
+            damaged["payload"]["epoch_hours"] = 24
+            checkpoint.write_text(json.dumps(damaged))
+            with self.assertRaisesRegex(ValueError, "checksum"):
+                FactionBenchmarkHarness.load_checkpoint(
+                    checkpoint,
+                    object(),
+                    self.apps,
+                    metric_collector_factory=lambda *_args, **_kwargs: None,
+                    advance_driver_factory=FakeAdvanceDriver,
+                )
+
+    def test_metric_checkpoint_restarts_only_read_only_collection(self):
+        harness = self._harness()
+        harness.begin()
+        harness.poll()
+        harness.start_epoch("epoch:1")
+        harness.collect_turns()
+        harness.submit_decisions(
+            {
+                15: {"request_id": "decision:15"},
+                16: {"request_id": "decision:16"},
+            }
+        )
+        harness.poll()
+        harness.poll()
+        harness.poll()
+        self.assertIs(harness.status().state, FactionBenchmarkHarnessState.METRICS)
+
+        restarted_collectors = []
+
+        def collector_factory(_store, snapshot_id, **_kwargs):
+            restarted_collectors.append(snapshot_id)
+            return FakeMetricCollector(self.final)
+
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "metrics.checkpoint.json"
+            harness.write_checkpoint(checkpoint)
+            restored = FactionBenchmarkHarness.load_checkpoint(
+                checkpoint,
+                object(),
+                self.apps,
+                metric_collector_factory=collector_factory,
+                advance_driver_factory=FakeAdvanceDriver,
+            )
+
+            self.assertEqual(restarted_collectors, ["run:1:epoch:1:metrics"])
+            self.assertIs(restored.status().state, FactionBenchmarkHarnessState.METRICS)
+            restored.poll()
+            self.assertIs(restored.status().state, FactionBenchmarkHarnessState.READY)
+            self.assertEqual(restored.finalize()["epoch_count"], 1)
 
 
 if __name__ == "__main__":

@@ -107,9 +107,7 @@ class BenchmarkScoringTests(unittest.TestCase):
         self.assertEqual(settlement["delta"], 2)
         self.assertEqual(settlement["normalized"], 1.0)
         self.assertEqual(settlement["points"], 40.0)
-        self.assertEqual(
-            settlement["final_evidence"]["level"], "engine-observed"
-        )
+        self.assertEqual(settlement["final_evidence"]["level"], "engine-observed")
         self.assertEqual(len(scorecard["input_sha256"]), 64)
 
     def test_snapshot_rejects_weak_evidence_and_missing_metric(self):
@@ -217,6 +215,70 @@ class BenchmarkScoringTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "finalized"):
             run.append_epoch(epoch, self.final)
+
+    def test_partial_run_checkpoint_recovers_without_finalizing_or_losing_epochs(self):
+        run = FactionBenchmarkRun(
+            "run:border-war:resume",
+            self.scenario,
+            run_metadata=self.run_metadata,
+        )
+        run.set_baseline(self.baseline)
+        turns = {15: {}, 16: {}}
+        turn_hash = hashlib.sha256(
+            json.dumps(turns, separators=(",", ":"), sort_keys=True).encode()
+        ).hexdigest()
+
+        def epoch(epoch_id, start, end):
+            return {
+                "schema": "warband.agentic/benchmark-epoch/v1",
+                "epoch_id": epoch_id,
+                "state": "resolved",
+                "run_metadata": self.run_metadata,
+                "campaign_game_time": start,
+                "turn_set_sha256": turn_hash,
+                "refresh_jobs": {15: {}, 16: {}},
+                "turns": turns,
+                "decisions": {15: {}, 16: {}},
+                "decision_records": {15: {}, 16: {}},
+                "campaign_advance": {
+                    "epoch_id": epoch_id,
+                    "state": "complete",
+                    "start_clock": start,
+                    "target_clock": end,
+                    "current_clock": end,
+                    "elapsed_hours": end - start,
+                    "target_reached": True,
+                    "stop_command_status": "acknowledged",
+                    "stop_acknowledged": True,
+                },
+            }
+
+        first_epoch = epoch("epoch:1", 90, 114)
+        run.append_epoch(first_epoch, self.final)
+        second_metrics = snapshot(
+            "metrics:end:2",
+            138,
+            {"settlements": 7, "military_strength": 700, "surviving": True},
+            {"settlements": 1, "military_strength": 200, "surviving": False},
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "run.checkpoint.json"
+            run.write_checkpoint(checkpoint)
+            resumed = FactionBenchmarkRun.load_checkpoint(checkpoint)
+            resumed.append_epoch(epoch("epoch:2", 114, 138), second_metrics)
+
+            report = resumed.report()
+            self.assertEqual(report["epoch_count"], 2)
+            self.assertEqual(report["baseline"]["snapshot_id"], "metrics:start")
+            self.assertEqual(report["epochs"][0]["transcript"]["epoch_id"], "epoch:1")
+            self.assertEqual(report["epochs"][1]["transcript"]["epoch_id"], "epoch:2")
+
+            damaged = json.loads(checkpoint.read_text())
+            damaged["payload"]["run_id"] = "run:tampered"
+            checkpoint.write_text(json.dumps(damaged))
+            with self.assertRaisesRegex(ValueError, "checksum"):
+                FactionBenchmarkRun.load_checkpoint(checkpoint)
 
 
 if __name__ == "__main__":

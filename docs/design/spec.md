@@ -551,7 +551,7 @@ The kit is ready for an initial public developer release when:
       composition and resource allocation remain open.
 - [x] Add evidence-gated, scenario-defined faction metrics/scoring, a canonical
       multi-epoch run report, a fixed-clock paged campaign metric collector and a
-      non-blocking baseline-to-report orchestration harness. Live acceptance,
-      top-level/save recovery and provider scheduling remain open.
+      restart-safe non-blocking baseline-to-report orchestration harness. Live
+      acceptance, game-save/process recovery and provider scheduling remain open.
 - [ ] Complete the collated test/live/video evidence report before final handoff.
 - [ ] Resolve Q1 licensing before calling any artifact publicly releasable.

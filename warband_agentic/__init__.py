@@ -89,6 +89,7 @@ from warband_agentic.extensions import (
     load_named_extension_entry_points,
 )
 from warband_agentic.scoring import (
+    BENCHMARK_RUN_CHECKPOINT_SCHEMA,
     BENCHMARK_RUN_SCHEMA,
     METRIC_SNAPSHOT_SCHEMA,
     SCENARIO_SCHEMA,
@@ -140,6 +141,7 @@ __all__ = [
     "ApplicationKind",
     "BenchmarkEpochState",
     "BenchmarkScenario",
+    "BENCHMARK_RUN_CHECKPOINT_SCHEMA",
     "BENCHMARK_RUN_SCHEMA",
     "ActorKind",
     "ActorRef",
