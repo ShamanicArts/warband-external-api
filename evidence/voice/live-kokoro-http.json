@@ -1,0 +1,12 @@
+{
+  "method": "Authenticated loopback HTTP requests to the configured host voice service",
+  "request_id": "live-http-kokoro-001",
+  "profile_id": "elder.calm",
+  "delivery": "synthesize-only",
+  "outcome": "ready",
+  "lifecycle": ["queued", "synthesizing", "ready"],
+  "audio_bytes": 87644,
+  "content_type": "audio/wav",
+  "riff_wave_valid": true,
+  "host_playback_exercised": false
+}

@@ -539,6 +539,7 @@ The kit is ready for an initial public developer release when:
       (authenticated HTTP round trip and real Kokoro WAV synthesis verified;
       host playback available but deliberately not exercised during proof).
 - [x] Build a deterministic restricted-agent usability fixture before launching
-      announced external models (no external run or `agent-usable` claim yet).
+      announced external models; three available requested models passed v1,
+      while DeepSeek 4.1 was unavailable and not substituted.
 - [ ] Complete the collated test/live/video evidence report before final handoff.
 - [ ] Resolve Q1 licensing before calling any artifact publicly releasable.

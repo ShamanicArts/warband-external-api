@@ -27,6 +27,9 @@ Current foundations include:
   for later announced cross-model interface tests;
 - reproducible tests and retained engine/visual evidence.
 
+The current evidence index and final video ledger live in
+[docs/evidence-report.md](docs/evidence-report.md).
+
 MCP is one adapter, not the core product boundary. CUA is used only for isolated
 launch and independent visual validation, never as an invisible game backend.
 

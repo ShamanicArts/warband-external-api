@@ -563,5 +563,14 @@ fields, stale revisions and argument attempts outside issued constants. A JSON C
 exports and evaluates the same fixture for future providers; its current export
 hash and run instructions are in `docs/agent-usability.md`. Five tests bring the
 active suite to **193 tests**. This is fixture readiness, not `agent-usable`
-evidence: no external model has been launched, and the required advance notice
-rule remains in force.
+evidence on its own; external results and their narrower claim follow below.
+
+After explicit advance notice, the exact fixture was tested once each by GPT-6
+Luna through Codex/OpenAI, Muse Spark 1.3 Contributor through OpenCode v2, and
+Grok 4.6 through Cursor. All three selected `aff:defend-praven` with exact bounded
+arguments and revision 7; the real evaluator scored each response 100/100. Luna
+and Grok independently flagged the implicit source of `expected_revision`, which
+is retained as interface feedback. Requested DeepSeek 4.1 was absent from the
+provider catalog and was not substituted. This earns `agent-usable` evidence for
+the fixture interface only, not the unwired simulated party-order backend. Raw
+results and run metadata are in `evidence/agent-usability/`.
