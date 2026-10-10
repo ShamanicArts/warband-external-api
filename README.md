@@ -20,10 +20,13 @@ Current foundations include:
 - a production Native-menu application that derives exact-session affordances
   from live bridge telemetry, queues validated selections and reconciles public
   outcomes against Warband acknowledgements without exposing bridge command IDs;
+- a [faction-sovereign application](docs/faction-agent.md) that refreshes real
+  party facts, verifies faction ownership, leases controlled parties and turns
+  reviewed orders into engine-observed outcomes without exposing world control;
 - trusted control-lease arbitration and role/context/source-filtered observations
   that report omissions without leaking hidden facts;
 - semantic adapters for canonical engine observations, committed dialogue events,
-  and exact-session attempts over the proven Native menu-selection path;
+  exact-session Native menu attempts and faction-scoped party orders;
 - a versioned durable semantic event log with strict decoding, ordered cursors,
   source idempotency and honest migration of terminal command/dialogue history;
 - an authenticated, loopback-only [host voice service](docs/voice.md) with named

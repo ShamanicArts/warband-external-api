@@ -18,7 +18,8 @@ separate engine facts support it.
 | Durable semantic events | bridge simulated + live migration | `test_agentic_events.py`, `evidence/semantic-events/` | remaining domain result tables are not migrated |
 | Host voice | live provider synthesis | voice tests, `evidence/voice/` | host playback and dialogue wiring not yet exercised |
 | Restricted agent interface | agent usable (fixture only) | `test_agentic_usability.py`, `evidence/agent-usability/` | simulated action; not live party control |
-| Constrained session/API | production Store integration | `test_agentic_agent_api.py`, `test_native_menu_agent_app.py`, `docs/constrained-agent-api.md` | Native menu only; restart outcome recovery and broader domain applications pending |
+| Constrained session/API | production Store integration | `test_agentic_agent_api.py`, `test_native_menu_agent_app.py`, `test_native_faction_agent_app.py`, `docs/constrained-agent-api.md` | Native menu and reviewed party orders; restart recovery and broader domains pending |
+| Faction reference application | bridge simulated over live-proven mechanics | `test_native_faction_agent_app.py`, `docs/faction-agent.md`, `evidence/campaign-world/` | new composition not yet live-tested; no synchronized multi-faction runner or strategic scoring |
 | GPU-safe live test harness | physical-GPU probe + live private launcher capture | `test_gpu_safe_runner.py`, `test_warband_gpu_supervisor.py`, `evidence/runtime/gpu-probe.json`, `evidence/runtime/gpu-safety-validation.json` | launcher capture is safe; unattended Play and game-process GPU proof remain open |
 
 ## Video ledger

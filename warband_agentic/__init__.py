@@ -1,12 +1,17 @@
 """Provider-neutral contracts for the Warband agentic runtime."""
 
 from warband_agentic.adapters import (
+    PARTY_STRATEGIC_ORDERS,
     canonical_observation_from_snapshot,
     context_from_snapshot,
     dialogue_event_from_bridge,
     issue_menu_affordances,
+    issue_party_order_affordance,
     menu_operation_from_validated,
+    party_facts_from_world_result,
+    party_operation_from_validated,
     register_menu_capability,
+    register_party_order_capabilities,
 )
 from warband_agentic.agent_api import (
     AgentConflict,
@@ -111,6 +116,7 @@ __all__ = [
     "LeaseBook",
     "ObservationEnvelope",
     "ObservationFilter",
+    "PARTY_STRATEGIC_ORDERS",
     "PerceptionPolicy",
     "PipeWirePlayer",
     "RiskClass",
@@ -133,11 +139,15 @@ __all__ = [
     "default_perception_policies",
     "dialogue_event_from_bridge",
     "issue_menu_affordances",
+    "issue_party_order_affordance",
     "game_event_from_wire",
     "make_voice_server",
     "make_agent_server",
     "menu_operation_from_validated",
+    "party_facts_from_world_result",
+    "party_operation_from_validated",
     "register_menu_capability",
+    "register_party_order_capabilities",
     "to_wire",
     "voice_outcome_manifest",
 ]

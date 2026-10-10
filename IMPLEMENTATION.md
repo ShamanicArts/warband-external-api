@@ -599,3 +599,30 @@ conflict and stale rejection, backend interruption, cross-session event isolatio
 concurrent deduplication, HTTP auth and loopback refusal. The active suite is now
 **202 tests**. Production bridge wiring, durable outcome reconstruction and broader
 role-filtered game-event audiences remain explicit follow-up work.
+
+## Native menu and faction application compositions
+
+The constrained API now has two real `Store` compositions. The Native-menu
+application derives exact-session options from current menu telemetry, queues the
+existing allowlisted operation and reconciles dispatch/acknowledgement without
+exposing command IDs. A trusted outcome refresher in `ConstrainedAgentSession`
+enforces legal lifecycle transitions and records each changed state separately.
+
+The faction-sovereign application requires a host-reviewed faction, controlled
+party set and exact strategic options. Each decision view is refreshed through
+real campaign party getters. Engine-observed faction ownership must match the
+grant before affordances are issued; one private exclusive lease binds each
+controlled party. The agent never receives `world_control`, operation names or
+arbitrary IDs. Movement and attack risks are distinct, and an action reaches
+`observed` only when `/world-result` reads back the party AI behavior/object.
+
+These compositions are covered by root integration tests over the production
+Store. The underlying menu and campaign mechanics retain their existing live
+evidence, but the new faction composition itself remains bridge-simulated until
+an isolated hardware-rendered run is available. Durable session reconstruction,
+diplomacy, automatic option generation, synchronized faction epochs and NPC/
+dialogue applications remain open.
+
+Current separated discovery passes **222 tests**: 88 root agentic/runtime tests,
+86 bridge tests and 48 module-system tests. Focused maintained-code Ruff and
+whitespace checks pass.

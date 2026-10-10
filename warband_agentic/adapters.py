@@ -22,6 +22,8 @@ from warband_agentic.contracts import (
     RoleId,
 )
 
+PARTY_STRATEGIC_ORDERS = ("hold", "travel", "patrol", "attack", "avoid", "escort")
+
 
 def _integer(name, value, minimum=None):
     if type(value) is not int or (minimum is not None and value < minimum):
@@ -190,6 +192,154 @@ def register_menu_capability(registry):
             True,
         )
     )
+
+
+def register_party_order_capabilities(registry):
+    """Register reversible movement and consequential attack capabilities."""
+    if not isinstance(registry, CapabilityRegistry):
+        raise TypeError("registry must be a CapabilityRegistry")
+    common = {
+        "type": "object",
+        "properties": {
+            "order": {"type": "string", "enum": PARTY_STRATEGIC_ORDERS},
+            "target_id": {"type": "integer", "minimum": 0},
+        },
+        "required": ("order", "target_id"),
+        "additionalProperties": False,
+    }
+    registry.register(
+        CapabilityDefinition(
+            "party.issue-order",
+            "Issue one bounded strategic order to a controlled faction party",
+            "party.strategy",
+            AuthorityClass.PARTY_COMMAND,
+            (ContextKind.CAMPAIGN,),
+            common,
+            RiskClass.REVERSIBLE,
+            True,
+            "The party will abandon its current strategic order.",
+            EvidenceLevel.ENGINE_OBSERVED,
+            "native-party-order",
+            True,
+        )
+    )
+    registry.register(
+        CapabilityDefinition(
+            "party.issue-attack-order",
+            "Order one controlled faction party to attack an exact target",
+            "party.strategy",
+            AuthorityClass.PARTY_COMMAND,
+            (ContextKind.CAMPAIGN,),
+            common,
+            RiskClass.CONSEQUENTIAL,
+            False,
+            "The order can lead to battle, casualties, capture or destruction.",
+            EvidenceLevel.ENGINE_OBSERVED,
+            "native-party-attack-order",
+            True,
+        )
+    )
+
+
+def issue_party_order_affordance(
+    registry,
+    actor,
+    party,
+    target,
+    order,
+    title,
+    context,
+    grant,
+    issued_at_ms,
+    expires_at_ms,
+):
+    """Issue one exact party/order/target choice from an application policy."""
+    if order not in PARTY_STRATEGIC_ORDERS:
+        raise ValueError("Unknown strategic party order")
+    if party.kind is not ActorKind.PARTY or party.game_id is None:
+        raise ValueError("Party order requires a game-backed party target")
+    if target.game_id is None:
+        raise ValueError("Party order target must have a game ID")
+    if not isinstance(title, str) or not title.strip():
+        raise ValueError("Party order title must be non-empty")
+    return registry.issue(
+        "party.issue-attack-order" if order == "attack" else "party.issue-order",
+        actor,
+        (party, target),
+        context,
+        grant,
+        issued_at_ms,
+        expires_at_ms,
+        {
+            "type": "object",
+            "properties": {
+                "order": {"type": "string", "const": order, "title": title},
+                "target_id": {"type": "integer", "const": target.game_id},
+            },
+            "required": ("order", "target_id"),
+            "additionalProperties": False,
+        },
+    )
+
+
+def party_operation_from_validated(validated):
+    """Resolve a validated semantic party affordance to the reviewed operation."""
+    if validated.capability.name not in (
+        "party.issue-order",
+        "party.issue-attack-order",
+    ):
+        raise ValueError("Validated action is not a party order")
+    if len(validated.affordance.targets) != 2:
+        raise ValueError("Party order affordance has invalid target bindings")
+    party, target = validated.affordance.targets
+    if party.kind is not ActorKind.PARTY or party.game_id is None:
+        raise ValueError("Party order affordance has no controlled party")
+    if target.game_id is None:
+        raise ValueError("Party order affordance has no game-backed target")
+    arguments = validated.submission.arguments
+    if (
+        arguments["target_id"] != target.game_id
+        or arguments["order"] not in PARTY_STRATEGIC_ORDERS
+    ):
+        raise ValueError("Party order arguments escaped their target binding")
+    return {
+        "operation": "party_order",
+        "arguments": {
+            "party_id": party.game_id,
+            "order": arguments["order"],
+            "target_party_id": target.game_id,
+            "world_control": True,
+        },
+    }
+
+
+def party_facts_from_world_result(result, revision):
+    """Convert one complete engine party getter result into canonical facts."""
+    _integer("revision", revision, 0)
+    if not isinstance(result, dict) or not result.get("complete"):
+        raise ValueError("Expected a complete campaign world result")
+    values = result.get("facts")
+    if not isinstance(values, dict) or values.get("entity") != "party":
+        raise ValueError("Expected engine-observed party facts")
+    party_id = _integer("party_id", values.get("party_id"), 0)
+    facts = []
+    for name in (
+        "ai_behavior",
+        "ai_object",
+        "ai_initiative",
+        "faction_id",
+        "position",
+    ):
+        if name in values:
+            facts.append(
+                Fact(
+                    f"parties.{party_id}.{name}",
+                    values[name],
+                    FactSource.ENGINE_OBSERVED,
+                    revision,
+                )
+            )
+    return tuple(facts)
 
 
 def issue_menu_affordances(

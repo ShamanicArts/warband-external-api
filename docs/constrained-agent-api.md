@@ -46,6 +46,32 @@ engine-acknowledged evidence. Menu or session changes invalidate stale
 affordances. Pass `application.session` to `make_agent_server` to expose the same
 boundary over HTTP.
 
+## Native faction application
+
+`bridge.native_faction_agent_app.NativeFactionAgentApplication` composes the
+same constrained session around the proven campaign party getter and order
+paths. The host or benchmark defines the faction, controlled party IDs and a
+reviewed set of exact `PartyOrderOption` choices. Those bindings are private;
+the agent receives semantic party-order affordances, not `world_control`, bridge
+operation names or arbitrary entity-ID authority.
+
+Each decision epoch begins with `queue_observation_refresh()`. The host waits for
+those normal Store commands to finish before requesting `application.session.turn()`.
+The application then:
+
+- builds the sovereign observation from fresh engine party getters;
+- refuses all affordances unless every controlled party's observed faction
+  matches the granted faction;
+- owns one exclusive `party.strategy` lease per controlled party;
+- marks movement orders reversible and attack orders consequential;
+- reports queueing as declared, game acknowledgement as acknowledged, and only
+  party getter read-back as observed.
+
+The current read-back proves assigned Native AI behavior and target at that
+instant. It does not prove arrival, battle victory or that Native AI will not
+later replace the order. See [the faction application guide](faction-agent.md)
+for host orchestration and boundaries.
+
 ## HTTP adapter
 
 `make_agent_server(session, token)` binds only to `127.0.0.1` and requires a
@@ -64,7 +90,7 @@ Example submission:
 {
   "request_id": "decision:epoch-12:party-17",
   "affordance_token": "opaque-token-from-current-turn",
-  "arguments": {"order": "defend", "target_id": 2},
+  "arguments": {"order": "travel", "target_id": 26},
   "expected_revision": 7
 }
 ```
@@ -80,11 +106,12 @@ acknowledgement is not promoted to observed outcome.
 - Construction is Python-first; packaged application loading and multi-session
   lifecycle management are not implemented yet.
 - Outcome idempotency is in-memory for the running session. Action events are
-  durable when a `SemanticEventLog` is supplied and live Native-menu outcomes
+  durable when a `SemanticEventLog` is supplied and Native-menu/faction outcomes
   reconcile against the Store, but full request/outcome reconstruction after an
   application restart remains pending.
 - The default event view exposes only action events emitted for this session.
   Role-filtered delivery of broader world/dialogue events needs an explicit event
   audience policy and must not expose the shared log wholesale.
-- Production composition currently covers the Native menu path only. Campaign
-  faction, party, NPC and dialogue applications remain to be wired.
+- Production composition currently covers Native menus and reviewed faction
+  party orders. Diplomacy, synchronized multi-faction epochs, autonomous option
+  generation, NPC embodiment and dialogue applications remain to be wired.
