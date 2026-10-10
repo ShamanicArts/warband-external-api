@@ -274,6 +274,12 @@ class ProviderDecisionBatch:
             for faction_id in self._turns
         }
 
+    def pending_faction_ids(self):
+        """Return the sorted factions whose provider receipt is still missing."""
+        return tuple(
+            faction_id for faction_id in self._turns if faction_id not in self._records
+        )
+
     def audit(self):
         self._require_complete()
         records = {

@@ -986,3 +986,27 @@ tests**: 129 root, 94 bridge and 50 module-system.
 The command remains check-only: it does not start the host, capture/load a save,
 dispatch model calls or run a campaign. No external agent or Warband process was
 launched for this slice.
+
+## Bounded subprocess provider adapter
+
+`warband_agentic.subprocess_provider` supplies the first concrete execution
+adapter for equal-budget decision tasks without coupling the core to a model SDK.
+Each provider maps to explicit argv plus an in-memory environment; execution uses
+no shell, starts every missing faction task before polling, and feeds canonical
+task JSON through anonymous temporary input files so a child that does not read
+stdin cannot block batch startup. Anonymous output files avoid pipe deadlock;
+polling kills a writer after its result crosses 256 KiB.
+
+The host measures elapsed time. Non-blocking polls accept one strict, bounded
+result object or record a sanitized provider error; children crossing the common
+deadline are killed and reaped before a timeout receipt is committed. Closing the
+dispatcher kills and records cancellation for remaining children. The environment,
+stdout, stderr, process IDs and argv do not enter benchmark artifacts. The wrapper
+itself remains trusted code rather than a filesystem/network sandbox.
+
+Three root integration regressions run tiny local Python wrappers to prove
+concurrent success, hard timeout cleanup and oversized-output termination.
+Separated discovery passes **276 tests**: 132
+root, 94 bridge and 50 module-system. Packaging imports the adapter from the built
+wheel. No provider API, model, BB agent, Warband process or voice service was
+invoked.

@@ -53,6 +53,9 @@ Current foundations include:
 - a check-only [versioned benchmark plan](docs/benchmark-plan.md) that binds the
   host sessions, Native metric set, epoch bounds, reproducibility hashes and
   provider budgets before any game or network side effect;
+- a bounded [subprocess provider adapter](docs/provider-adapters.md) for trusted
+  local wrappers, with concurrent start, non-blocking polling, hard deadlines and
+  audited failures but no embedded model SDK;
 - a [GPU-safe off-screen test harness](bridge/CUA_RUNBOOK.md) that pins Gamescope
   to a physical AMD GPU, isolates CUA from the desktop, enforces systemd resource
   limits and refuses software rendering or missing game-process GPU proof;

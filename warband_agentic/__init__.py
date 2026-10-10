@@ -111,6 +111,12 @@ from warband_agentic.scoring import (
     benchmark_scenario_from_manifest,
     score_scenario,
 )
+from warband_agentic.subprocess_provider import (
+    SUBPROCESS_DISPATCH_STATUS_SCHEMA,
+    SUBPROCESS_PROVIDER_RESULT_SCHEMA,
+    SubprocessDecisionDispatcher,
+    SubprocessProviderAdapter,
+)
 from warband_agentic.usability import (
     FactionUsabilityFixture,
     UsabilityEvaluation,
@@ -201,6 +207,10 @@ __all__ = [
     "RoleGrant",
     "RoleId",
     "SpeechRequest",
+    "SUBPROCESS_DISPATCH_STATUS_SCHEMA",
+    "SUBPROCESS_PROVIDER_RESULT_SCHEMA",
+    "SubprocessDecisionDispatcher",
+    "SubprocessProviderAdapter",
     "SemanticEventLog",
     "ScopedGameBackend",
     "SynchronizedFactionEpoch",

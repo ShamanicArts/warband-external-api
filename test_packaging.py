@@ -50,6 +50,7 @@ class PackagingTests(unittest.TestCase):
                 self.assertIn("warband_agentic/benchmark.py", names)
                 self.assertIn("warband_agentic/provider_decisions.py", names)
                 self.assertIn("warband_agentic/scoring.py", names)
+                self.assertIn("warband_agentic/subprocess_provider.py", names)
                 self.assertIn("bridge/game_bridge.py", names)
                 self.assertIn("bridge/application_extensions.py", names)
                 self.assertIn("bridge/campaign_metric_collector.py", names)
@@ -123,7 +124,8 @@ class PackagingTests(unittest.TestCase):
                         "import warband_agentic.benchmark; "
                         "import warband_agentic.extensions; "
                         "import warband_agentic.provider_decisions; "
-                        "import warband_agentic.scoring"
+                        "import warband_agentic.scoring; "
+                        "import warband_agentic.subprocess_provider"
                     ),
                 ],
                 cwd=directory,

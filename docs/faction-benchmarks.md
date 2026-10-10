@@ -164,10 +164,11 @@ decision submission remains supported and produces a `null` provider audit.
 Identical caps are not a claim that different tokenizers, pricing schemes or
 hardware have identical semantics; the actual reported usage remains visible.
 
-This layer does not call a provider or impose a specific concurrency framework.
-A production adapter must dispatch the frozen tasks without advancing game time,
-honor cancellation/deadlines, and authenticate independently. No external model
-was invoked while implementing or testing this contract.
+The first [subprocess provider adapter](provider-adapters.md) concurrently starts
+trusted local wrappers, polls without blocking the game host and hard-kills calls
+at the common deadline. Provider-specific authentication and request translation
+remain inside those wrappers. No external model was invoked while implementing or
+testing this contract.
 
 The check-only [`warband-benchmark`](benchmark-plan.md) command compiles a
 versioned plan against the referenced application-host configuration before any
