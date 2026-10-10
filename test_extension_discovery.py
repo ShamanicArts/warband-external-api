@@ -57,7 +57,18 @@ def extension_bundle():
             )
             (root / "mcp-catalog.json").write_text(json.dumps({}))
             (root / "mcp-build.json").write_text(
-                json.dumps({"protocol": 2, "integration_revision": 16})
+                json.dumps(
+                    {
+                        "protocol": 2,
+                        "integration_revision": 16,
+                        "extensions": [
+                            {
+                                "extension_id": "warband.native",
+                                "version": "0.2.0",
+                            }
+                        ],
+                    }
+                )
             )
             for name, token in (
                 ("bridge", "1" * 64),

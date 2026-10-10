@@ -27,6 +27,7 @@ separate engine facts support it.
 | Python package and commands | installed-wheel structural proof | `test_packaging.py`, `docs/packaging.md`, `pyproject.toml` | no project license, guided installer, client registration or fresh-install game acceptance yet |
 | Packaged application host | loopback runtime simulation | `test_agent_host.py`, `docs/application-host.md`, `config/agent-host.example.json` | one NPC session lifecycle/refresh exercised; three-session plan structurally validated; no live game or multi-session runtime acceptance yet |
 | Python extension SDK | installed-style CLI + loopback runtime simulation | `test_agentic_extensions.py`, `test_extension_discovery.py`, `test_agent_host.py`, `docs/extension-sdk.md` | explicit registration, exact-ID installed loading and one custom-kind host lifecycle proven; no automatic loading, hot reload or generated ModSys handler extension yet |
+| Module/host extension compatibility | structural + CLI check | `module_system/test_build_mcp_module.py`, `test_agent_host.py`, `mcp-build.json` contract | exact built-in ID/version inventory and pre-bind mismatch refusal proven; third-party compiled handlers remain unimplemented |
 | GPU-safe live test harness | physical-GPU probe + live private launcher capture | `test_gpu_safe_runner.py`, `test_warband_gpu_supervisor.py`, `evidence/runtime/gpu-probe.json`, `evidence/runtime/gpu-safety-validation.json` | launcher capture is safe; unattended Play and game-process GPU proof remain open |
 
 ## Video ledger

@@ -212,6 +212,30 @@ def load_agent_host_plan(path, extensions=None):
         raise ValueError("Module protocol does not match this host")
     if build.get("integration_revision") != EXPECTED_INTEGRATION_REVISION:
         raise ValueError("Module integration revision does not match this host")
+    built_extensions = build.get("extensions")
+    if not isinstance(built_extensions, list):
+        raise ValueError("Module build manifest has no extension inventory")
+    inventory = {}
+    for item in built_extensions:
+        if not isinstance(item, dict) or set(item) != {"extension_id", "version"}:
+            raise ValueError("Module build extension inventory is malformed")
+        extension_id, version = item["extension_id"], item["version"]
+        if (
+            not isinstance(extension_id, str)
+            or not extension_id
+            or not isinstance(version, str)
+            or not version
+            or extension_id in inventory
+        ):
+            raise ValueError("Module build extension inventory is malformed")
+        inventory[extension_id] = version
+    for requirement in extensions.required_module_extensions():
+        extension_id = requirement["extension_id"]
+        version = requirement["version"]
+        if inventory.get(extension_id) != version:
+            raise ValueError(
+                f"Module does not provide required extension {extension_id} {version}"
+            )
     bridge_token_file, bridge_token = _read_token(
         base, bridge["token_file"], "bridge token file"
     )

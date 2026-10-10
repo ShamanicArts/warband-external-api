@@ -61,6 +61,9 @@ Create the token with `warband-game-bridge --create-token` only when the target
 file does not exist. Keep the token, generated module, database and saves private.
 The bridge binds to loopback. Use the GPU-safe runbook for any agent-initiated
 game launch; software rendering is forbidden.
+The generated build manifest inventories `warband.native` 0.2.0. Application-host
+validation compares that inventory to loaded module-required extensions before
+opening either runtime database or any listener.
 
 ## Current release blockers
 

@@ -831,3 +831,18 @@ reports both exact extension versions, creates no databases, and returns a
 secret-free error for a missing ID. Separated discovery passes **251 tests**: 115
 root, 88 bridge and 48 module-system. Automatic package loading, runtime hot
 reload and compiled ModSys-handler extensions remain open.
+
+## Module/host extension compatibility gate
+
+Generated revision-16 module manifests now inventory the exact built-in compiled
+extension as `warband.native` 0.2.0. `AgenticExtension` separately declares
+whether it requires module support. Before reading tokens into a running host,
+creating databases or binding sockets, host-plan validation strictly decodes the
+build inventory and requires an exact ID/version match for every loaded
+module-required extension. Host-only composition extensions remain independent.
+
+The additive builder regression proves the inventory is written, while the host
+CLI regression mutates the module version to 0.1.0 and proves secret-free,
+side-effect-free refusal. Separated discovery remains **251 tests**: 115 root, 88
+bridge and 48 module-system. This is the compatibility anchor for future compiled
+third-party handlers; it does not claim those handlers can be generated yet.

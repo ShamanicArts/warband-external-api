@@ -135,6 +135,7 @@ def built_in_extension_registry():
                 True,
             ),
         ),
+        module_required=True,
     )
     registry = ExtensionRegistry(protocol=2, integration_revision=16)
     registry.register(

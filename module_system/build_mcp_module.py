@@ -52,6 +52,9 @@ MISSION_SLOT, MISSION_FLAGS_SLOT = 99991, 99990
 MENU_SLOT, POLL_NONCE_SLOT, DIALOG_ACTIVE_SLOT = 99989, 99988, 99986
 MENU_SESSION_SLOT, MENU_RESULT_SLOT, MENU_REG_BASE = 99985, 99984, 99940
 SCRIPT = 13 << 56
+BUILTIN_MODULE_EXTENSIONS = (
+    {"extension_id": "warband.native", "version": "0.2.0"},
+)
 
 # Official operation names and values, not the previous prototype's headers.
 OPS = {
@@ -1191,6 +1194,7 @@ def build(native: Path, output: Path, endpoint: str, token: str):
             {
                 "protocol": 2,
                 "integration_revision": 16,
+                "extensions": list(BUILTIN_MODULE_EXTENSIONS),
                 "scene_departure_missions": departure_ids,
                 "source": str(native),
                 "transport": "engine HTTP opcode 380",

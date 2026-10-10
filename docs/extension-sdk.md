@@ -15,6 +15,11 @@ An `AgenticExtension` declares:
 - host-level exclusive ownership derived from settings; and
 - exact builder/runtime resource claims for collision detection.
 
+Extensions whose application depends on compiled game support set
+`module_required=True`. The generated `mcp-build.json` inventories exact extension
+IDs and versions, and host validation refuses to start when a required entry is
+missing or mismatched. Host-only composition extensions leave this false.
+
 `ExtensionRegistry.register()` atomically rejects duplicate extension IDs,
 application kinds, incompatible protocol/revision ranges and colliding resource
 claims. Its operator catalog contains declarations only—never factories,
@@ -114,6 +119,8 @@ GET /v1/host/extensions
 - The SDK composes applications over existing reviewed bridge operation families.
   It does not yet compile new ModSys handlers, allocate slots/registers/globals or
   merge new callback seams; declarations can reserve those resource names for
-  future builder integration, but that is structural metadata only.
+  future builder integration, but that is structural metadata only. Marking such
+  an extension module-required therefore fails closed until its build integration
+  exists.
 - Broad compatibility with other Warband modules is not implied. The current
   protocol/revision target remains the generated revision-16 Native module.

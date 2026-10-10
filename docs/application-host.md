@@ -31,6 +31,8 @@ protocol 2 and integration revision 16, rejects port collisions, duplicate
 session IDs, more than one player-menu controller, and overlapping faction-party
 or NPC-agent ownership. Its JSON diagnostics contain no paths, tokens, private
 command IDs or handler names.
+It also requires the build manifest to provide the exact ID/version of every
+loaded extension marked as needing compiled module support.
 
 ## Run
 

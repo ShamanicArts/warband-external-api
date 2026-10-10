@@ -78,11 +78,11 @@ class ModuleBuildTests(unittest.TestCase):
         self.assertEqual(catalog["dialogue"]["entries"][0]["id"], 0)
         self.assertFalse(catalog["dialogue"]["entries"][0]["player_choice"])
         self.assertNotIn("condition", catalog["dialogue"]["entries"][0])
+        build_manifest = json.loads((output / "mcp-build.json").read_text())
+        self.assertEqual(build_manifest["integration_revision"], 16)
         self.assertEqual(
-            json.loads((output / "mcp-build.json").read_text())[
-                "integration_revision"
-            ],
-            16,
+            build_manifest["extensions"],
+            [{"extension_id": "warband.native", "version": "0.2.0"}],
         )
 
     def test_callback_control_blocks_are_balanced(self):

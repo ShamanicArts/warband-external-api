@@ -31,6 +31,12 @@ class AgentApplicationHostCliTests(unittest.TestCase):
                     {
                         "protocol": 2,
                         "integration_revision": 16,
+                        "extensions": [
+                            {
+                                "extension_id": "warband.native",
+                                "version": "0.2.0",
+                            }
+                        ],
                         "transport": "engine HTTP opcode 380",
                     }
                 )
@@ -148,6 +154,41 @@ class AgentApplicationHostCliTests(unittest.TestCase):
             self.assertFalse((root / "bridge.sqlite3").exists())
             self.assertFalse((root / "events.sqlite3").exists())
 
+            incompatible_build = json.loads(build.read_text())
+            incompatible_build["extensions"][0]["version"] = "0.1.0"
+            build.write_text(json.dumps(incompatible_build))
+            incompatible = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "bridge.agent_host",
+                    "--config",
+                    config,
+                    "--check",
+                ],
+                cwd=Path(__file__).parent,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(incompatible.returncode, 2)
+            self.assertIn("warband.native 0.2.0", incompatible.stderr)
+            self.assertFalse((root / "bridge.sqlite3").exists())
+            build.write_text(
+                json.dumps(
+                    {
+                        "protocol": 2,
+                        "integration_revision": 16,
+                        "extensions": [
+                            {
+                                "extension_id": "warband.native",
+                                "version": "0.2.0",
+                            }
+                        ],
+                        "transport": "engine HTTP opcode 380",
+                    }
+                )
+            )
+
             conflicting = json.loads(config.read_text())
             extra_token = root / "private-conflict.token"
             extra_token.write_text("f" * 64)
@@ -204,7 +245,18 @@ class AgentApplicationHostCliTests(unittest.TestCase):
                 json.dumps({"troops": {"7": "Trainer"}})
             )
             (root / "mcp-build.json").write_text(
-                json.dumps({"protocol": 2, "integration_revision": 16})
+                json.dumps(
+                    {
+                        "protocol": 2,
+                        "integration_revision": 16,
+                        "extensions": [
+                            {
+                                "extension_id": "warband.native",
+                                "version": "0.2.0",
+                            }
+                        ],
+                    }
+                )
             )
             for name, token in (
                 ("bridge", "a" * 64),
@@ -320,7 +372,18 @@ class AgentApplicationHostCliTests(unittest.TestCase):
                 json.dumps({"troops": {"7": "Trainer"}})
             )
             (root / "mcp-build.json").write_text(
-                json.dumps({"protocol": 2, "integration_revision": 16})
+                json.dumps(
+                    {
+                        "protocol": 2,
+                        "integration_revision": 16,
+                        "extensions": [
+                            {
+                                "extension_id": "warband.native",
+                                "version": "0.2.0",
+                            }
+                        ],
+                    }
+                )
             )
             for name, token in (
                 ("bridge", "1" * 64),

@@ -188,6 +188,7 @@ class AgenticExtension:
     integration_revision_max: int
     applications: tuple[ApplicationKind, ...]
     resources: tuple[ResourceClaim, ...] = ()
+    module_required: bool = False
     contract_schema: str = CONTRACT_VERSION
     schema: str = EXTENSION_SCHEMA
 
@@ -222,6 +223,8 @@ class AgenticExtension:
         if len(keys) != len(set(keys)):
             raise ValueError("extension resource claims must be unique")
         object.__setattr__(self, "resources", resources)
+        if type(self.module_required) is not bool:
+            raise TypeError("module_required must be boolean")
         if self.contract_schema != CONTRACT_VERSION:
             raise ValueError("extension contract schema is incompatible")
         if self.schema != EXTENSION_SCHEMA:
@@ -243,6 +246,7 @@ class AgenticExtension:
             },
             "applications": [item.manifest() for item in self.applications],
             "resources": [item.manifest() for item in self.resources],
+            "module_required": self.module_required,
         }
 
 
@@ -480,6 +484,18 @@ class ExtensionRegistry:
             for extension in sorted(
                 self._extensions.values(), key=lambda item: item.extension_id
             )
+        )
+
+    def required_module_extensions(self):
+        return tuple(
+            {
+                "extension_id": extension.extension_id,
+                "version": extension.version,
+            }
+            for extension in sorted(
+                self._extensions.values(), key=lambda item: item.extension_id
+            )
+            if extension.module_required
         )
 
 
