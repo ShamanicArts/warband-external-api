@@ -241,6 +241,91 @@ def register_party_order_capabilities(registry):
     )
 
 
+def register_npc_speech_capability(registry):
+    """Register bounded generated speech for one controlled scene NPC."""
+    if not isinstance(registry, CapabilityRegistry):
+        raise TypeError("registry must be a CapabilityRegistry")
+    registry.register(
+        CapabilityDefinition(
+            "dialogue.speak",
+            "Speak one bounded utterance through the controlled NPC",
+            "npc.dialogue",
+            AuthorityClass.ACTOR_CONTROL,
+            (ContextKind.MISSION,),
+            {
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "description": (
+                            "Printable dialogue text without pipes, braces, "
+                            "newlines or control characters."
+                        ),
+                    }
+                },
+                "required": ("text",),
+                "additionalProperties": False,
+            },
+            RiskClass.CONSEQUENTIAL,
+            False,
+            "The line is shown to the player and cannot be retracted.",
+            EvidenceLevel.ENGINE_OBSERVED,
+            "native-npc-speech",
+            True,
+        )
+    )
+
+
+def issue_npc_speech_affordance(
+    registry,
+    actor,
+    npc,
+    context,
+    grant,
+    issued_at_ms,
+    expires_at_ms,
+):
+    """Issue one mission/session-bound free-text speech affordance."""
+    if npc.kind is not ActorKind.AGENT or npc.game_id is None:
+        raise ValueError("NPC speech requires a game-backed scene agent")
+    return registry.issue(
+        "dialogue.speak",
+        actor,
+        (npc,),
+        context,
+        grant,
+        issued_at_ms,
+        expires_at_ms,
+    )
+
+
+def npc_speech_operation_from_validated(validated):
+    """Resolve validated NPC speech without exposing the bridge operation."""
+    if validated.capability.name != "dialogue.speak":
+        raise ValueError("Validated action is not NPC speech")
+    if len(validated.affordance.targets) != 1:
+        raise ValueError("NPC speech affordance has invalid target bindings")
+    npc = validated.affordance.targets[0]
+    if npc.kind is not ActorKind.AGENT or npc.game_id is None:
+        raise ValueError("NPC speech affordance has no scene agent")
+    text = validated.submission.arguments["text"]
+    if (
+        not isinstance(text, str)
+        or not 1 <= len(text) <= 200
+        or any(character in text for character in "|\r\n\x00{}")
+        or not text.isprintable()
+    ):
+        raise ValueError(
+            "Speech needs 1-200 printable characters without delimiters or braces"
+        )
+    return {
+        "operation": "npc_say",
+        "arguments": {"agent_id": npc.game_id, "text": text},
+    }
+
+
 def issue_party_order_affordance(
     registry,
     actor,

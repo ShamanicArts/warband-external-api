@@ -28,6 +28,8 @@ Applications may also supply a trusted outcome refresher. Public outcome lookup
 then reconciles queued work with engine-owned lifecycle state while preserving
 the original action and context identity, enforcing legal state transitions and
 emitting a distinct action event for every observed transition.
+Late engine evidence may promote an expired or interrupted action to observed;
+the runtime never replays the uncertain mutation to obtain that evidence.
 
 ## Native menu application
 
@@ -72,6 +74,25 @@ instant. It does not prove arrival, battle victory or that Native AI will not
 later replace the order. See [the faction application guide](faction-agent.md)
 for host orchestration and boundaries.
 
+## Native NPC speech application
+
+`bridge.native_npc_speech_app.NativeNpcSpeechApplication` binds an `npc.self`
+session to one live scene agent. A host first calls
+`queue_observation_refresh()` and completes the normal scene census. The
+application refuses player agents, dead/missing agents, stale or changed mission
+scope, battle missions and already-active dialogue before issuing a bounded
+`dialogue.speak` affordance.
+
+The agent supplies only 1–200 characters of safe printable text. Agent identity,
+scene/session scope, lease and the private `npc_say` operation remain
+server-owned. Queueing is declared evidence; only Warband's matching dialogue
+open/close event produces an observed outcome.
+
+After that observed outcome, `application.voice_request(...)` creates a
+deterministic `SpeechRequest` for the existing host voice API. Synthesis or
+playback remains a separate application effect and cannot promote, alter or roll
+back game evidence. See [the NPC speech guide](npc-speech.md).
+
 ## HTTP adapter
 
 `make_agent_server(session, token)` binds only to `127.0.0.1` and requires a
@@ -112,6 +133,7 @@ acknowledgement is not promoted to observed outcome.
 - The default event view exposes only action events emitted for this session.
   Role-filtered delivery of broader world/dialogue events needs an explicit event
   audience policy and must not expose the shared log wholesale.
-- Production composition currently covers Native menus and reviewed faction
-  party orders. Diplomacy, synchronized multi-faction epochs, autonomous option
-  generation, NPC embodiment and dialogue applications remain to be wired.
+- Production composition currently covers Native menus, reviewed faction party
+  orders and one-turn NPC speech. Diplomacy, synchronized multi-faction epochs,
+  autonomous faction options, arbitrary player replies, persistent conversations
+  and mechanical dialogue proposals remain to be wired.

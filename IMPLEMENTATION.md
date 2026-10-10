@@ -602,7 +602,8 @@ role-filtered game-event audiences remain explicit follow-up work.
 
 ## Native menu and faction application compositions
 
-The constrained API now has two real `Store` compositions. The Native-menu
+The constrained API's first two real `Store` compositions cover Native menus and
+faction orders. The Native-menu
 application derives exact-session options from current menu telemetry, queues the
 existing allowlisted operation and reconciles dispatch/acknowledgement without
 exposing command IDs. A trusted outcome refresher in `ConstrainedAgentSession`
@@ -620,9 +621,27 @@ These compositions are covered by root integration tests over the production
 Store. The underlying menu and campaign mechanics retain their existing live
 evidence, but the new faction composition itself remains bridge-simulated until
 an isolated hardware-rendered run is available. Durable session reconstruction,
-diplomacy, automatic option generation, synchronized faction epochs and NPC/
-dialogue applications remain open.
+diplomacy, automatic option generation, synchronized faction epochs and
+persistent NPC/dialogue applications remain open.
 
-Current separated discovery passes **222 tests**: 88 root agentic/runtime tests,
+Current separated discovery passes **226 tests**: 92 root agentic/runtime tests,
 86 bridge tests and 48 module-system tests. Focused maintained-code Ruff and
 whitespace checks pass.
+
+## Constrained NPC speech and observed voice handoff
+
+`NativeNpcSpeechApplication` composes the `npc.self` role over the existing scene
+census and one-turn `npc_say` path. A fresh census must prove that the configured
+agent is present, alive and not the player in the current scene/session before a
+speech affordance appears. The agent controls bounded text only; target identity,
+lease, operation and mission scope remain private. Warband's matching dialogue
+open/close event—not queueing or acknowledgement—raises the action to observed.
+
+After observation, `voice_request()` builds a deterministic provider-neutral
+`SpeechRequest` carrying the utterance and action correlation. A host may send it
+to synthesis-only or PipeWire playback through the existing voice service. Voice
+remains separate from game truth and cannot affect the dialogue outcome. This
+composition is bridge-simulated; the underlying one-turn dialogue UI has prior
+visual evidence, while integrated NPC-agent and voice playback evidence remains
+pending. Arbitrary player replies, original-choice execution, persistent dialogue,
+NPC-to-NPC conversation, memory and mechanical proposals remain open.

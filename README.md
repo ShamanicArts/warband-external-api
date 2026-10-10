@@ -23,10 +23,13 @@ Current foundations include:
 - a [faction-sovereign application](docs/faction-agent.md) that refreshes real
   party facts, verifies faction ownership, leases controlled parties and turns
   reviewed orders into engine-observed outcomes without exposing world control;
+- a constrained [NPC speech application](docs/npc-speech.md) that binds one
+  freshly scanned scene agent to bounded dialogue, then creates an optional host
+  voice request only after Warband reports the utterance;
 - trusted control-lease arbitration and role/context/source-filtered observations
   that report omissions without leaking hidden facts;
 - semantic adapters for canonical engine observations, committed dialogue events,
-  exact-session Native menu attempts and faction-scoped party orders;
+  exact-session Native menu attempts, faction party orders and bounded NPC speech;
 - a versioned durable semantic event log with strict decoding, ordered cursors,
   source idempotency and honest migration of terminal command/dialogue history;
 - an authenticated, loopback-only [host voice service](docs/voice.md) with named

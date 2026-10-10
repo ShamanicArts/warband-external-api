@@ -322,11 +322,13 @@ class ConstrainedAgentSession:
                 ActionState.EXPIRED,
                 ActionState.ACKNOWLEDGED,
                 ActionState.REJECTED,
+                ActionState.OBSERVED,
             ),
             ActionState.INTERRUPTED: (
                 ActionState.INTERRUPTED,
                 ActionState.ACKNOWLEDGED,
                 ActionState.REJECTED,
+                ActionState.OBSERVED,
             ),
             ActionState.OBSERVED: (ActionState.OBSERVED,),
         }

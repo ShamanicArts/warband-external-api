@@ -56,4 +56,11 @@ exactly once. Artifacts are memory-only and oldest-first bounded.
 
 This is currently a synchronous service call: a speech POST returns after
 synthesis and any requested host playback complete. Priority, interruption,
-spatial rendering, dialogue-event wiring and restart recovery are not implemented.
+spatial rendering, automatic profile routing and restart recovery are not
+implemented.
+
+`NativeNpcSpeechApplication.voice_request()` now provides the first explicit
+game-to-voice wiring seam. It creates a deterministic `SpeechRequest` only after
+Warband reports the corresponding NPC dialogue event. The host still chooses
+whether to call the in-process service or authenticated HTTP API, and actual
+host playback has not yet been exercised through this integrated path.
