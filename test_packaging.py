@@ -49,6 +49,7 @@ class PackagingTests(unittest.TestCase):
             with zipfile.ZipFile(wheel) as archive:
                 names = set(archive.namelist())
                 self.assertIn("warband_agentic/contracts.py", names)
+                self.assertIn("warband_agentic/agent_client.py", names)
                 self.assertIn("warband_agentic/extensions.py", names)
                 self.assertIn("warband_agentic/benchmark.py", names)
                 self.assertIn("warband_agentic/provider_decisions.py", names)
@@ -67,7 +68,9 @@ class PackagingTests(unittest.TestCase):
                 self.assertIn("bridge/installer.py", names)
                 self.assertIn("module_system/build_mcp_module.py", names)
                 self.assertIn("src/warband_mcp.py", names)
+                self.assertIn("src/warband_agent_mcp.py", names)
                 for example in (
+                    "agent-mcp.example.json",
                     "agent-host.example.json",
                     "benchmark.example.json",
                     "provider-adapters.example.json",
@@ -88,6 +91,7 @@ class PackagingTests(unittest.TestCase):
                 scripts = archive.read(entry_points).decode()
                 for command in (
                     "warband-mcp",
+                    "warband-agent-mcp",
                     "warband-game-bridge",
                     "warband-agent-host",
                     "warband-build-module",
@@ -139,6 +143,7 @@ class PackagingTests(unittest.TestCase):
                         "import bridge.benchmark_plan; "
                         "import module_system.build_mcp_module; "
                         "import warband_agentic.benchmark; "
+                        "import warband_agentic.agent_client; "
                         "import warband_agentic.extensions; "
                         "import warband_agentic.provider_decisions; "
                         "import warband_agentic.scoring; "

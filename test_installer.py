@@ -133,6 +133,7 @@ class InstallerCliTests(unittest.TestCase):
                 for path in (
                     install_root / "install-manifest.json",
                     install_root / "config" / "mcp-server.json",
+                    install_root / "config" / "agent-mcp-server.json",
                     install_root / "INSTALL.md",
                 )
             )
@@ -143,6 +144,18 @@ class InstallerCliTests(unittest.TestCase):
                 mcp["env"]["WARBAND_TOKEN_FILE"],
                 str(install_root / "runtime" / "bridge.credential"),
             )
+            agent_mcp = json.loads(
+                (install_root / "config" / "agent-mcp-server.json").read_text()
+            )
+            self.assertEqual(
+                agent_mcp["env"]["WARBAND_AGENT_URL"],
+                "http://127.0.0.1:8890",
+            )
+            self.assertEqual(
+                agent_mcp["env"]["WARBAND_AGENT_TOKEN_FILE"],
+                str(install_root / "runtime" / "player-menu.credential"),
+            )
+            self.assertEqual(agent_mcp["args"], ["-m", "src.warband_agent_mcp"])
 
     def test_apply_failure_rolls_back_only_new_staging_and_destinations(self):
         with tempfile.TemporaryDirectory() as directory:

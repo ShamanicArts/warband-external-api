@@ -23,6 +23,7 @@ from warband_agentic.agent_api import (
     AgentTurn,
     ConstrainedAgentSession,
 )
+from warband_agentic.agent_client import AgentHttpClient, AgentHttpClientError
 from warband_agentic.agent_http import make_agent_server
 from warband_agentic.authority import (
     LeaseBook,
@@ -177,6 +178,8 @@ __all__ = [
     "ContextRef",
     "ControlLease",
     "ConstrainedAgentSession",
+    "AgentHttpClient",
+    "AgentHttpClientError",
     "DecisionBudget",
     "DecisionUsage",
     "Evidence",

@@ -16,7 +16,8 @@ Current foundations include:
   affordance validation with internal handlers hidden from agents;
 - an authenticated [constrained agent API](docs/constrained-agent-api.md) that
   keeps actor/grant/lease/handler identity server-owned and exposes filtered
-  turns, bounded submissions, outcomes and session-safe event cursors;
+  turns, bounded submissions, outcomes and session-safe event cursors through
+  HTTP or a one-session stdio MCP adapter;
 - a production Native-menu application that derives exact-session affordances
   from live bridge telemetry, queues validated selections and reconciles public
   outcomes against Warband acknowledgements without exposing bridge command IDs;
@@ -90,6 +91,7 @@ uv run warband-game-bridge --help
 uv run warband-agent-host --help
 uv run warband-build-module --help
 uv run warband-mcp
+uv run warband-agent-mcp
 uv run warband-voice --help
 uv run warband-agent-usability --help
 uv run warband-benchmark --help

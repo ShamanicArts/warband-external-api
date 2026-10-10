@@ -23,9 +23,11 @@ uv run warband-provider-opencode --help
 uv run warband-kit-install --help
 ```
 
-The MCP command is `uv run warband-mcp`. It uses stdio and expects
+The full operator MCP command is `uv run warband-mcp`. It uses stdio and expects
 `WARBAND_TOKEN_FILE`; `WARBAND_BRIDGE_URL` defaults to
-`http://127.0.0.1:8765`.
+`http://127.0.0.1:8765`. The restricted command is
+`uv run warband-agent-mcp`; it expects `WARBAND_AGENT_URL` and
+`WARBAND_AGENT_TOKEN_FILE` for exactly one hosted session.
 
 ## Reproducible artifact build
 
@@ -72,9 +74,12 @@ validation fails. It never modifies Native, an existing output or an MCP client.
 
 The private root contains four distinct mode-0600 credentials, a host config with
 one restricted `native-menu` starter session, a configurable local Kokoro voice
-service, an MCP stdio server snippet, a secret-free install manifest and explicit
-launch instructions. Add NPC and faction sessions only after selecting real live
-agent/party IDs and reviewed order options. Playback defaults to disabled; pass
+service, a constrained per-session MCP snippet, a separate full-operator MCP
+snippet, a secret-free install manifest and explicit launch instructions. Give an
+agent `agent-mcp-server.json`; `mcp-server.json` carries the broad bridge
+credential and is for trusted operator/debug use only. Add NPC and faction
+sessions only after selecting real live agent/party IDs and reviewed order
+options. Playback defaults to disabled; pass
 `--voice-playback pipewire` only when host audio playback is wanted.
 
 Vanilla Warband always sends HTTP to loopback port 80. Unless `--bridge-port 80`

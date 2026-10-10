@@ -156,9 +156,33 @@ become explicit `interrupted` outcomes rather than prompting unsafe automatic
 replay. Successful action events retain the strongest supplied evidence level;
 acknowledgement is not promoted to observed outcome.
 
+## Constrained MCP adapter
+
+`warband-agent-mcp` maps the same five safe operations to stdio MCP without
+exposing the game bridge or host-control credential:
+
+- `warband_agent_manifest`
+- `warband_agent_turn`
+- `warband_agent_act`
+- `warband_agent_outcome`
+- `warband_agent_events`
+
+Each process is pinned to exactly one session by `WARBAND_AGENT_URL` and
+`WARBAND_AGENT_TOKEN_FILE`. The HTTP origin is required to be
+`http://127.0.0.1:<port>` so the adapter cannot send a private session token to a
+remote host. The tool descriptions tell an agent to copy the current affordance
+token and observation revision, refresh and reason again after stale context, and
+distinguish accepted work from evidence-bearing outcomes.
+
+[`config/agent-mcp.example.json`](../config/agent-mcp.example.json) is a public
+shape only. The installer writes a private `agent-mcp-server.json` for its
+restricted starter session and a separate `mcp-server.json` for the broad trusted
+operator bridge. An agent should never receive the latter merely because its
+client speaks MCP.
+
 ## Current limitations
 
-- The stock CLI covers the three static built-in applications. Explicit trusted
+- The stock CLI covers four static built-in applications. Explicit trusted
   extension registration and named installed entry points are supported, while
   automatic loading, hot reload and dynamic session creation are not implemented.
 - When a `SemanticEventLog` is supplied, new action records durably reconstruct

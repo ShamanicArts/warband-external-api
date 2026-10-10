@@ -12,6 +12,7 @@ dependencies = ["mcp>=1.26,<2"]
 
 [project.scripts]
 warband-mcp = "src.warband_mcp:main"
+warband-agent-mcp = "src.warband_agent_mcp:main"
 warband-game-bridge = "bridge.game_bridge:main"
 warband-agent-host = "bridge.agent_host:main"
 warband-build-module = "module_system.build_mcp_module:main"

@@ -1,0 +1,24 @@
+{
+  "schema": "warband.agentic/evidence/constrained-mcp-smoke/v1",
+  "method": "Real MCP stdio client and server over an authenticated loopback constrained-session HTTP server",
+  "tools": [
+    "warband_agent_manifest",
+    "warband_agent_turn",
+    "warband_agent_act",
+    "warband_agent_outcome",
+    "warband_agent_events"
+  ],
+  "turn": {
+    "role": "faction.sovereign",
+    "affordance_count": 1,
+    "private_handler_exposed": false
+  },
+  "action": {
+    "state": "observed",
+    "dispatch_count": 1,
+    "outcome_lookup_equal": true
+  },
+  "external_model_invoked": false,
+  "game_launched": false,
+  "boundary": "This proves the real stdio MCP transport and constrained session mapping with deterministic runtime fixtures. It is not a live Warband action or model-usability result."
+}

@@ -206,7 +206,10 @@ not modified.
 
 The starter host exposes one restricted `native-menu` session. Add NPC or faction
 sessions only after choosing real live agent/party IDs and reviewed order options.
-Copy `config/mcp-server.json` into the server map of your MCP client manually.
+Copy `config/agent-mcp-server.json` into an agent's MCP client for the restricted
+starter session. `config/mcp-server.json` is the separate full operator surface;
+do not give its bridge credential to an untrusted agent. Registration remains
+manual.
 Do not publish this directory or the generated module: the game credential is
 embedded in the module's strings file.
 """
@@ -313,9 +316,20 @@ def apply_install(
                 "WARBAND_BRIDGE_URL": (f"http://127.0.0.1:{ports['bridge']}"),
             },
         }
+        agent_mcp_server = {
+            "command": sys.executable,
+            "args": ["-m", "src.warband_agent_mcp"],
+            "env": {
+                "WARBAND_AGENT_TOKEN_FILE": str(credentials["player-menu"]).replace(
+                    str(staged_install), str(install_root), 1
+                ),
+                "WARBAND_AGENT_URL": (f"http://127.0.0.1:{ports['starter_session']}"),
+            },
+        }
         _write_json(config / "agent-host.json", host_config)
         _write_json(config / "voice.json", voice_config)
         _write_json(config / "mcp-server.json", mcp_server)
+        _write_json(config / "agent-mcp-server.json", agent_mcp_server)
         build_voice_service(load_voice_config(config / "voice.json"))
         manifest = {
             "schema": MANIFEST_SCHEMA,
@@ -332,7 +346,12 @@ def apply_install(
             ],
             "configuration_files": [
                 str(install_root / "config" / name)
-                for name in ("agent-host.json", "voice.json", "mcp-server.json")
+                for name in (
+                    "agent-host.json",
+                    "voice.json",
+                    "mcp-server.json",
+                    "agent-mcp-server.json",
+                )
             ],
             "launch_commands": _launch_commands(plan, sys.executable),
             "requirements": plan["requirements"],
@@ -358,6 +377,7 @@ def apply_install(
             "install_root": str(install_root),
             "manifest": str(install_root / "install-manifest.json"),
             "mcp_server": str(install_root / "config" / "mcp-server.json"),
+            "agent_mcp_server": str(install_root / "config" / "agent-mcp-server.json"),
             "requirements": plan["requirements"],
         }
     except BaseException:

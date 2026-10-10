@@ -1,0 +1,8 @@
+{
+  "command": "warband-agent-mcp",
+  "args": [],
+  "env": {
+    "WARBAND_AGENT_URL": "http://127.0.0.1:8891",
+    "WARBAND_AGENT_TOKEN_FILE": "/private/path/to/session.token"
+  }
+}
