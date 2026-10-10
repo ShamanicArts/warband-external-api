@@ -48,7 +48,8 @@ Current foundations include:
   commit order, bounded engine-clock advancement, evidence-gated scenario scoring
   and atomic hashed epoch/run artifacts, plus a fixed-clock campaign metric
   collector and restart-safe non-blocking full-epoch orchestration harness,
-  without invoking models;
+  with equal-budget provider task/audit contracts but without embedding or
+  invoking models;
 - a [GPU-safe off-screen test harness](bridge/CUA_RUNBOOK.md) that pins Gamescope
   to a physical AMD GPU, isolates CUA from the desktop, enforces systemd resource
   limits and refuses software rendering or missing game-process GPU proof;

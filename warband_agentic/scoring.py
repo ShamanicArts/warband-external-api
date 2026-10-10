@@ -15,10 +15,11 @@ from types import MappingProxyType
 from typing import Mapping
 
 from warband_agentic.contracts import Evidence, EvidenceLevel, to_wire
+from warband_agentic.provider_decisions import validate_provider_decision_audit
 
 SCORECARD_SCHEMA = "warband.agentic/scorecard/v1"
-BENCHMARK_RUN_SCHEMA = "warband.agentic/benchmark-run/v1"
-BENCHMARK_RUN_CHECKPOINT_SCHEMA = "warband.agentic/benchmark-run-checkpoint/v1"
+BENCHMARK_RUN_SCHEMA = "warband.agentic/benchmark-run/v2"
+BENCHMARK_RUN_CHECKPOINT_SCHEMA = "warband.agentic/benchmark-run-checkpoint/v2"
 METRIC_SNAPSHOT_SCHEMA = "warband.agentic/metric-snapshot/v1"
 SCENARIO_SCHEMA = "warband.agentic/benchmark-scenario/v1"
 _SEMVER = re.compile(
@@ -424,7 +425,7 @@ class FactionBenchmarkRun:
         self._validate_snapshot(snapshot)
         self._baseline = snapshot
 
-    def append_epoch(self, transcript, metrics):
+    def append_epoch(self, transcript, metrics, *, provider_audit=None):
         if self._report is not None:
             raise RuntimeError("benchmark run is finalized")
         if self._baseline is None:
@@ -465,6 +466,15 @@ class FactionBenchmarkRun:
             raise ValueError("benchmark epoch turn-set hash is invalid")
         if value["turn_set_sha256"] != _canonical_hash(value["turns"]):
             raise ValueError("benchmark epoch turn-set hash does not match")
+        audit = None
+        if provider_audit is not None:
+            audit = validate_provider_decision_audit(
+                provider_audit,
+                epoch_id=epoch_id,
+                faction_ids=self.scenario.faction_ids,
+                turn_set_sha256=value["turn_set_sha256"],
+                decisions=value["decisions"],
+            )
         if (
             type(value["campaign_game_time"]) is not int
             or value["campaign_game_time"] < 0
@@ -504,7 +514,7 @@ class FactionBenchmarkRun:
         ):
             raise ValueError("benchmark epoch game time is not monotonic")
         self._epoch_ids.add(epoch_id)
-        self._epochs.append((value, metrics))
+        self._epochs.append((value, metrics, audit))
 
     def report(self):
         if self._baseline is None or not self._epochs:
@@ -521,8 +531,12 @@ class FactionBenchmarkRun:
                 "baseline": self._baseline.manifest(),
                 "epoch_count": len(self._epochs),
                 "epochs": [
-                    {"transcript": transcript, "metrics": metrics.manifest()}
-                    for transcript, metrics in self._epochs
+                    {
+                        "transcript": transcript,
+                        "metrics": metrics.manifest(),
+                        "provider_audit": audit,
+                    }
+                    for transcript, metrics, audit in self._epochs
                 ],
                 "scorecard": scorecard,
             }
@@ -564,8 +578,12 @@ class FactionBenchmarkRun:
             "run_metadata": self.run_metadata,
             "baseline": self._baseline.manifest(),
             "epochs": [
-                {"transcript": transcript, "metrics": metrics.manifest()}
-                for transcript, metrics in self._epochs
+                {
+                    "transcript": transcript,
+                    "metrics": metrics.manifest(),
+                    "provider_audit": audit,
+                }
+                for transcript, metrics, audit in self._epochs
             ],
         }
         return {
@@ -615,11 +633,16 @@ class FactionBenchmarkRun:
         if not isinstance(epochs, list):
             raise ValueError("Invalid benchmark run checkpoint epochs")
         for item in epochs:
-            if not isinstance(item, dict) or set(item) != {"transcript", "metrics"}:
+            if not isinstance(item, dict) or set(item) != {
+                "transcript",
+                "metrics",
+                "provider_audit",
+            }:
                 raise ValueError("Invalid benchmark run checkpoint epoch")
             run.append_epoch(
                 item["transcript"],
                 _snapshot_from_manifest(item["metrics"]),
+                provider_audit=item["provider_audit"],
             )
         return run
 

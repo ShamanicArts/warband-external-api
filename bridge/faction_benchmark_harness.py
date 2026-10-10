@@ -18,9 +18,11 @@ from warband_agentic import (
     BenchmarkEpochState,
     BenchmarkScenario,
     FactionBenchmarkRun,
+    ProviderDecisionBatch,
     SynchronizedFactionEpoch,
     to_wire,
 )
+from warband_agentic.provider_decisions import validate_provider_decision_audit
 
 
 class FactionBenchmarkHarnessState(StrEnum):
@@ -113,6 +115,7 @@ class FactionBenchmarkHarness:
         self._epoch = None
         self._driver = None
         self._epoch_id = None
+        self._provider_audit = None
         self._completed_epochs = 0
         self._reason = None
 
@@ -154,6 +157,25 @@ class FactionBenchmarkHarness:
         if self.state is not FactionBenchmarkHarnessState.DECISIONS:
             raise RuntimeError("benchmark turns are not awaiting decisions")
         records = self._epoch.commit_decisions(decisions)
+        self._provider_audit = None
+        self.state = FactionBenchmarkHarnessState.RESOLVING
+        return records
+
+    def submit_provider_batch(self, batch):
+        """Commit one complete equal-budget batch and retain its provider audit."""
+        if self.state is not FactionBenchmarkHarnessState.DECISIONS:
+            raise RuntimeError("benchmark turns are not awaiting decisions")
+        if not isinstance(batch, ProviderDecisionBatch):
+            raise TypeError("batch must be a ProviderDecisionBatch")
+        audit = batch.audit()
+        transcript = self._epoch.transcript()
+        if audit["epoch_id"] != self._epoch_id:
+            raise ValueError("provider decision batch belongs to another epoch")
+        if audit["turn_set_sha256"] != transcript["turn_set_sha256"]:
+            raise ValueError("provider decision batch uses another turn set")
+        decisions = batch.decisions()
+        records = self._epoch.commit_decisions(decisions)
+        self._provider_audit = audit
         self.state = FactionBenchmarkHarnessState.RESOLVING
         return records
 
@@ -212,9 +234,10 @@ class FactionBenchmarkHarness:
             "run": self._run.checkpoint(),
             "epoch": epoch,
             "driver": driver,
+            "provider_audit": self._provider_audit,
         }
         wrapper = {
-            "schema": "warband.agentic/benchmark-harness-checkpoint/v1",
+            "schema": "warband.agentic/benchmark-harness-checkpoint/v2",
             "payload_sha256": self._canonical_hash(payload),
             "payload": payload,
         }
@@ -260,7 +283,7 @@ class FactionBenchmarkHarness:
             "payload",
         }:
             raise ValueError("Invalid benchmark harness checkpoint fields")
-        if wrapper["schema"] != "warband.agentic/benchmark-harness-checkpoint/v1":
+        if wrapper["schema"] != "warband.agentic/benchmark-harness-checkpoint/v2":
             raise ValueError("Unsupported benchmark harness checkpoint schema")
         payload = wrapper["payload"]
         expected = {
@@ -273,6 +296,7 @@ class FactionBenchmarkHarness:
             "run",
             "epoch",
             "driver",
+            "provider_audit",
         }
         if not isinstance(payload, dict) or set(payload) != expected:
             raise ValueError("Invalid benchmark harness checkpoint payload")
@@ -312,10 +336,16 @@ class FactionBenchmarkHarness:
         harness._completed_epochs = len(payload["run"]["payload"]["epochs"])
         harness.state = state
         harness._epoch_id = payload["epoch_id"]
+        harness._provider_audit = payload["provider_audit"]
         if state is FactionBenchmarkHarnessState.READY:
             if any(
                 value is not None
-                for value in (payload["epoch_id"], payload["epoch"], payload["driver"])
+                for value in (
+                    payload["epoch_id"],
+                    payload["epoch"],
+                    payload["driver"],
+                    payload["provider_audit"],
+                )
             ):
                 raise ValueError("Ready harness checkpoint contains active state")
             return harness
@@ -331,6 +361,15 @@ class FactionBenchmarkHarness:
             raise ValueError("Harness and epoch checkpoint IDs do not match")
         if harness._epoch.run_metadata != run.run_metadata:
             raise ValueError("Harness and epoch run metadata do not match")
+        if harness._provider_audit is not None:
+            transcript = harness._epoch.transcript()
+            harness._provider_audit = validate_provider_decision_audit(
+                harness._provider_audit,
+                epoch_id=harness._epoch_id,
+                faction_ids=harness.scenario.faction_ids,
+                turn_set_sha256=transcript["turn_set_sha256"],
+                decisions=transcript["decisions"],
+            )
         if state is FactionBenchmarkHarnessState.RESOLVING:
             if payload["driver"] is not None:
                 raise ValueError("Resolving harness checkpoint contains a driver")
@@ -389,12 +428,17 @@ class FactionBenchmarkHarness:
             self._collector = None
             self.state = FactionBenchmarkHarnessState.READY
             return
-        self._run.append_epoch(self._epoch.transcript(), snapshot)
+        self._run.append_epoch(
+            self._epoch.transcript(),
+            snapshot,
+            provider_audit=self._provider_audit,
+        )
         self._completed_epochs += 1
         self._collector = None
         self._epoch = None
         self._driver = None
         self._epoch_id = None
+        self._provider_audit = None
         self.state = FactionBenchmarkHarnessState.READY
 
     def _poll_actions(self):

@@ -24,6 +24,8 @@ from warband_agentic import (
     BenchmarkScenario,
     ContextKind,
     ContextRef,
+    DecisionBudget,
+    DecisionUsage,
     Evidence,
     EvidenceLevel,
     FactionMetricSnapshot,
@@ -31,6 +33,8 @@ from warband_agentic import (
     MetricObservation,
     MetricRule,
     ObservationEnvelope,
+    ProviderAssignment,
+    ProviderDecisionBatch,
     RoleId,
 )
 
@@ -441,6 +445,45 @@ class FactionBenchmarkHarnessTests(unittest.TestCase):
             restored.poll()
             self.assertIs(restored.status().state, FactionBenchmarkHarnessState.READY)
             self.assertEqual(restored.finalize()["epoch_count"], 1)
+
+    def test_provider_batch_is_bound_to_turns_and_retained_in_report(self):
+        harness = self._harness()
+        harness.begin()
+        harness.poll()
+        harness.start_epoch("epoch:1")
+        turns = harness.collect_turns()
+        batch = ProviderDecisionBatch(
+            "batch:epoch-1",
+            "epoch:1",
+            turns,
+            {
+                15: ProviderAssignment("openai", "luna", {"temperature": 0}),
+                16: ProviderAssignment("cursor", "grok-4.6", {"temperature": 0}),
+            },
+            DecisionBudget(4096, 300, 30_000, 50_000),
+        )
+        batch.record_success(
+            15,
+            {"request_id": "decision:15"},
+            DecisionUsage(900, 80, 1200, 3_500),
+        )
+        batch.record_success(
+            16,
+            {"request_id": "decision:16"},
+            DecisionUsage(1100, 95, 1800, 4_200),
+        )
+
+        harness.submit_provider_batch(batch)
+        harness.poll()
+        harness.poll()
+        harness.poll()
+        harness.poll()
+        report = harness.finalize()
+
+        audit = report["epochs"][0]["provider_audit"]
+        self.assertEqual(audit["batch_id"], "batch:epoch-1")
+        self.assertEqual(audit["records"]["15"]["assignment"]["model"], "luna")
+        self.assertEqual(audit["total_usage"]["cost_microusd"], 7_700)
 
 
 if __name__ == "__main__":

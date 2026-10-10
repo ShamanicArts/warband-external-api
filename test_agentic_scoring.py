@@ -7,6 +7,8 @@ from pathlib import Path
 
 from warband_agentic import (
     BenchmarkScenario,
+    DecisionBudget,
+    DecisionUsage,
     Evidence,
     EvidenceLevel,
     FactionBenchmarkRun,
@@ -14,6 +16,8 @@ from warband_agentic import (
     MetricObjective,
     MetricObservation,
     MetricRule,
+    ProviderAssignment,
+    ProviderDecisionBatch,
     score_scenario,
 )
 
@@ -150,6 +154,18 @@ class BenchmarkScoringTests(unittest.TestCase):
         turn_hash = hashlib.sha256(
             json.dumps(turns, separators=(",", ":"), sort_keys=True).encode()
         ).hexdigest()
+        batch = ProviderDecisionBatch(
+            "batch:epoch-1",
+            "epoch:1",
+            turns,
+            {
+                15: ProviderAssignment("provider-a", "model-a", {}),
+                16: ProviderAssignment("provider-b", "model-b", {}),
+            },
+            DecisionBudget(1000, 200, 30_000, 20_000),
+        )
+        batch.record_success(15, {}, DecisionUsage(500, 50, 1000, 2_000))
+        batch.record_success(16, {}, DecisionUsage(600, 60, 1200, 3_000))
         epoch = {
             "schema": "warband.agentic/benchmark-epoch/v1",
             "epoch_id": "epoch:1",
@@ -159,7 +175,7 @@ class BenchmarkScoringTests(unittest.TestCase):
             "turn_set_sha256": turn_hash,
             "refresh_jobs": {15: {}, 16: {}},
             "turns": turns,
-            "decisions": {15: {}, 16: {}},
+            "decisions": batch.decisions(),
             "decision_records": {15: {}, 16: {}},
             "campaign_advance": {
                 "epoch_id": "epoch:1",
@@ -195,13 +211,60 @@ class BenchmarkScoringTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "turn-set hash"):
             rejected_hash_run.append_epoch(wrong_hash, self.final)
 
-        run.append_epoch(epoch, self.final)
+        wrong_provider_decision = deepcopy(epoch)
+        wrong_provider_decision["decisions"][15] = {"request_id": "substituted"}
+        rejected_provider_run = FactionBenchmarkRun(
+            "run:border-war:bad-provider-audit",
+            self.scenario,
+            run_metadata=self.run_metadata,
+        )
+        rejected_provider_run.set_baseline(self.baseline)
+        with self.assertRaisesRegex(ValueError, "response hash"):
+            rejected_provider_run.append_epoch(
+                wrong_provider_decision,
+                self.final,
+                provider_audit=batch.audit(),
+            )
+
+        forged_budget_audit = deepcopy(batch.audit())
+        forged_budget_audit["records"]["15"]["usage"]["input_tokens"] = 1001
+        forged_budget_audit["total_usage"]["input_tokens"] = 1601
+        audit_body = {
+            key: value
+            for key, value in forged_budget_audit.items()
+            if key != "audit_sha256"
+        }
+        forged_budget_audit["audit_sha256"] = hashlib.sha256(
+            json.dumps(
+                audit_body,
+                separators=(",", ":"),
+                sort_keys=True,
+            ).encode()
+        ).hexdigest()
+        rejected_budget_run = FactionBenchmarkRun(
+            "run:border-war:forged-budget",
+            self.scenario,
+            run_metadata=self.run_metadata,
+        )
+        rejected_budget_run.set_baseline(self.baseline)
+        with self.assertRaisesRegex(ValueError, "budget"):
+            rejected_budget_run.append_epoch(
+                epoch,
+                self.final,
+                provider_audit=forged_budget_audit,
+            )
+
+        run.append_epoch(epoch, self.final, provider_audit=batch.audit())
 
         report = run.report()
-        self.assertEqual(report["schema"], "warband.agentic/benchmark-run/v1")
+        self.assertEqual(report["schema"], "warband.agentic/benchmark-run/v2")
         self.assertEqual(report["run_id"], "run:border-war:42")
         self.assertEqual(report["epoch_count"], 1)
         self.assertEqual(report["scorecard"]["ranking"], [15, 16])
+        self.assertEqual(
+            report["epochs"][0]["provider_audit"]["total_usage"]["cost_microusd"],
+            5_000,
+        )
         self.assertEqual(len(report["report_sha256"]), 64)
         encoded = json.dumps(report)
         self.assertNotIn("application", encoded)

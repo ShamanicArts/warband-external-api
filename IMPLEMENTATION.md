@@ -931,6 +931,35 @@ and a root regression covers appendable run-state recovery. Separated
 discovery now passes **265 tests**: 122 root, 93 bridge and 50 module-system.
 
 This remains structural composition, not a live campaign benchmark. Game-save/
-process recovery, scenario CLI and provider scheduling with enforced equal token/
-time/cost budgets remain open. No Warband process or external model was launched
-for this slice.
+process recovery, scenario CLI and concrete provider adapters remain open. No
+Warband process or external model was launched for this slice.
+
+## Equal-budget provider decision batches
+
+`warband_agentic.provider_decisions` adds the provider-neutral handoff seam for
+real cross-model faction runs. One immutable synchronized turn set becomes one
+task per faction with identical input-token, output-token, timeout and optional
+micro-US-dollar limits. Provider/model identity and public inference settings are
+retained, while credential-like setting keys are rejected before serialization.
+
+Adapters report bounded token/time/cost usage with either a response or explicit
+timeout/provider-error/cancellation. Responses outside any declared limit are
+discarded and represented as audited no-decisions rather than quietly receiving
+mechanical effect. Exact receipt retries are idempotent and conflicting retries
+fail closed. The completed audit hashes the turn set and responses; scoring
+validates those links against the exact epoch decisions before including the
+audit in the new canonical `benchmark-run/v2` artifact.
+
+Partial batches emit checksummed checkpoints retaining frozen tasks and completed
+receipts, allowing a host to resume only missing provider calls. The benchmark
+harness accepts a completed provider batch at the same decision seam as raw
+responses and carries the audit through safe-state recovery into the final
+report. Five new regressions cover equal-budget successes, failures and budget
+overruns, partial-batch recovery, credential refusal, report binding and harness
+integration. Separated discovery passes **270 tests**: 126 root, 94 bridge and 50
+module-system.
+
+This does not implement an OpenAI, Cursor or OpenCode adapter, concurrent network
+dispatch, provider authentication or model invocation. Those remain separate
+host adapters and will require the promised user-visible preflight before any
+external run. No external agent, Warband process or voice model was launched.

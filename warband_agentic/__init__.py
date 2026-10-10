@@ -88,6 +88,14 @@ from warband_agentic.extensions import (
     ScopedGameBackend,
     load_named_extension_entry_points,
 )
+from warband_agentic.provider_decisions import (
+    PROVIDER_DECISION_BATCH_CHECKPOINT_SCHEMA,
+    PROVIDER_DECISION_BATCH_SCHEMA,
+    DecisionBudget,
+    DecisionUsage,
+    ProviderAssignment,
+    ProviderDecisionBatch,
+)
 from warband_agentic.scoring import (
     BENCHMARK_RUN_CHECKPOINT_SCHEMA,
     BENCHMARK_RUN_SCHEMA,
@@ -151,6 +159,8 @@ __all__ = [
     "ContextRef",
     "ControlLease",
     "ConstrainedAgentSession",
+    "DecisionBudget",
+    "DecisionUsage",
     "Evidence",
     "EvidenceLevel",
     "EXTENSION_CATALOG_SCHEMA",
@@ -181,6 +191,10 @@ __all__ = [
     "PARTY_STRATEGIC_ORDERS",
     "PerceptionPolicy",
     "PipeWirePlayer",
+    "PROVIDER_DECISION_BATCH_CHECKPOINT_SCHEMA",
+    "PROVIDER_DECISION_BATCH_SCHEMA",
+    "ProviderAssignment",
+    "ProviderDecisionBatch",
     "RiskClass",
     "ResourceClaim",
     "RoleGrant",

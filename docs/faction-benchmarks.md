@@ -129,8 +129,42 @@ restart the read-only fixed-clock metric scan. Baseline collection, refresh jobs
 and uncommitted affordance tokens are intentionally not checkpointable.
 
 The remaining full-harness work is game-supported save capture and process-loss
-recovery, scenario configuration/CLI, and provider scheduling with enforced equal
-token/time/cost budgets. The SHA-256 fields detect corruption and inconsistency;
-they are not signatures against a malicious local editor. External model runs
-still require the user-visible preflight notice described in the design
-specification.
+recovery, scenario configuration/CLI, and concrete provider adapters. The
+SHA-256 fields detect corruption and inconsistency; they are not signatures
+against a malicious local editor. External model runs still require the
+user-visible preflight notice described in the design specification.
+
+## Equal-budget provider handoff and audit
+
+`warband_agentic.ProviderDecisionBatch` freezes one task per faction from the
+exact synchronized turn set. Every task carries the same `DecisionBudget` limits
+for input tokens, output tokens, elapsed time and optional micro-US-dollar cost,
+while `ProviderAssignment` records the provider, model and public inference
+settings. Credential-like settings are refused so tokens and API keys cannot leak
+into tasks, checkpoints or reports.
+
+Provider adapters execute outside the core and report a bounded `DecisionUsage`.
+An answer that exceeds any declared limit is discarded. Timeout, provider-error
+and cancellation receipts become explicit no-decisions, allowing the other
+factions' records to commit without fabricating an answer. Exact retry receipts
+are idempotent; conflicting reuse fails closed. The completed audit retains
+assignments, statuses, response hashes and reported token/time/cost usage, and is
+SHA-256-bound to the frozen turn set.
+
+A partially completed batch has its own checksummed checkpoint. Restore retains
+finished receipts and frozen tasks, so a host can resume only the missing provider
+calls without charging for or reissuing completed work. This does not make the
+epoch's expiring affordance tokens durable indefinitely: the host must still
+finish and submit the batch while the synchronized decision state is valid.
+
+`FactionBenchmarkHarness.submit_provider_batch()` binds that audit to the active
+epoch before committing decisions. Canonical `benchmark-run/v2` reports retain
+the validated audit beside each epoch's transcript and metrics. Raw/manual
+decision submission remains supported and produces a `null` provider audit.
+Identical caps are not a claim that different tokenizers, pricing schemes or
+hardware have identical semantics; the actual reported usage remains visible.
+
+This layer does not call a provider or impose a specific concurrency framework.
+A production adapter must dispatch the frozen tasks without advancing game time,
+honor cancellation/deadlines, and authenticate independently. No external model
+was invoked while implementing or testing this contract.
