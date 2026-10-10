@@ -873,3 +873,32 @@ there is not yet a live engine acknowledgement or visual claim for a third-party
 compiled operation. The initial handler allowlist contains only player-troop gold
 add/remove; general slot/global allocation, custom result telemetry and arbitrary
 callback composition remain open.
+
+## Durable host-fed NPC conversation loop
+
+The reviewed `native-npc-dialogue` application kind now layers a bounded
+player-to-NPC turn protocol over the existing engine-observed one-turn speech
+mechanic. A separately authenticated operator endpoint accepts an idempotent
+player utterance; the NPC session receives that line and bounded completed
+conversation memory through its normal filtered observation, and receives no
+speech affordance when there is no line to answer. A second player line is
+refused while an NPC response remains unresolved.
+
+Player inputs and engine-observed NPC responses are written to the shared semantic
+event log under the owning agent session. Restart reconstructs completed memory or
+one unresolved turn without replaying speech, while existing constrained-action
+recovery retains private bridge command correlation. The response is committed
+only by the same Warband dialogue-open/close evidence used by one-shot speech;
+queueing and acknowledgement remain weaker evidence. The existing deterministic
+voice request can be produced after observation, but automatic voice dispatch is
+not coupled to this state machine. The operator listener now exposes that exact
+evidence-gated request as JSON ready for the separately authenticated voice API;
+the application host never receives voice-service credentials.
+
+Four root regressions cover the conversation state machine, durable restart,
+rejected-response retry and the new built-in declaration/operator route.
+Separated discovery passes **259 tests**: 121 root, 88 bridge and 50 module-system.
+This slice does not claim an
+in-game player text box, speech recognition, NPC-to-NPC dialogue, mechanical
+proposals or a live integrated run; it provides the bounded host contract those
+layers can use.

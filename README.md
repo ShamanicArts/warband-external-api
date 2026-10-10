@@ -25,7 +25,8 @@ Current foundations include:
   reviewed orders into engine-observed outcomes without exposing world control;
 - a constrained [NPC speech application](docs/npc-speech.md) that binds one
   freshly scanned scene agent to bounded dialogue, then creates an optional host
-  voice request only after Warband reports the utterance;
+  voice request only after Warband reports the utterance, plus a durable
+  host-fed player/NPC conversation loop for later in-game text or speech input;
 - a trusted [Python extension SDK](docs/extension-sdk.md) with versioned
   declarations, collision checks, validated settings, explicit factories and
   scoped access to reviewed game-operation families, including exact-ID installed

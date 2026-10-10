@@ -82,6 +82,230 @@ class NativeNpcSpeechApplicationTests(unittest.TestCase):
         self.assertNotIn("npc_say", encoded)
         self.assertNotIn(str(refresh_id), encoded)
 
+    def test_conversation_mode_answers_one_player_utterance_at_a_time(self):
+        tokens = iter(("affordance:conversation:1", "affordance:conversation:2"))
+        self.app = NativeNpcSpeechApplication(
+            self.store,
+            "session:trainer:conversation",
+            agent_id=1,
+            conversation_mode=True,
+            clock_ms=lambda: 1000,
+            token_factory=lambda: next(tokens),
+            action_id_factory=lambda request_id: f"action:{request_id}",
+        )
+        self._complete_agent_refresh()
+        self.assertEqual(self.app.session.turn().affordances, ())
+
+        receipt = self.app.receive_player_utterance(
+            "player-turn:1", "Have you heard any rumours?"
+        )
+
+        self.assertEqual(
+            receipt,
+            {
+                "schema": "warband.agentic/npc-utterance/v1",
+                "utterance_id": "player-turn:1",
+                "status": "pending",
+                "inserted": True,
+            },
+        )
+        self.assertFalse(
+            self.app.receive_player_utterance(
+                "player-turn:1", "Have you heard any rumours?"
+            )["inserted"]
+        )
+        with self.assertRaisesRegex(ValueError, "different text"):
+            self.app.receive_player_utterance("player-turn:1", "Changed input")
+        turn = self.app.session.turn()
+        facts = {
+            fact["key"]: fact["value"] for fact in to_wire(turn.observation)["facts"]
+        }
+        self.assertEqual(
+            facts["dialogue.pending_utterance"],
+            {
+                "utterance_id": "player-turn:1",
+                "speaker": "player",
+                "text": "Have you heard any rumours?",
+            },
+        )
+        self.assertEqual(len(turn.affordances), 1)
+        self.app.session.submit(
+            {
+                "request_id": "npc-turn:1",
+                "affordance_token": turn.affordances[0].token,
+                "arguments": {"text": "Caravans have gone missing near Suno."},
+                "expected_revision": turn.observation.context.revision,
+            }
+        )
+        with self.assertRaisesRegex(RuntimeError, "response is still pending"):
+            self.app.receive_player_utterance("player-turn:2", "Where exactly?")
+
+        command_id = int(self.store.poll(self.query).split("|")[2])
+        self.store.event(
+            "/dialogue",
+            {"v": "2", "job": str(command_id), "event": "1"},
+        )
+        self.assertIs(
+            self.app.session.outcome("npc-turn:1").state,
+            ActionState.OBSERVED,
+        )
+        self.app.receive_player_utterance("player-turn:2", "Where exactly?")
+        next_turn = self.app.session.turn()
+        next_facts = {
+            fact["key"]: fact["value"]
+            for fact in to_wire(next_turn.observation)["facts"]
+        }
+        self.assertEqual(
+            next_facts["dialogue.pending_utterance"]["text"], "Where exactly?"
+        )
+        self.assertEqual(
+            next_facts["memory.conversation"][-2:],
+            [
+                {"speaker": "player", "text": "Have you heard any rumours?"},
+                {
+                    "speaker": "npc",
+                    "text": "Caravans have gone missing near Suno.",
+                },
+            ],
+        )
+        self.assertGreater(
+            next_turn.observation.context.revision,
+            turn.observation.context.revision,
+        )
+
+    def test_conversation_memory_recovers_without_replaying_speech(self):
+        events_path = Path(self.temp.name) / "conversation-events.sqlite3"
+        event_log = SemanticEventLog(events_path)
+        self.app = NativeNpcSpeechApplication(
+            self.store,
+            "session:trainer:persistent-conversation",
+            agent_id=1,
+            conversation_mode=True,
+            event_log=event_log,
+            clock_ms=lambda: 1000,
+            token_factory=lambda: "affordance:persistent:1",
+            action_id_factory=lambda request_id: f"action:{request_id}",
+        )
+        self._complete_agent_refresh()
+        self.app.receive_player_utterance("player-turn:1", "What is your name?")
+        turn = self.app.session.turn()
+        self.app.session.submit(
+            {
+                "request_id": "npc-turn:1",
+                "affordance_token": turn.affordances[0].token,
+                "arguments": {"text": "I am the trainer."},
+                "expected_revision": turn.observation.context.revision,
+            }
+        )
+        command_id = int(self.store.poll(self.query).split("|")[2])
+        self.store.event(
+            "/dialogue",
+            {"v": "2", "job": str(command_id), "event": "1"},
+        )
+        self.assertIs(
+            self.app.session.outcome("npc-turn:1").state,
+            ActionState.OBSERVED,
+        )
+        event_types = {event.event_type for event in self.app.session.events().events}
+        self.assertIn("dialogue.player-utterance", event_types)
+        self.assertIn("dialogue.npc-utterance", event_types)
+        self.store.poll({**self.query, "ack": str(command_id)})
+        event_log.close()
+
+        reopened_log = SemanticEventLog(events_path)
+        try:
+            self.app = NativeNpcSpeechApplication(
+                self.store,
+                "session:trainer:persistent-conversation",
+                agent_id=1,
+                conversation_mode=True,
+                event_log=reopened_log,
+                clock_ms=lambda: 1000,
+                token_factory=lambda: "affordance:persistent:2",
+                action_id_factory=lambda request_id: f"action:{request_id}",
+            )
+            self._complete_agent_refresh()
+
+            self.app.receive_player_utterance("player-turn:2", "Can you train me?")
+
+            recovered = self.app.session.turn()
+            facts = {
+                fact["key"]: fact["value"]
+                for fact in to_wire(recovered.observation)["facts"]
+            }
+            self.assertEqual(
+                facts["memory.conversation"],
+                [
+                    {"speaker": "player", "text": "What is your name?"},
+                    {"speaker": "npc", "text": "I am the trainer."},
+                ],
+            )
+            self.assertEqual(len(recovered.affordances), 1)
+        finally:
+            reopened_log.close()
+
+    def test_rejected_conversation_response_can_be_retried_safely(self):
+        tokens = iter(("affordance:retry:1", "affordance:retry:2"))
+        events_path = Path(self.temp.name) / "rejected-response-events.sqlite3"
+        event_log = SemanticEventLog(events_path)
+        self.app = NativeNpcSpeechApplication(
+            self.store,
+            "session:trainer:retry",
+            agent_id=1,
+            conversation_mode=True,
+            event_log=event_log,
+            clock_ms=lambda: 1000,
+            token_factory=lambda: next(tokens),
+            action_id_factory=lambda request_id: f"action:{request_id}",
+        )
+        self._complete_agent_refresh()
+        self.app.receive_player_utterance("player-turn:1", "Can you help me?")
+        first_turn = self.app.session.turn()
+        self.app.session.submit(
+            {
+                "request_id": "npc-turn:rejected",
+                "affordance_token": first_turn.affordances[0].token,
+                "arguments": {"text": "Not now."},
+                "expected_revision": first_turn.observation.context.revision,
+            }
+        )
+        command_id = int(self.store.poll(self.query).split("|")[2])
+        rejected = self.app.session.outcome("npc-turn:rejected")
+        self.assertIs(rejected.state, ActionState.DISPATCHED)
+        self.store.poll({**self.query, "ack": str(command_id), "result": "-1"})
+
+        rejected = self.app.session.outcome("npc-turn:rejected")
+        self.assertIs(rejected.state, ActionState.REJECTED)
+        event_log.close()
+
+        reopened_log = SemanticEventLog(events_path)
+        try:
+            self.app = NativeNpcSpeechApplication(
+                self.store,
+                "session:trainer:retry",
+                agent_id=1,
+                conversation_mode=True,
+                event_log=reopened_log,
+                clock_ms=lambda: 1000,
+                token_factory=lambda: next(tokens),
+                action_id_factory=lambda request_id: f"action:{request_id}",
+            )
+            self._complete_agent_refresh()
+            retry_turn = self.app.session.turn()
+
+            self.assertEqual(len(retry_turn.affordances), 1)
+            retry = self.app.session.submit(
+                {
+                    "request_id": "npc-turn:retry",
+                    "affordance_token": retry_turn.affordances[0].token,
+                    "arguments": {"text": "Yes. What do you need?"},
+                    "expected_revision": retry_turn.observation.context.revision,
+                }
+            )
+            self.assertIs(retry.state, ActionState.ACCEPTED)
+        finally:
+            reopened_log.close()
+
     def test_speech_reaches_engine_observed_dialogue_event(self):
         self._complete_agent_refresh()
         turn = self.app.session.turn()
@@ -231,9 +455,7 @@ class NativeNpcSpeechApplicationTests(unittest.TestCase):
                 token_factory=lambda: "affordance:speech:second",
                 action_id_factory=lambda request_id: f"action:{request_id}",
             )
-            self.assertEqual(
-                self.app.session.outcome("utterance:restart"), accepted
-            )
+            self.assertEqual(self.app.session.outcome("utterance:restart"), accepted)
             command_id = int(self.store.poll(self.query).split("|")[2])
             self.store.event(
                 "/dialogue",
@@ -241,9 +463,7 @@ class NativeNpcSpeechApplicationTests(unittest.TestCase):
             )
             observed = self.app.session.outcome("utterance:restart")
             self.assertIs(observed.state, ActionState.OBSERVED)
-            voice = self.app.voice_request(
-                "utterance:restart", "trainer.default"
-            )
+            voice = self.app.voice_request("utterance:restart", "trainer.default")
             self.assertEqual(voice.text, "I remember where we left off.")
         finally:
             reopened_log.close()

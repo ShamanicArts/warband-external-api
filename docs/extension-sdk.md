@@ -113,6 +113,7 @@ use:
 | `native-menu` | `select_menu` |
 | `native-faction` | `world_query`, `party_order` |
 | `native-npc-speech` | `scan_agents`, `npc_say` |
+| `native-npc-dialogue` | `scan_agents`, `npc_say` |
 
 This constrains accidental authority and makes review concrete. It cannot contain
 malicious installed Python, which already has process-level access; extensions

@@ -57,6 +57,16 @@ def _faction_factory(backend, session_id, *, event_log, **settings):
     )
 
 
+def _dialogue_factory(backend, session_id, *, event_log, **settings):
+    return NativeNpcSpeechApplication(
+        backend,
+        session_id,
+        event_log=event_log,
+        conversation_mode=True,
+        **settings,
+    )
+
+
 def built_in_extension_registry():
     """Return a fresh registry containing only the reviewed Native applications."""
     entity_id = {"type": "integer", "minimum": 0, "maximum": 999_999}
@@ -134,6 +144,19 @@ def built_in_extension_registry():
                 (OwnershipRule("agent", setting="agent_id"),),
                 True,
             ),
+            ApplicationKind(
+                "native-npc-dialogue",
+                "Persistent bounded player-to-NPC conversation over one-turn speech",
+                _object_schema(
+                    {"agent_id": {"type": "integer", "minimum": 0, "maximum": 9_999}},
+                    ("agent_id",),
+                ),
+                (RoleId.NPC_SELF,),
+                ("dialogue.speak",),
+                ("scan_agents", "npc_say"),
+                (OwnershipRule("agent", setting="agent_id"),),
+                True,
+            ),
         ),
         module_required=True,
     )
@@ -144,6 +167,7 @@ def built_in_extension_registry():
             "native-menu": NativeMenuAgentApplication,
             "native-faction": _faction_factory,
             "native-npc-speech": NativeNpcSpeechApplication,
+            "native-npc-dialogue": _dialogue_factory,
         },
         {"native-faction": _validate_faction_settings},
     )

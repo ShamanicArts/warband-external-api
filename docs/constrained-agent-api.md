@@ -31,7 +31,7 @@ emitting a distinct action event for every observed transition.
 Late engine evidence may promote an expired or interrupted action to observed;
 the runtime never replays the uncertain mutation to obtain that evidence.
 
-`warband-agent-host` loads the three reviewed built-in applications from a
+`warband-agent-host` loads four reviewed built-in application kinds from a
 versioned JSON configuration, gives every session a separate loopback port/token,
 and exposes explicit trusted faction/NPC refresh through a distinct operator
 control listener. See [the application-host guide](application-host.md).
@@ -101,6 +101,11 @@ deterministic `SpeechRequest` for the existing host voice API. Synthesis or
 playback remains a separate application effect and cannot promote, alter or roll
 back game evidence. See [the NPC speech guide](npc-speech.md).
 
+The `native-npc-dialogue` variant gates the same response affordance behind one
+trusted host-supplied player utterance and adds bounded durable conversation
+memory to the NPC observation. The player-input endpoint remains on the separate
+operator listener; it does not expand the NPC agent's authority.
+
 ## HTTP adapter
 
 `make_agent_server(session, token)` binds only to `127.0.0.1` and requires a
@@ -141,11 +146,12 @@ acknowledgement is not promoted to observed outcome.
   an action. Older action events that predate the recovery envelope are retained
   but their request IDs are blocked from replay and their outcome lookup remains
   unavailable.
-- The default event view exposes only action events emitted for this session.
-  Role-filtered delivery of broader world/dialogue events needs an explicit event
-  audience policy and must not expose the shared log wholesale.
+- The default event view exposes this session's action events and its bounded
+  player/NPC conversation events. Role-filtered delivery of broader world or
+  foreign dialogue events needs an explicit audience policy and must not expose
+  the shared log wholesale.
 - Production composition currently covers Native menus, reviewed faction party
-  orders and one-turn NPC speech, including their command-correlation recovery.
-  Diplomacy, synchronized multi-faction epochs,
-  autonomous faction options, arbitrary player replies, persistent conversations
-  and mechanical dialogue proposals remain to be wired.
+  orders, one-turn NPC speech and host-fed persistent NPC dialogue, including
+  their command-correlation recovery. Diplomacy, synchronized multi-faction
+  epochs, autonomous faction options, in-game player text/speech capture,
+  NPC-to-NPC conversations and mechanical dialogue proposals remain to be wired.

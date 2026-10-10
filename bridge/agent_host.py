@@ -14,11 +14,13 @@ from urllib.parse import unquote, urlparse
 from bridge.application_extensions import built_in_extension_registry
 from bridge.game_bridge import Store, make_server
 from warband_agentic.agent_http import make_agent_server
+from warband_agentic.contracts import to_wire
 from warband_agentic.events import SemanticEventLog
 from warband_agentic.extensions import (
     ExtensionRegistry,
     load_named_extension_entry_points,
 )
+from warband_agentic.voice import SpeechRequest, VoiceDelivery
 
 HOST_CONFIG_SCHEMA = "warband.agentic/host-config/v1"
 HOST_DIAGNOSTICS_SCHEMA = "warband.agentic/host-diagnostics/v1"
@@ -510,6 +512,51 @@ class AgentApplicationHost:
             "job_count": count,
         }
 
+    def receive_player_utterance(self, session_id, utterance_id, text):
+        if not isinstance(session_id, str) or not session_id:
+            raise ValueError("session_id must be a non-empty string")
+        with self._lock:
+            if self._state != "ready":
+                raise RuntimeError("application sessions are not ready")
+            try:
+                application = self._applications[session_id]
+            except KeyError as exc:
+                raise KeyError("Unknown application session") from exc
+        receive = getattr(application, "receive_player_utterance", None)
+        if not callable(receive):
+            raise ValueError("application session does not accept player utterances")
+        return receive(utterance_id, text)
+
+    def prepare_voice_request(
+        self,
+        session_id,
+        action_request_id,
+        profile_id,
+        delivery,
+        speed,
+    ):
+        if not isinstance(session_id, str) or not session_id:
+            raise ValueError("session_id must be a non-empty string")
+        with self._lock:
+            if self._state != "ready":
+                raise RuntimeError("application sessions are not ready")
+            try:
+                application = self._applications[session_id]
+            except KeyError as exc:
+                raise KeyError("Unknown application session") from exc
+        create = getattr(application, "voice_request", None)
+        if not callable(create):
+            raise ValueError("application session does not support voice handoff")
+        request = create(
+            action_request_id,
+            profile_id,
+            delivery=VoiceDelivery(delivery),
+            speed=speed,
+        )
+        if not isinstance(request, SpeechRequest):
+            raise TypeError("application returned an invalid voice request")
+        return to_wire(request)
+
     def stop(self):
         with self._lock:
             if self._state == "stopped":
@@ -603,15 +650,68 @@ def make_host_control_server(host, token, bind_host="127.0.0.1", port=8879):
                 return
             path = urlparse(self.path).path
             prefix = "/v1/host/sessions/"
-            suffix = "/refresh"
-            if not path.startswith(prefix) or not path.endswith(suffix):
+            if not path.startswith(prefix):
                 self.reply(404, {"error": "Unknown endpoint"})
                 return
-            session_id = unquote(path[len(prefix) : -len(suffix)])
             try:
-                if int(self.headers.get("Content-Length", "0")) != 0:
-                    raise ValueError("Refresh request body must be empty")
-                self.reply(202, host.refresh(session_id))
+                status = 202
+                if path.endswith("/refresh"):
+                    suffix = "/refresh"
+                    session_id = unquote(path[len(prefix) : -len(suffix)])
+                    if int(self.headers.get("Content-Length", "0")) != 0:
+                        raise ValueError("Refresh request body must be empty")
+                    result = host.refresh(session_id)
+                elif path.endswith("/utterances"):
+                    suffix = "/utterances"
+                    session_id = unquote(path[len(prefix) : -len(suffix)])
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 1 <= length <= 2048:
+                        raise ValueError(
+                            "Player utterance body must contain 1-2048 bytes"
+                        )
+                    try:
+                        body = json.loads(self.rfile.read(length))
+                    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                        raise ValueError("Player utterance body must be JSON") from exc
+                    if not isinstance(body, dict) or set(body) != {
+                        "utterance_id",
+                        "text",
+                    }:
+                        raise ValueError("Player utterance fields do not match")
+                    result = host.receive_player_utterance(
+                        session_id,
+                        body["utterance_id"],
+                        body["text"],
+                    )
+                elif path.endswith("/voice-requests"):
+                    suffix = "/voice-requests"
+                    session_id = unquote(path[len(prefix) : -len(suffix)])
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 1 <= length <= 2048:
+                        raise ValueError("Voice handoff body must contain 1-2048 bytes")
+                    try:
+                        body = json.loads(self.rfile.read(length))
+                    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                        raise ValueError("Voice handoff body must be JSON") from exc
+                    if not isinstance(body, dict) or set(body) != {
+                        "action_request_id",
+                        "profile_id",
+                        "delivery",
+                        "speed",
+                    }:
+                        raise ValueError("Voice handoff fields do not match")
+                    result = host.prepare_voice_request(
+                        session_id,
+                        body["action_request_id"],
+                        body["profile_id"],
+                        body["delivery"],
+                        body["speed"],
+                    )
+                    status = 200
+                else:
+                    self.reply(404, {"error": "Unknown endpoint"})
+                    return
+                self.reply(status, result)
             except KeyError as exc:
                 self.reply(404, {"error": str(exc)})
             except RuntimeError as exc:

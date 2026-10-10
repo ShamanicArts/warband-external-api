@@ -2,9 +2,10 @@
 
 `warband-agent-host` owns one game bridge, one durable semantic event log, a
 trusted operator control listener and one authenticated constrained HTTP listener
-per configured application. The stock CLI packages the three built-in reference
-applications without giving agents bridge credentials or requiring handwritten
-Python composition. Trusted custom launchers can explicitly supply an extension
+per configured application. The stock CLI packages four built-in application
+kinds, including one-shot NPC speech and persistent NPC dialogue, without giving
+agents bridge credentials or requiring handwritten Python composition. Trusted
+custom launchers can explicitly supply an extension
 registry as documented in [the extension SDK guide](extension-sdk.md).
 Installed extensions can alternatively be selected by exact ID with repeated
 `--extension` arguments; discovery alone never imports them.
@@ -71,6 +72,30 @@ The refresh request has an empty body and returns only the session ID and queued
 job count. Player-menu sessions derive their view directly from current telemetry
 and reject explicit refresh. Agents do not receive the operator token.
 
+`native-npc-dialogue` sessions also accept one bounded player line from a trusted
+local integration:
+
+```text
+POST /v1/host/sessions/{session_id}/utterances
+```
+
+The exact JSON body is `{"utterance_id":"...","text":"..."}` and is capped at
+2048 transport bytes. This endpoint uses the operator token, not the NPC agent's
+token. See [the NPC dialogue guide](npc-speech.md) for sequencing and evidence
+boundaries.
+
+After an NPC response reaches engine-observed state, a trusted integration can
+request its deterministic voice payload:
+
+```text
+POST /v1/host/sessions/{session_id}/voice-requests
+```
+
+The exact body contains `action_request_id`, `profile_id`, `delivery` and
+`speed`. The response is a provider-neutral `SpeechRequest` ready for
+`POST /v1/voice/speech`; the application host does not hold voice-service
+credentials or synthesize/play audio itself.
+
 Normal interruption closes every owned HTTP server, joins its threads, and closes
 both SQLite connections. It never starts Warband, Wine, Gamescope, a voice model
 or an external agent.
@@ -78,7 +103,7 @@ or an external agent.
 ## Current limits
 
 - The application set is static for one host process; there is no hot reload.
-- The stock CLI loads only the three reviewed built-in kinds by default. Operators
+- The stock CLI loads four reviewed built-in kinds by default. Operators
   may explicitly select installed entry-point extensions by ID, but there is no
   automatic loading or hot reload; JSON never names an import path.
 - Refresh scheduling is explicit host/runner policy. The host does not silently

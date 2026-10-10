@@ -11,6 +11,7 @@ from bridge.agent_host import AgentApplicationHost, load_agent_host_plan
 from bridge.application_extensions import built_in_extension_registry
 from bridge.native_npc_speech_app import NativeNpcSpeechApplication
 from test_agentic_extensions import example_extension, grant_gold_operation
+from warband_agentic import SpeechRequest
 
 
 def available_port():
@@ -340,6 +341,86 @@ class AgentApplicationHostCliTests(unittest.TestCase):
                         "session_id": "trainer",
                         "status": "queued",
                         "job_count": 1,
+                    },
+                )
+                host._applications["trainer"].receive_player_utterance = (
+                    lambda utterance_id, text: {
+                        "schema": "warband.agentic/npc-utterance/v1",
+                        "utterance_id": utterance_id,
+                        "status": "pending",
+                        "inserted": text == "Any news?",
+                    }
+                )
+                utterance = Request(
+                    (
+                        f"http://127.0.0.1:{control_port}"
+                        "/v1/host/sessions/trainer/utterances"
+                    ),
+                    data=json.dumps(
+                        {"utterance_id": "player-turn:1", "text": "Any news?"}
+                    ).encode(),
+                    method="POST",
+                    headers={
+                        "Authorization": "Bearer " + "c" * 64,
+                        "Content-Type": "application/json",
+                    },
+                )
+                with urlopen(utterance, timeout=2) as response:
+                    utterance_result = json.load(response)
+                    self.assertEqual(response.status, 202)
+                self.assertEqual(
+                    utterance_result,
+                    {
+                        "schema": "warband.agentic/npc-utterance/v1",
+                        "utterance_id": "player-turn:1",
+                        "status": "pending",
+                        "inserted": True,
+                    },
+                )
+                host._applications["trainer"].voice_request = (
+                    lambda request_id, profile_id, *, delivery, speed: SpeechRequest(
+                        f"speech:action:{request_id}",
+                        "Caravans vanished near Suno.",
+                        profile_id,
+                        delivery,
+                        speed,
+                        "wav",
+                        f"action:{request_id}",
+                    )
+                )
+                voice_handoff = Request(
+                    (
+                        f"http://127.0.0.1:{control_port}"
+                        "/v1/host/sessions/trainer/voice-requests"
+                    ),
+                    data=json.dumps(
+                        {
+                            "action_request_id": "npc-turn:1",
+                            "profile_id": "trainer.default",
+                            "delivery": "play-host",
+                            "speed": 1.0,
+                        }
+                    ).encode(),
+                    method="POST",
+                    headers={
+                        "Authorization": "Bearer " + "c" * 64,
+                        "Content-Type": "application/json",
+                    },
+                )
+                with urlopen(voice_handoff, timeout=2) as response:
+                    voice_request = json.load(response)
+                    self.assertEqual(response.status, 200)
+                self.assertEqual(
+                    voice_request,
+                    {
+                        "request_id": "speech:action:npc-turn:1",
+                        "text": "Caravans vanished near Suno.",
+                        "profile_id": "trainer.default",
+                        "delivery": "play-host",
+                        "speed": 1.0,
+                        "output_format": "wav",
+                        "correlation_id": "action:npc-turn:1",
+                        "schema": "warband.agentic/v1",
                     },
                 )
                 self.assertEqual(host.runtime_diagnostics()["status"], "ready")

@@ -103,6 +103,17 @@ def grant_gold_operation(name="example.dialogue.grant-gold", opcode=1001):
 
 
 class ExtensionSdkTests(unittest.TestCase):
+    def test_builtin_dialogue_kind_declares_bounded_npc_backend(self):
+        definition = built_in_extension_registry().application("native-npc-dialogue")
+
+        self.assertEqual(definition.roles, (RoleId.NPC_SELF,))
+        self.assertEqual(definition.capabilities, ("dialogue.speak",))
+        self.assertEqual(
+            definition.backend_operations,
+            ("scan_agents", "npc_say"),
+        )
+        self.assertTrue(definition.refreshable)
+
     def test_bundle_registers_compiled_operations_for_host_composition(self):
         def factory(*args, **kwargs):
             return None

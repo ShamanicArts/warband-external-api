@@ -5,6 +5,10 @@ script controlling one NPC's utterance. It uses the real Warband one-turn
 dialogue UI seam and can hand an observed utterance to the existing host voice
 service.
 
+The built-in `native-npc-dialogue` kind adds a persistent, host-fed conversation
+loop around that same engine-observed response path. `native-npc-speech` remains
+the unconstrained one-shot variant.
+
 ## Host lifecycle
 
 ```python
@@ -36,10 +40,57 @@ Voice can instead remain synthesis-only or be sent through the authenticated
 voice HTTP API. The voice profile is selected by trusted host policy, not by a
 provider voice ID supplied to the game-facing agent.
 
+Packaged hosts expose the same evidence-gated handoff without exposing the
+application object:
+
+```http
+POST /v1/host/sessions/village-elder/voice-requests
+Authorization: Bearer <operator-token>
+Content-Type: application/json
+
+{"action_request_id":"npc-turn:12","profile_id":"elder.calm","delivery":"play-host","speed":1.0}
+```
+
+The returned JSON is the exact provider-neutral request accepted by
+`POST /v1/voice/speech`. The two services keep separate tokens and lifecycle
+truth; callers may choose synthesis-only or host playback.
+
 With a `SemanticEventLog`, restart recovery restores the exact action outcome and
 private bridge command correlation without replay. A later Warband dialogue event
 can still promote the recovered action to observed, and `voice_request()` can
 recover the original bounded text from the durable bridge command.
+
+## Persistent player-to-NPC loop
+
+Configure a session with `"kind": "native-npc-dialogue"` and the same bounded
+`agent_id` setting. After its normal scene-agent refresh completes, a trusted
+local UI, speech-to-text adapter or test harness submits the player's line through
+the authenticated operator listener:
+
+```http
+POST /v1/host/sessions/village-elder/utterances
+Authorization: Bearer <operator-token>
+Content-Type: application/json
+
+{"utterance_id":"player-turn:12","text":"What happened to the caravan?"}
+```
+
+The NPC agent's next observation contains `dialogue.pending_utterance` and up to
+eight completed player/NPC turn pairs in `memory.conversation`. No response
+affordance exists without a pending player line, and only one response may be in
+flight. A matching Warband dialogue event commits the response, after which the
+next player line can be accepted.
+
+A definitive rejected response keeps the player line pending and issues a fresh
+response affordance, including after restart. Expired or interrupted responses
+are not automatically retried because late engine evidence may still prove that
+the original line appeared.
+
+Player and observed NPC utterances are written to the semantic event log with
+source-level idempotency. Restart reconstructs completed memory and an unresolved
+turn without replaying speech. Utterance IDs reject conflicting reuse, player
+text is limited to 500 printable characters, NPC text remains limited to 200,
+and one session is capped at 64 player/NPC turns.
 
 ## Trust and evidence boundary
 
@@ -56,7 +107,9 @@ recover the original bounded text from the durable bridge command.
 - A `SpeechRequest` can only be produced after that observed game outcome. Voice
   synthesis/playback success or failure never changes the dialogue outcome.
 
-This is the existing one-turn custom speech path with a fixed Native return
-choice. It is not arbitrary player free text, a persistent conversation loop,
-remote execution of original Native choices, NPC-to-NPC dialogue, memory, or a
-mechanical-proposal system.
+Every NPC response still uses the existing one-turn custom speech path with a
+fixed Native return choice. The persistent loop does not yet provide an in-game
+text-entry UI, speech recognition, automatic voice dispatch, remote execution of
+original Native choices, NPC-to-NPC dialogue, long-term character memory or a
+mechanical-proposal system. Those layers can feed or consume this host contract
+without receiving bridge credentials.
