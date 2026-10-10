@@ -428,3 +428,21 @@ state without desktop input. Do not dispatch copied consequences until both the
 state-transition mechanism and required register/global preservation are proven.
 The expanded active suite passes **134 tests**; maintained source and harnesses are
 Ruff-clean. Legacy prototype files remain outside the active lint boundary.
+
+## Provider-neutral semantic contracts (`warband.agentic/v1`)
+
+The first runtime-kernel package now lives in `warband_agentic/` and imports no
+bridge, MCP or model-provider code. Frozen Python 3.11 contracts define actor and
+context identity, source-labelled facts, role-filtered observation envelopes,
+expiring affordances, optimistic action submissions, outcomes, durable semantic
+events, evidence levels, role grants and control leases. Nested payloads are
+recursively copied/frozen, reject non-JSON values and serialize through `to_wire`.
+
+The manifest exposes stable role, authority, context, fact-source, evidence and
+action-state vocabularies to future adapters. Tests explicitly preserve the
+distinction between engine acknowledgement and independently observed outcomes,
+and verify that transport terms such as MCP/HTTP do not leak into discovery.
+Seven new contract tests bring the expanded active suite to **141 tests**; the
+maintained source remains Ruff-clean. Capability registration, policy filtering,
+affordance issuance/consumption and persistent semantic-event migration are the
+next kernel layers, not implied by these type definitions.

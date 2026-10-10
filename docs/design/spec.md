@@ -523,7 +523,7 @@ The kit is ready for an initial public developer release when:
       (live NPC-line/player-choice delivery and bridge-restart recovery verified).
 - [ ] Determine the exact engine path, if any, for advancing a player dialogue
       choice without desktop input.
-- [ ] Define semantic schema package independently of HTTP/MCP representations.
+- [x] Define semantic schema package independently of HTTP/MCP representations.
 - [ ] Wrap two existing vertical paths as prototypes: campaign observation and a
       session-scoped menu/dialogue action.
 - [ ] Add role/grant and evidence-level capability discovery.

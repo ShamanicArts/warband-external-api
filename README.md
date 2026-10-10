@@ -1,7 +1,21 @@
-# Warband External API
+# Warband Agentic Kit (working name)
 
-The new **game-script-backed MCP implementation** is documented in [MCP.md](MCP.md).
-CUA is used only for launch and independent validation, not as its backend.
+This project is growing from a game-script-backed MCP bridge into a
+provider-neutral agentic modding and scripting kit for Mount & Blade: Warband.
+The target architecture is in [the draft design spec](docs/design/spec.md); the
+currently proven game integration and its honest limitations are in [MCP.md](MCP.md).
+
+Current foundations include:
+
+- a vanilla-safe Native-derived build using authenticated loopback HTTP;
+- real campaign, menu, mission, actor, battle, trade and Native-dialogue seams;
+- durable catalog-validated events for committed Native dialogue entries;
+- transport-neutral `warband.agentic/v1` contracts for actors, contexts,
+  observations, facts, affordances, actions, evidence, roles and control leases;
+- reproducible tests and retained engine/visual evidence.
+
+MCP is one adapter, not the core product boundary. CUA is used only for isolated
+launch and independent visual validation, never as an invisible game backend.
 
 ## Legacy prototype (reference only)
 
