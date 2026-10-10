@@ -1,0 +1,24 @@
+{
+  "method": "SemanticEventLog migration against a SQLite backup of the active isolated bridge database",
+  "source_database_modified": false,
+  "source_database_bytes": 741376,
+  "inserted": 421,
+  "repeat_inserted": 0,
+  "events_read": 421,
+  "next_sequence": 421,
+  "high_watermark": 421,
+  "event_type_counts": {
+    "legacy.command.acknowledged": 403,
+    "legacy.command.expired": 1,
+    "legacy.command.rejected": 15,
+    "legacy.dialogue.npc-line": 1,
+    "legacy.dialogue.player-choice": 1
+  },
+  "dialogue_sample": {
+    "type": "legacy.dialogue.npc-line",
+    "scope": "legacy:mission-session:3",
+    "source_sequence": 1,
+    "evidence": "engine-observed",
+    "limitation": "Imported committed entry; original scene/revision unavailable"
+  }
+}

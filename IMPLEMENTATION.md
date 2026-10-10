@@ -98,6 +98,12 @@ not substitutes for live game checks. Compiled modules embed a secret: never
 track or serve them. The legacy `module/` remains local and ignored because it
 contains installed game assets, not the authoritative readable integration source.
 
+The final kit handoff also requires a collated evidence report. Every material
+capability claim must link its automated tests, raw live proof and introducing JJ
+change, state its limitations, and include short isolated-runtime video clips when
+motion, UI or interaction sequence is materially part of the claim. Terminal-only
+video is not a substitute for structured evidence of persistence or policy logic.
+
 ## JJ checkpoints
 
 - `ntypolot`: verified transport/scene/NPC baseline (29 tests).
@@ -520,3 +526,23 @@ A live synthesis-only HTTP round trip using profile `elder.calm` / local voice
 outcome, three lifecycle events and audio through separate authenticated requests.
 Nothing was played through host speakers during proof. Sixteen voice tests bring
 the active suite to **180 tests**; targeted Ruff is clean.
+
+## Durable semantic event log
+
+`warband_agentic.events` adds a versioned SQLite store for `GameEvent` history.
+The store assigns monotonic sequences and matching evidence cursors, validates
+strict persisted JSON on read, exposes bounded cursor pages and high-water marks,
+survives restart, serializes concurrent writers, and makes ingestion idempotent by
+stable source key plus canonical input hash. Reusing a source key for different
+content is rejected instead of silently overwriting history. Future schema versions
+are refused rather than guessed.
+
+The migration adapter imports committed `native_dialogue_events` and terminal
+legacy `commands` records. It does not claim that a historical acknowledgement is
+an independently observed outcome, and it labels unavailable scene/revision scope
+instead of manufacturing context. Against a backup—not the live database—of the
+active isolated revision-16 runtime, it imported **421 events**: 403 acknowledged,
+15 rejected and one expired legacy command plus both committed Native dialogue
+events. A second migration inserted zero duplicates; all 421 events read back to
+the high-water mark. Evidence is retained under `evidence/semantic-events/`.
+Eight event-store tests bring the active suite to **188 tests**.

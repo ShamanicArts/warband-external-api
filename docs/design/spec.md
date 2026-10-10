@@ -512,6 +512,9 @@ The kit is ready for an initial public developer release when:
   produce a complete decision/event/cost transcript;
 - capability discovery reports evidence level and limitations accurately;
 - restart, stale context and interrupted-action recovery are documented and tested;
+- a collated evidence report maps every material claim to tests, retained raw
+  artifacts, its introducing revision and honest limitations, with short video
+  clips for visually meaningful game interactions;
 - licensing, packaging and secret-handling blockers are resolved.
 
 ## 23. Implementation kickoff checklist
@@ -528,9 +531,13 @@ The kit is ready for an initial public developer release when:
 - [x] Wrap two existing vertical paths as prototypes: engine/campaign observation
       and a session-scoped Native menu action.
 - [x] Add role/grant and evidence-level capability discovery.
-- [ ] Define event-log schema and migration from existing result tables.
+- [x] Define the versioned semantic event-log schema and migrate terminal commands
+      plus committed Native dialogue history without upgrading legacy evidence.
+- [ ] Migrate or explicitly retire the remaining domain-specific legacy result
+      tables after defining their semantic event/outcome mappings.
 - [x] Inspect the local voice system and implement its first adapter against §12
       (authenticated HTTP round trip and real Kokoro WAV synthesis verified;
       host playback available but deliberately not exercised during proof).
 - [ ] Build an agent-usability fixture before launching announced external models.
+- [ ] Complete the collated test/live/video evidence report before final handoff.
 - [ ] Resolve Q1 licensing before calling any artifact publicly releasable.

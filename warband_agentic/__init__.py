@@ -44,6 +44,13 @@ from warband_agentic.contracts import (
     contract_manifest,
     to_wire,
 )
+from warband_agentic.events import (
+    EVENT_STORE_SCHEMA_VERSION,
+    AppendResult,
+    EventPage,
+    SemanticEventLog,
+    game_event_from_wire,
+)
 from warband_agentic.voice import (
     AudioArtifact,
     KokoroAdapter,
@@ -76,6 +83,9 @@ __all__ = [
     "ControlLease",
     "Evidence",
     "EvidenceLevel",
+    "EVENT_STORE_SCHEMA_VERSION",
+    "AppendResult",
+    "EventPage",
     "Fact",
     "FactSource",
     "GameEvent",
@@ -90,6 +100,7 @@ __all__ = [
     "RoleGrant",
     "RoleId",
     "SpeechRequest",
+    "SemanticEventLog",
     "ValidatedAction",
     "VoiceDelivery",
     "VoiceEvent",
@@ -103,6 +114,7 @@ __all__ = [
     "default_perception_policies",
     "dialogue_event_from_bridge",
     "issue_menu_affordances",
+    "game_event_from_wire",
     "make_voice_server",
     "menu_operation_from_validated",
     "register_menu_capability",

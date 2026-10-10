@@ -18,6 +18,8 @@ Current foundations include:
   that report omissions without leaking hidden facts;
 - semantic adapters for canonical engine observations, committed dialogue events,
   and exact-session attempts over the proven Native menu-selection path;
+- a versioned durable semantic event log with strict decoding, ordered cursors,
+  source idempotency and honest migration of terminal command/dialogue history;
 - an authenticated, loopback-only [host voice service](docs/voice.md) with named
   public profiles, a local Kokoro adapter, optional PipeWire playback, lifecycle
   events and bounded audio retrieval;
