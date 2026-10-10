@@ -51,9 +51,43 @@ continuing. Restoring either a pending wait or pending stop does not enqueue a
 replacement. Hosts should atomically retain the committed epoch checkpoint and,
 once time advancement begins, the latest driver checkpoint.
 
+## Scenario metrics and scored run artifacts
+
+`BenchmarkScenario` makes scoring policy explicit and versioned. Every
+`MetricRule` names a unit, positive weight and one of three objectives:
+
+- `maximize` — reward an increase from the baseline;
+- `minimize` — reward a decrease from the baseline; or
+- `binary` — award its weight when the final engine fact is true.
+
+Continuous changes are divided by the declared positive scale and clamped to
+`[-1, 1]` before multiplying by the weight. Binary metrics score either zero or
+their weight. This keeps every component bounded while still allowing losses to
+produce negative points. Ties receive the same rank and faction ID is the stable
+display-order tiebreaker. There is deliberately no universal definition of a
+good Warband faction: settlement, strength, survival and objective weights belong
+to the named scenario and version.
+
+`FactionMetricSnapshot` accepts only finite numeric/boolean observations carrying
+`engine-observed` or stronger evidence. Baseline and final snapshots must contain
+the exact scenario faction and metric sets. The resulting scorecard retains both
+values, delta, normalized component, points and evidence for every metric, plus a
+SHA-256 hash over the scenario and input snapshots.
+
+`FactionBenchmarkRun` binds one baseline, one or more complete resolved epoch
+transcripts and an evidenced metric snapshot after each fixed-time advance. It
+revalidates faction coverage, run metadata, turn-set content hash, monotonic game
+time, target/stop proof and clock arithmetic rather than trusting a transcript's
+`resolved` label. `write_report(path)` atomically emits one canonical run artifact
+containing the scenario, metadata, exact epoch records, metric snapshots, final
+scorecard and report hash. Calling `report()` finalizes the run against later
+mutation.
+
 This is not yet the full benchmark harness. The next layer must orchestrate the
-driver against a live campaign, capture save/checkpoints, derive scenario metrics,
-resume from a game save when the game process itself is lost, and schedule
-providers under equal budgets. External
+driver against a live campaign, capture save/checkpoints, collect each declared
+metric from paused engine reads, resume from a game save when the game process
+itself is lost, and schedule providers under equal budgets. The scoring core does
+not itself claim that the current bridge produces an atomic metric snapshot.
+External
 model runs still require the user-visible preflight notice described in the design
 specification.

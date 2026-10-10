@@ -48,6 +48,7 @@ class PackagingTests(unittest.TestCase):
                 self.assertIn("warband_agentic/contracts.py", names)
                 self.assertIn("warband_agentic/extensions.py", names)
                 self.assertIn("warband_agentic/benchmark.py", names)
+                self.assertIn("warband_agentic/scoring.py", names)
                 self.assertIn("bridge/game_bridge.py", names)
                 self.assertIn("bridge/application_extensions.py", names)
                 self.assertIn("bridge/native_faction_agent_app.py", names)
@@ -113,7 +114,8 @@ class PackagingTests(unittest.TestCase):
                         "import bridge.application_extensions; "
                         "import module_system.build_mcp_module; "
                         "import warband_agentic.benchmark; "
-                        "import warband_agentic.extensions"
+                        "import warband_agentic.extensions; "
+                        "import warband_agentic.scoring"
                     ),
                 ],
                 cwd=directory,

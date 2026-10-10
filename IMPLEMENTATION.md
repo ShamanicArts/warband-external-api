@@ -769,3 +769,26 @@ lifecycle. Separated discovery passes **245 tests**: 111 root, 86 bridge and 48
 module-system. Installed-package discovery, hot reload, malicious-Python
 sandboxing and generation/merging of new ModSys handlers are explicitly not
 implemented.
+
+## Evidence-gated faction scoring and run reports
+
+`warband_agentic.scoring` adds versioned benchmark scenarios, metric rules,
+evidenced faction snapshots, bounded scorecards and canonical multi-epoch run
+reports. Scenario authors explicitly choose maximize/minimize/binary objectives,
+units, positive weights and normalization scales. Continuous components clamp to
+`[-1, 1]` before weighting; binary components award zero or their weight. There
+is no hidden universal strategy score.
+
+Metric snapshots reject non-finite values and evidence below engine-observed,
+then require exact faction and metric sets at scoring time. Scorecards preserve
+baseline/final values, deltas, normalized components, points and both evidence
+records. `FactionBenchmarkRun` binds a baseline to resolved epoch transcripts and
+post-advance snapshots, independently rechecking metadata/factions, turn-set
+content hash, monotonic time, target/stop proof and clock arithmetic. Final reports are
+atomically written and hashed over canonical scenario, epoch, metric and score
+content; report generation freezes the run against later mutation.
+
+Three structural tests raise separated discovery to **248 tests**: 114 root, 86
+bridge and 48 module-system. A paused live collector for settlement/party/faction
+facts, game-save recovery and equal-budget provider scheduling remain open; the
+scoring core does not upgrade those absent evidence layers.
