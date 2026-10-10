@@ -52,8 +52,9 @@ Current foundations include:
   for later announced cross-model interface tests;
 - a model-ready [deterministic two-faction arena](docs/deterministic-faction-arena.md)
   that gives two agents independently role-filtered turns, commits one bounded
-  decision per faction, resolves both simultaneously and binds provider identity,
-  usage, outcomes and evidence-gated scores into one canonical audit artifact;
+  decision per faction, persists state across bounded multi-epoch campaign
+  streams, resolves decisions simultaneously and binds provider identity, usage,
+  outcomes and evidence-gated scores into canonical audit artifacts;
 - a provider-neutral [synchronized faction epoch](docs/faction-benchmarks.md)
   that enforces disjoint party control, equal campaign-time turns, deterministic
   commit order, bounded engine-clock advancement, evidence-gated scenario scoring

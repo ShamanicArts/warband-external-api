@@ -1,0 +1,65 @@
+{
+  "schema": "warband.agentic/evidence/deterministic-faction-campaign/v1",
+  "recorded_date": "2026-10-10",
+  "backend": "deterministic-simulator",
+  "game_launched": false,
+  "input_path": "evidence/faction-arena/three-epoch-decisions.jsonl",
+  "input_sha256": "54606cc0260df2ce09b12cefaca3aed0a176aedf79532154a1224d7d6370eac9",
+  "stream_sha256": "a1e341ec54e50e6eaf7ad449d440cc7c897d71aa5ed762475e94015c908b0410",
+  "report_sha256": "2c70b8c89ccbd7a8c668e8675c827fb9aca20d1f0d6a3ad9c8eb1f85f1f63a96",
+  "events": [
+    {
+      "type": "turn",
+      "epoch_number": 1,
+      "revision": 1,
+      "game_time": 100,
+      "turn_set_sha256": "030464cb624bab50f0f3f9a6257e2ba6dc90b244d8903c812544174c2d1a288a",
+      "actions": {"15": "attack", "16": "defend"}
+    },
+    {
+      "type": "turn",
+      "epoch_number": 2,
+      "revision": 2,
+      "game_time": 101,
+      "turn_set_sha256": "a94ef38f57a03188ded895bb883001e0b9c199bd7f0d0e35cd860711b621392b",
+      "actions": {"15": "recruit", "16": "attack"}
+    },
+    {
+      "type": "turn",
+      "epoch_number": 3,
+      "revision": 3,
+      "game_time": 102,
+      "turn_set_sha256": "4a2a801ca139c3970a3a5fb471ff2ee43dfc1b9900a278099a885bba42822c2c",
+      "actions": {"15": "attack", "16": "recruit"}
+    },
+    {
+      "type": "report",
+      "epoch_count": 3,
+      "final_game_time": 103,
+      "ranking": [16, 15],
+      "final": {
+        "15": {
+          "military_strength": 75,
+          "settlements": 1,
+          "surviving": true,
+          "points": -5.0
+        },
+        "16": {
+          "military_strength": 80,
+          "settlements": 1,
+          "surviving": true,
+          "points": -2.0
+        }
+      }
+    }
+  ],
+  "verified_properties": [
+    "Each epoch emitted a new independently role-filtered turn.",
+    "Context revision and campaign game time advanced exactly once per epoch.",
+    "Previously issued affordance tokens were not reused.",
+    "Military strength, settlements and supply persisted between epochs.",
+    "The previous simultaneous actions were public in the following turn.",
+    "One canonical report scored the final state against the original baseline."
+  ],
+  "boundary": "This is a deterministic replay with authored decisions. It proves the persistent agent-facing campaign protocol and scoring path, not external-model strategy or a live Warband campaign."
+}

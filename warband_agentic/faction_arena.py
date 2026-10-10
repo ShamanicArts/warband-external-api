@@ -42,6 +42,8 @@ from warband_agentic.scoring import (
 )
 
 ARENA_SCHEMA = "warband.agentic/deterministic-faction-arena/v1"
+CAMPAIGN_SCHEMA = "warband.agentic/deterministic-faction-campaign/v1"
+CAMPAIGN_STEP_SCHEMA = "warband.agentic/deterministic-faction-campaign-step/v1"
 
 
 @dataclass(slots=True)
@@ -75,10 +77,17 @@ class _ArenaWorld:
         self._orders = {}
         self._outcomes = {}
         self._resolved = False
+        self.previous_actions = None
 
     @staticmethod
     def enemy_id(faction_id):
         return 16 if faction_id == 15 else 15
+
+    def strength_band(self, faction_id):
+        strength = self.factions[faction_id].military_strength
+        lower = max(0, ((strength - 10) // 10) * 10)
+        upper = ((strength + 19) // 10) * 10
+        return f"{lower}-{upper}"
 
     def context(self):
         return ContextRef(
@@ -126,6 +135,7 @@ class _ArenaWorld:
             else "idle"
             for faction_id in self.factions
         }
+        self.previous_actions = dict(sorted(actions.items()))
 
         for faction_id, action in actions.items():
             state = self.factions[faction_id]
@@ -187,6 +197,13 @@ class _ArenaWorld:
                 1400,
             )
         self._resolved = True
+
+    def prepare_next_epoch(self):
+        if not self._resolved:
+            raise RuntimeError("arena cannot prepare another unresolved epoch")
+        self._orders = {}
+        self._outcomes = {}
+        self._resolved = False
 
     def outcome(self, faction_id, request_id, previous):
         return self._outcomes.get((faction_id, request_id), previous)
@@ -346,74 +363,87 @@ class _ArenaFactionApplication:
         enemy_id = self.world.enemy_id(self.faction_id)
         enemy = self.world.factions[enemy_id]
         revision = self.world.revision
+        facts = [
+            Fact(
+                f"faction.{self.faction_id}.name",
+                own.name,
+                FactSource.DEFINITION_METADATA,
+                revision,
+            ),
+            Fact(
+                f"faction.{self.faction_id}.military_strength",
+                own.military_strength,
+                FactSource.ENGINE_OBSERVED,
+                revision,
+            ),
+            Fact(
+                f"faction.{self.faction_id}.settlements",
+                own.settlements,
+                FactSource.ENGINE_OBSERVED,
+                revision,
+            ),
+            Fact(
+                f"faction.{self.faction_id}.supply",
+                own.supply,
+                FactSource.ENGINE_OBSERVED,
+                revision,
+            ),
+            Fact(
+                f"reports.{enemy_id}.strength_band",
+                self.world.strength_band(enemy_id),
+                FactSource.INFERRED,
+                revision,
+            ),
+            Fact(
+                "public.objective",
+                "Maximize settlements, military strength, and survival.",
+                FactSource.DEFINITION_METADATA,
+                revision,
+            ),
+            Fact(
+                "public.resolution_rules",
+                {
+                    "timing": "all decisions resolve simultaneously",
+                    "attack": {
+                        "attacker_strength_loss": 10,
+                        "undefended_target_strength_loss": 20,
+                        "defended_target_strength_loss": 5,
+                        "captures_one_settlement_if_undefended": True,
+                    },
+                    "defend": {"prevents_settlement_capture": True},
+                    "recruit": {
+                        "supply_cost": 20,
+                        "strength_gain_before_attacks": 15,
+                    },
+                },
+                FactSource.DEFINITION_METADATA,
+                revision,
+            ),
+            Fact(
+                "operator.enemy_exact_strength",
+                enemy.military_strength,
+                FactSource.ENGINE_OBSERVED,
+                revision,
+            ),
+        ]
+        if self.world.previous_actions is not None:
+            facts.append(
+                Fact(
+                    "public.previous_actions",
+                    {
+                        str(key): value
+                        for key, value in self.world.previous_actions.items()
+                    },
+                    FactSource.DEFINITION_METADATA,
+                    revision,
+                )
+            )
         return ObservationEnvelope(
             f"canonical:arena:faction:{self.faction_id}:revision:{revision}",
             self.controller,
             RoleId.OPERATOR_FULL,
             self.world.context(),
-            (
-                Fact(
-                    f"faction.{self.faction_id}.name",
-                    own.name,
-                    FactSource.DEFINITION_METADATA,
-                    revision,
-                ),
-                Fact(
-                    f"faction.{self.faction_id}.military_strength",
-                    own.military_strength,
-                    FactSource.ENGINE_OBSERVED,
-                    revision,
-                ),
-                Fact(
-                    f"faction.{self.faction_id}.settlements",
-                    own.settlements,
-                    FactSource.ENGINE_OBSERVED,
-                    revision,
-                ),
-                Fact(
-                    f"faction.{self.faction_id}.supply",
-                    own.supply,
-                    FactSource.ENGINE_OBSERVED,
-                    revision,
-                ),
-                Fact(
-                    f"reports.{enemy_id}.strength_band",
-                    "90-110",
-                    FactSource.INFERRED,
-                    revision,
-                ),
-                Fact(
-                    "public.objective",
-                    "Maximize settlements, military strength, and survival.",
-                    FactSource.DEFINITION_METADATA,
-                    revision,
-                ),
-                Fact(
-                    "public.resolution_rules",
-                    {
-                        "timing": "all decisions resolve simultaneously",
-                        "attack": {
-                            "attacker_strength_loss": 10,
-                            "undefended_target_strength_loss": 20,
-                            "defended_target_strength_loss": 5,
-                            "captures_one_settlement_if_undefended": True,
-                        },
-                        "defend": {"prevents_settlement_capture": True},
-                        "recruit": {
-                            "supply_cost": 20,
-                            "strength_gain_before_attacks": 15,
-                        },
-                    },
-                    FactSource.DEFINITION_METADATA,
-                    revision,
-                ),
-                Fact(
-                    "operator.enemy_exact_strength",
-                    enemy.military_strength,
-                    FactSource.ENGINE_OBSERVED,
-                    revision,
-                ),
-            ),
+            tuple(facts),
             (),
             1100,
         )
@@ -462,47 +492,52 @@ class _ArenaFactionApplication:
         )
 
 
+def _build_arena_runtime():
+    world = _ArenaWorld()
+    applications = {
+        faction_id: _ArenaFactionApplication(world, faction_id)
+        for faction_id in sorted(world.factions)
+    }
+    scenario = BenchmarkScenario(
+        "deterministic.border-war",
+        "1.0.0",
+        "Two factions choose simultaneous border-war postures",
+        (15, 16),
+        (
+            MetricRule(
+                "settlements",
+                "Controlled settlements after the epoch",
+                "count",
+                MetricObjective.MAXIMIZE,
+                60,
+                1,
+            ),
+            MetricRule(
+                "military_strength",
+                "Surviving field strength after the epoch",
+                "troops",
+                MetricObjective.MAXIMIZE,
+                30,
+                50,
+            ),
+            MetricRule(
+                "surviving",
+                "Faction retains a nonzero field army",
+                "boolean",
+                MetricObjective.BINARY,
+                10,
+                None,
+            ),
+        ),
+    )
+    return world, applications, scenario
+
+
 class DeterministicFactionArena:
     """One synchronized, scored faction epoch with no live game dependency."""
 
     def __init__(self):
-        self.world = _ArenaWorld()
-        self.applications = {
-            faction_id: _ArenaFactionApplication(self.world, faction_id)
-            for faction_id in sorted(self.world.factions)
-        }
-        self.scenario = BenchmarkScenario(
-            "deterministic.border-war",
-            "1.0.0",
-            "Two factions choose simultaneous border-war postures",
-            (15, 16),
-            (
-                MetricRule(
-                    "settlements",
-                    "Controlled settlements after the epoch",
-                    "count",
-                    MetricObjective.MAXIMIZE,
-                    60,
-                    1,
-                ),
-                MetricRule(
-                    "military_strength",
-                    "Surviving field strength after the epoch",
-                    "troops",
-                    MetricObjective.MAXIMIZE,
-                    30,
-                    50,
-                ),
-                MetricRule(
-                    "surviving",
-                    "Faction retains a nonzero field army",
-                    "boolean",
-                    MetricObjective.BINARY,
-                    10,
-                    None,
-                ),
-            ),
-        )
+        self.world, self.applications, self.scenario = _build_arena_runtime()
         self.run_metadata = {
             "backend": "deterministic-simulator",
             "game_launched": False,
@@ -643,5 +678,198 @@ class DeterministicFactionArena:
         return self.run.report()
 
 
+class DeterministicFactionCampaign:
+    """Persistent deterministic faction state across bounded decision epochs."""
+
+    def __init__(self, epoch_count=3):
+        if type(epoch_count) is not int or not 1 <= epoch_count <= 100:
+            raise ValueError("epoch_count must be an integer from 1 through 100")
+        self.epoch_count = epoch_count
+        self.world, self.applications, self.scenario = _build_arena_runtime()
+        self.run_metadata = {
+            "backend": "deterministic-simulator",
+            "game_launched": False,
+            "scenario_seed": 1,
+            "runner_version": "0.2.0",
+            "target_epochs": epoch_count,
+        }
+        self.decision_budget = DecisionBudget(8192, 512, 120_000)
+        self.run = FactionBenchmarkRun(
+            f"deterministic-border-war-{epoch_count}-epoch",
+            self.scenario,
+            run_metadata=self.run_metadata,
+        )
+        self.run.set_baseline(self.world.metrics("arena:campaign:baseline"))
+        self.completed_epochs = 0
+        self.epoch = None
+        self.turns = None
+        self._report = None
+        self._open_epoch()
+
+    def briefing(self):
+        if self._report is not None:
+            raise RuntimeError("campaign is complete")
+        transcript = self.epoch.transcript()
+        return {
+            "schema": CAMPAIGN_SCHEMA,
+            "run_id": self.run.run_id,
+            "state": "awaiting-decisions",
+            "epoch_id": self.epoch.epoch_id,
+            "epoch_number": self.completed_epochs + 1,
+            "completed_epochs": self.completed_epochs,
+            "target_epochs": self.epoch_count,
+            "turn_set_sha256": transcript["turn_set_sha256"],
+            "simultaneous_decisions": True,
+            "decision_budget": self.decision_budget.manifest(),
+            "game_launched": False,
+            "boundary": (
+                "Persistent deterministic simulator acceptance; this does not "
+                "prove a live Warband faction outcome."
+            ),
+            "factions": {
+                str(faction_id): self.task(faction_id)
+                for faction_id in sorted(self.turns)
+            },
+        }
+
+    def task(self, faction_id):
+        if self._report is not None:
+            raise RuntimeError("campaign is complete")
+        if faction_id not in self.turns:
+            raise ValueError("faction is not part of this campaign")
+        return deepcopy(
+            {
+                "schema": "warband.agentic/faction-decision-task/v1",
+                "epoch_id": self.epoch.epoch_id,
+                "faction_id": faction_id,
+                "objective": (
+                    "Choose exactly one current affordance to maximize settlements, "
+                    "military strength, and survival across the remaining epochs. "
+                    "The opponent decides simultaneously from a separately "
+                    "filtered turn."
+                ),
+                "decision_budget": self.decision_budget.manifest(),
+                "turn": self.turns[faction_id],
+                "response_schema": {
+                    "type": "object",
+                    "required": (
+                        "request_id",
+                        "affordance_token",
+                        "arguments",
+                        "expected_revision",
+                    ),
+                    "additionalProperties": False,
+                },
+            }
+        )
+
+    def submit(self, decisions):
+        return self._submit(decisions, provider_audit=None)
+
+    def submit_provider_results(self, results):
+        if self._report is not None:
+            raise RuntimeError("campaign is complete")
+        if not isinstance(results, dict) or set(results) != set(self.turns):
+            raise ValueError("provider results must contain factions 15 and 16")
+        assignments = {}
+        for faction_id, result in results.items():
+            if not isinstance(result, dict) or set(result) != {
+                "assignment",
+                "response",
+                "usage",
+            }:
+                raise ValueError(
+                    "each provider result requires assignment, response, and usage"
+                )
+            assignments[faction_id] = ProviderAssignment(**result["assignment"])
+        number = self.completed_epochs + 1
+        batch = ProviderDecisionBatch(
+            f"arena:campaign:batch:{number}",
+            self.epoch.epoch_id,
+            self.turns,
+            assignments,
+            self.decision_budget,
+        )
+        for faction_id, result in sorted(results.items()):
+            batch.record_success(
+                faction_id,
+                result["response"],
+                DecisionUsage(**result["usage"]),
+            )
+        return self._submit(batch.decisions(), provider_audit=batch.audit())
+
+    def report(self):
+        if self._report is None:
+            raise RuntimeError("campaign report is not complete")
+        return deepcopy(self._report)
+
+    def _open_epoch(self):
+        if self.completed_epochs:
+            self.world.prepare_next_epoch()
+        number = self.completed_epochs + 1
+        self.epoch = SynchronizedFactionEpoch(
+            f"arena:campaign:epoch:{number}",
+            self.applications,
+            run_metadata=self.run_metadata,
+        )
+        self.epoch.queue_observation_refreshes()
+        self.turns = self.epoch.collect_turns()
+
+    def _submit(self, decisions, provider_audit):
+        if self._report is not None:
+            raise RuntimeError("campaign is complete")
+        if not isinstance(decisions, dict) or set(decisions) != set(self.turns):
+            raise ValueError("decisions must contain factions 15 and 16")
+        start_clock = self.world.game_time
+        self.epoch.commit_decisions(decisions)
+        self.world.resolve()
+        self.epoch.refresh_outcomes()
+        self.world.advance_one_hour()
+        self.epoch.record_campaign_advance(
+            {
+                "epoch_id": self.epoch.epoch_id,
+                "state": "complete",
+                "start_clock": start_clock,
+                "target_clock": start_clock + 1,
+                "current_clock": start_clock + 1,
+                "elapsed_hours": 1,
+                "target_reached": True,
+                "start_command_status": "acknowledged",
+                "stop_command_status": "acknowledged",
+                "stop_acknowledged": True,
+                "reason": None,
+            }
+        )
+        number = self.completed_epochs + 1
+        metrics = self.world.metrics(f"arena:campaign:epoch:{number}:metrics")
+        self.run.append_epoch(
+            self.epoch.transcript(), metrics, provider_audit=provider_audit
+        )
+        self.completed_epochs = number
+        if self.completed_epochs == self.epoch_count:
+            self._report = self.run.report()
+            return {
+                "schema": CAMPAIGN_STEP_SCHEMA,
+                "state": "complete",
+                "completed_epochs": self.completed_epochs,
+                "target_epochs": self.epoch_count,
+                "briefing": None,
+                "report": deepcopy(self._report),
+            }
+        self._open_epoch()
+        return {
+            "schema": CAMPAIGN_STEP_SCHEMA,
+            "state": "awaiting-decisions",
+            "completed_epochs": self.completed_epochs,
+            "target_epochs": self.epoch_count,
+            "briefing": self.briefing(),
+            "report": None,
+        }
+
+
 def build_deterministic_faction_arena():
     return DeterministicFactionArena()
+
+
+def build_deterministic_faction_campaign(*, epoch_count=3):
+    return DeterministicFactionCampaign(epoch_count)

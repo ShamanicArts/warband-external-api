@@ -24,3 +24,12 @@ uv run warband-faction-arena resolve \
 uv run warband-faction-arena resolve-providers \
   evidence/faction-arena/luna-vs-deepseek-provider-results.json
 ```
+
+`three-epoch-replay.json` records a persistent authored campaign replay. The
+stream emitted turns at revisions 1, 2 and 3 and a final report at campaign hour
+103. Reproduce it with:
+
+```bash
+uv run warband-faction-arena campaign \
+  evidence/faction-arena/three-epoch-decisions.jsonl --epochs 3
+```

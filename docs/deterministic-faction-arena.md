@@ -134,6 +134,39 @@ missing factions and over-budget usage instead of silently scoring an unequal
 run. Freeze model assignments before dispatch with the full benchmark plan and
 runner when predeclared assignment enforcement is required.
 
-The current fixture is deliberately one epoch. Persistent campaigns,
-cross-epoch memory and a live synchronized Warband run remain later acceptance
-work.
+The `export`, `resolve` and `resolve-providers` paths remain the compact one-epoch
+fixture used by the retained external-model evidence. Use the persistent stream
+below when a benchmark needs cross-epoch state and strategy. A live synchronized
+Warband run remains separate acceptance work.
+
+## Persistent campaign stream
+
+The same command can keep deterministic faction state alive for 1-100 epochs:
+
+```bash
+uv run warband-faction-arena campaign --epochs 3
+```
+
+The command speaks newline-delimited JSON. It first emits one `turn` event whose
+`briefing` contains both private faction tasks. Send one JSON line containing the
+two bounded responses. The process resolves them simultaneously, advances one
+campaign hour and emits either the next `turn` or the final `report`. Output is
+flushed after every event so an orchestrator can keep each private task isolated
+while the process remains alive.
+
+Later turns contain persistent military strength, settlements and supply, a
+coarse current enemy-strength band and the previous public simultaneous actions.
+They also carry a new context revision, game time, turn-set hash and affordance
+tokens. Reusing an earlier token therefore fails through the normal constrained
+session validator.
+
+For deterministic replay, pass a JSONL file with one two-faction response object
+per epoch:
+
+```bash
+uv run warband-faction-arena campaign decisions.jsonl --epochs 3
+```
+
+The stream is an in-memory acceptance fixture, not the restart-safe live-game
+runner. Production benchmark plans and checkpoints remain owned by
+`warband-benchmark-run`.

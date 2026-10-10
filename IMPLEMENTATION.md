@@ -1164,3 +1164,24 @@ The repository's standard discovery command passes **188 tests**. The arena is
 one epoch and one deterministic simulator scenario; persistent model memory,
 successful lean-provider budget receipts and a live synchronized campaign remain
 open.
+
+## Persistent deterministic faction campaign
+
+The faction arena now exposes a bounded 1-100 epoch campaign interface and an
+NDJSON `warband-faction-arena campaign` stream. Every submitted pair resolves
+simultaneously before the deterministic clock advances; the next turn receives
+persistent strength, settlements and supply, a coarse current enemy band, public
+previous actions, a new revision and entirely new affordance tokens. Provider
+identity and equal-budget receipts can be bound independently on every epoch.
+
+A retained three-epoch authored replay advances revisions 1→3 and campaign time
+100→103 before emitting one canonical report. The final state ranks Vaegirs over
+Swadia after attack/defend, recruit/attack and attack/recruit decision pairs.
+The original one-epoch Luna/DeepSeek report and audit hashes remain unchanged.
+This stream is an in-memory acceptance surface; restart-safe production campaign
+execution remains the responsibility of the existing benchmark runner, and no
+live Warband or external model was launched for this increment. A stale-token
+regression proves that an earlier epoch's affordance is retained as an explicit
+`AgentConflict`, executes no world action and does not deadlock the synchronized
+campaign. Separated discovery passes **350 tests**: 193 root, 107 bridge and 50
+module-system tests; the maintained campaign files are Ruff-clean.
