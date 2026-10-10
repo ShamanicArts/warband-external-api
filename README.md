@@ -61,9 +61,11 @@ Current foundations include:
   composes validated plans, frozen turns, provider dispatch, campaign epochs,
   automatic checkpoints and final reports without launching the game itself,
   plus a hash-acknowledged live command that refuses unreviewed execution;
-- a [GPU-safe off-screen test harness](bridge/CUA_RUNBOOK.md) that pins Gamescope
-  to a physical AMD GPU, isolates CUA from the desktop, enforces systemd resource
-  limits and refuses software rendering or missing game-process GPU proof;
+- a [GPU-safe hidden-workspace test harness](bridge/CUA_RUNBOOK.md) that pins
+  rendering to the AMD RX 6600 XT, keeps CUA/Warband off active workspaces,
+  enforces systemd limits and refuses software rendering or missing game-PID DRM
+  proof; accepted evidence is in
+  [`evidence/runtime/desktop-gpu-safe/`](evidence/runtime/desktop-gpu-safe/);
 - reproducible tests and retained engine/visual evidence.
 
 The current evidence index and final video ledger live in

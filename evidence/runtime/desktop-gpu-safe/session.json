@@ -1,0 +1,22 @@
+{
+  "cua_socket": "/home/shamanic/.cache/cua-driver/cua-driver-x11.sock",
+  "ended_at": "2026-10-10T11:03:21.036878+00:00",
+  "focus_after": {
+    "address": "0x5f286ddcfa20",
+    "class": "bb-desktop",
+    "monitor": 1,
+    "workspace": "11"
+  },
+  "focus_before": {
+    "address": "0x5f286ddcfa20",
+    "class": "bb-desktop",
+    "monitor": 1,
+    "workspace": "11"
+  },
+  "graphics_backend": "wined3d",
+  "hardware_renderer_proven": true,
+  "renderer": "AMD Radeon RX 6600 XT (RADV NAVI23)",
+  "started_at": "2026-10-10T11:02:14.582559+00:00",
+  "state": "stopped",
+  "workspace": "name:warband-agent"
+}

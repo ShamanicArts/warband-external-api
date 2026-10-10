@@ -1,31 +1,78 @@
-# GPU-safe off-screen Warband through CUA
+# GPU-safe hidden-workspace Warband through CUA
 
 > **Never launch Warband on Xvfb.** The retired `:97` setup rendered through
 > llvmpipe and consumed roughly ten CPU cores. It is incident history, not a
 > usable fallback.
 
-The supported test boundary is headless Gamescope pinned to the AMD RX 6600 XT.
-Gamescope creates a private Xwayland display, so Warband does not map a window
-on the user's Hyprland desktop. A transient user service imposes CPU, memory,
-task and wall-clock limits. The runner continuously scans its owned process tree
-and logs for `llvmpipe`, `softpipe`, `lavapipe` and `swrast`; any match aborts
-the entire owned control group.
+The preferred interactive boundary is desktop XWayland on an inactive Hyprland
+workspace named `warband-agent`. `bridge/warband_desktop_runner.py` installs a
+runtime-only named rule before Proton starts. It assigns every
+`steam_app_48700` window to that workspace silently, denies initial/activation
+focus, and removes the rule during teardown. Normal user launches are
+unaffected.
 
-Current default limits are:
+The runner owns Proton in a transient user service and continuously scans the
+exact service cgroup and logs for `llvmpipe`, `softpipe`, `lavapipe` and
+`swrast`. Any match aborts the owned control group. It also aborts if a Warband
+window leaves the agent workspace, becomes active, or makes the workspace
+visible.
 
-- `CPUQuota=250%`
-- `MemoryHigh=2G`, `MemoryMax=3G`
-- `TasksMax=256`
+Current limits are:
+
+- `CPUQuota=200%`
+- `MemoryHigh=1500M`, `MemoryMax=2G`
+- `TasksMax=192`
 - `Nice=10`
-- 15-minute wall-clock limit, with bounded five-second teardown
+- five-minute wall-clock limit and five-second teardown
+- `KillMode=control-group`
 
-The unit preserves the caller's working directory and uses
-`KillMode=control-group`, so detached Wine, CUA or Gamescope descendants cannot
-outlive a completed run.
+## Run on the hidden desktop workspace
 
-## Prove the compositor path
+The currently proven Warband 1.174 path uses WineD3D over AMD's hardware GL
+stack. This is not software rendering: acceptance requires live Linux DRM
+accounting from the Warband window PID. DXVK remains available as the preferred
+backend, but on this installation both tested Proton verbs stall before a
+window or Vulkan device is created. A matching DXVK DLL hash alone is not a
+working run.
 
-This check does not launch Warband:
+The log directory must not exist before launch:
+
+```bash
+run_dir=$(mktemp -u /tmp/warband-desktop-safe.XXXXXX)
+python bridge/warband_desktop_runner.py run \
+  --graphics-backend wined3d \
+  --prefix /tmp/shuvcode/warband-cua/compatdata \
+  --log-dir "$run_dir"
+```
+
+The command prints the `session.json` path and waits. In a second terminal, find
+the launcher through the existing X11 CUA daemon:
+
+```bash
+cua-driver-main call list_windows \
+  '{"session":"warband-hidden"}' \
+  --socket ~/.cache/cua-driver/cua-driver-x11.sock
+```
+
+Capture the exact returned PID/window ID, then use a background click on Play.
+Do not use foreground delivery. Play is approximately `(150, 212)` in the
+tested 640x480 launcher, but use a fresh capture ID.
+
+Success is not the CUA acknowledgement. It requires all of:
+
+- a 1600x919 game window still on `warband-agent`;
+- unchanged user focus and no Warband `activewindow` event;
+- `hardware-renderer-proof.json` showing that the game PID's `amdgpu`
+  gfx-engine counter increased on `/dev/dri/renderD129`;
+- no software-renderer marker in the owned cgroup or logs;
+- a CUA capture of the rendered game frame.
+
+The accepted 2026-10-10 artifacts are in
+`evidence/runtime/desktop-gpu-safe/`.
+
+## Hardware probe without Warband
+
+This checks the AMD compositor path without launching the game:
 
 ```bash
 nice -n 10 python bridge/gpu_safe_runner.py probe \
@@ -33,12 +80,13 @@ nice -n 10 python bridge/gpu_safe_runner.py probe \
 ```
 
 The proof must name `AMD Radeon RX 6600 XT (RADV NAVI23)`, establish the
-headless backend and start a private Xwayland display. A missing physical device
-or any software-renderer marker is a hard failure.
+headless backend and start private Xwayland. A missing physical device or any
+software-renderer marker is a hard failure.
 
-## Observe the launcher safely
+## Legacy private-Gamescope diagnostic
 
-Create a fresh log directory and start a bounded launcher-only session:
+Headless Gamescope remains useful for isolated launcher capture, but CUA cannot
+activate Play there. It is not the gameplay acceptance route.
 
 ```bash
 run_dir=$(mktemp -d /tmp/warband-gpu-safe.XXXXXX)
@@ -48,72 +96,24 @@ nice -n 10 python bridge/gpu_safe_runner.py run \
   python bridge/warband_gpu_supervisor.py --graphics-backend wined3d
 ```
 
-The supervisor refuses `DISPLAY=:0` and requires the private-display marker set
-by the verified runner. It starts CUA against private X11 only: host Wayland is
-removed from CUA's environment. Do not enable native Wayland or Gamescope's
-`--expose-wayland` for CUA; in testing, screen capture resolved through the host
-portal and exposed the real desktop rather than the private Gamescope output.
+The supervisor refuses `DISPLAY=:0` and requires the private-display marker.
+It starts its own CUA daemon against private X11. Do not enable native Wayland
+or Gamescope's `--expose-wayland`; testing showed portal capture could expose
+the host desktop.
 
-The CUA socket and session metadata are written inside `run_dir`. While the
-bounded session is alive, use its live PID and XID:
-
-```bash
-cua-driver-main call list_windows \
-  '{"session":"warband-isolated"}' \
-  --socket "$run_dir/cua-driver.sock"
-
-cua-driver-main call get_window_state \
-  '{"pid":PID,"window_id":XID,"session":"warband-isolated","include_accessibility_tree":false,"screenshot_out_file":"/tmp/warband-launcher.png"}' \
-  --socket "$run_dir/cua-driver.sock"
-```
-
-CUA has independently captured the 640x480 Warband 1.174 launcher with
-`WarbandMCP` selected. The tested Wine launcher exposes no AT-SPI controls, and
-pixel/keyboard XTEST delivery through headless Gamescope does not activate Play.
-Therefore launcher capture is proven, but unattended transition into the game is
-not. Do not report a CUA action acknowledgement as a game transition.
-
-## Require actual game-process GPU rendering
-
-For any future gameplay or evidence run, add:
-
-```bash
---require-hardware-gl --hardware-deadline 45
-```
-
-That requirement succeeds only when the actual `mb_warband.exe` process maps
-`radeonsi_dri.so`; Gamescope's own Vulkan renderer is not enough. It also fails
-closed when the guarded command exits before producing the proof. The current
-launcher-only path is expected to return status 70 at this boundary because Play
-cannot yet be activated through private CUA.
-
-The supervisor also has a DXVK backend. `--require-dxvk` verifies that the
-isolated prefix's 32-bit `d3d9.dll` hash matches Proton's DXVK DLL, that Proton
-loads it as native and that Gamescope selected the AMD GPU. The full Proton/DXVK
-launch currently does not map the Warband launcher under headless Gamescope, so
-it is preflight evidence, not a working interactive path.
-
-Warband 1.174 has no general command-line module/launcher bypass. Static analysis
-found only the `-sm` debug/module-system option; a bounded `-m WarbandMCP` run
-remained in the launcher. Play changes state within the same process rather than
-spawning a second executable.
+Warband 1.174 has no general command-line launcher bypass. Static analysis found
+only the `-sm` debug/module-system option; `-m WarbandMCP` remained in the
+launcher. Play changes state within the same process.
 
 ## Evidence and cleanup
 
-Every live run should retain:
+Retain the session lifecycle, hardware proof, Hyprland event log, aggregate
+CPU/RSS samples and CUA captures for every claimed interaction. After a run,
+verify that no exact owned process or transient unit remains. Never kill broad
+Wine, Steam, Gamescope or CUA process sets because other agents may own them.
+If the outer waiter is interrupted, resolve and stop only its exact transient
+unit.
 
-- `gamescope.log` naming the physical AMD renderer;
-- `session.json` with private display and lifecycle state;
-- the relevant DXVK or WineD3D proof file;
-- periodic aggregate CPU/RSS samples;
-- a Hyprland event capture showing no Warband/Gamescope desktop focus event;
-- CUA before/after captures for any claimed interaction.
-
-After a run, verify that no exact owned process or transient unit remains. Never
-kill broad Wine, Steam, Gamescope or CUA process sets because other agents may own
-them. If the outer `systemd-run --wait` client is interrupted, resolve the exact
-unit from the owned process's `/proc/PID/cgroup` and stop only that unit.
-
-The old Xvfb/Openbox commands, temporary `:97` display and software-rendered
-screenshots are deliberately omitted. They proved CUA interaction but not an
-acceptable runtime and must not be revived.
+The old Xvfb/Openbox commands and software-rendered screenshots are deliberately
+omitted. They proved interaction but not an acceptable runtime and must not be
+revived.

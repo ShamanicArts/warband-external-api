@@ -35,7 +35,7 @@ separate engine facts support it.
 | Python extension SDK | installed-style CLI + loopback runtime simulation | `test_agentic_extensions.py`, `test_extension_discovery.py`, `test_agent_host.py`, `test_compiled_extensions.py`, `docs/extension-sdk.md` | explicit registration, exact-ID loading, custom-kind host lifecycle and compiled-operation Store wiring proven; no automatic loading or hot reload |
 | Compiled extension operation | structural + bridge simulated | `test_compiled_extensions.py`, `module_system/test_build_mcp_module.py`, `warband_agentic/compiled_extensions.py` | one declaration drives bounded Store validation, opcode-1001 wire encoding and guarded `troop_add_gold` callback generation; no live engine acknowledgement or visual proof yet |
 | Module/host extension compatibility | structural + CLI check | `module_system/test_build_mcp_module.py`, `test_agent_host.py`, `mcp-build.json` contract | exact ID/version and full compiled-operation contract mismatch refusal proven before side effects; same-version drift fails closed |
-| GPU-safe live test harness | physical-GPU probe + live private launcher capture | `test_gpu_safe_runner.py`, `test_warband_gpu_supervisor.py`, `evidence/runtime/gpu-probe.json`, `evidence/runtime/gpu-safety-validation.json` | launcher capture is safe; unattended Play and game-process GPU proof remain open |
+| GPU-safe live test harness | live hidden-workspace game + game-PID kernel DRM proof + CUA visual | `test_warband_desktop_runner.py`, `test_gpu_safe_runner.py`, `evidence/runtime/desktop-gpu-safe/`, `evidence/runtime/gpu-probe.json` | CUA background Play, focus isolation and AMD hardware rendering are proven for WineD3D; DXVK still stalls before mapping |
 
 ## Video ledger
 
@@ -51,6 +51,7 @@ artifact links, introducing Jujutsu change ID, capture method and any setup done
 CUA. Videos must not imply that CUA performed the claimed agentic mechanic.
 
 The retired Xvfb evidence is not acceptable final footage because Warband used
-llvmpipe. New clips must come from the bounded Gamescope harness and must include
-game-process hardware proof; a hardware-rendered compositor around a launcher is
-not sufficient.
+llvmpipe. New clips must come from the bounded hidden-workspace runner and include
+game-PID DRM proof; a hardware-rendered compositor around a launcher is not
+sufficient. Headless Gamescope remains diagnostic because its private CUA route
+cannot activate Play.
