@@ -251,6 +251,22 @@ class ConstrainedAgentSessionTests(unittest.TestCase):
             },
         )
         self.assertEqual(
+            submission["outcome_reconciliation"],
+            {
+                "lookup_key": "request_id",
+                "client_rule": (
+                    "look up after submission; while required evidence has not "
+                    "been reached and state is not rejected, expired, or "
+                    "interrupted, retry with bounded backoff until the caller's "
+                    "deadline"
+                ),
+                "success_rule": (
+                    "accepted, dispatched, or acknowledged alone does not prove "
+                    "the required consequence"
+                ),
+            },
+        )
+        self.assertEqual(
             submission["arguments"],
             {
                 "schema_source": "turn.affordances[].parameters",

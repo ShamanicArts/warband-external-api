@@ -164,6 +164,28 @@ become explicit `interrupted` outcomes rather than prompting unsafe automatic
 replay. Successful action events retain the strongest supplied evidence level;
 acknowledgement is not promoted to observed outcome.
 
+Call outcome lookup immediately after submission. If the returned state has not
+yet reached the affordance's `required_evidence` and is not `rejected`, `expired`
+or `interrupted`, poll with bounded backoff until an application-chosen deadline.
+For a local session, 100–500 ms is a reasonable initial interval; applications
+with slower game refresh cycles should use their own bounded schedule. Do not
+resubmit the mutation merely to obtain stronger evidence.
+
+An early result may therefore look like:
+
+```json
+{"action_id":"action:...","state":"accepted","evidence":[{"level":"declared","source":"application","detail":"Queued for dispatch"}]}
+```
+
+while later lookup of the same `request_id` may return:
+
+```json
+{"action_id":"action:...","state":"observed","facts":[{"key":"parties.17.order","value":"defend","source":"engine-observed","observed_revision":9}],"evidence":[{"level":"engine-observed","source":"Warband party getter","detail":"Party order read back as defend"}]}
+```
+
+These abbreviated examples show lifecycle shape, not a replacement for the full
+versioned outcome envelope.
+
 ## Constrained MCP adapter
 
 `warband-agent-mcp` maps the same five safe operations to stdio MCP without

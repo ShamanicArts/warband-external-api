@@ -98,9 +98,10 @@
   "unavailable": [
     {
       "requested": "DeepSeek 4.1 via OpenCode v2/Shelf",
-      "reason": "Not present in the provider model catalog; no substitute or guessed model ID was used."
+      "reason": "Not run in this original batch because the catalog query inspected the wrong surface. A later Pi catalog check found exact DeepSeek V4.1 Flash routes; see constrained-mcp-v3-model-results.json for the corrective supplemental run over this same fixture."
     }
   ],
+  "catalog_correction": "DeepSeek V4.1 Flash was available; the original absence claim was incorrect and the missing run was completed through Pi's exact OpenCode Go route.",
   "cost": "No provider-reported monetary cost was exposed by BB for these runs.",
   "boundary": "This is deterministic fixture evidence only. It does not prove live Warband party control."
 }

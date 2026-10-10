@@ -1,0 +1,140 @@
+{
+  "schema": "warband.agentic/evidence/direct-mcp-fixture/v1",
+  "method": "real constrained-agent stdio MCP over deterministic HTTP fixture",
+  "game_launched": false,
+  "external_model_invoked": false,
+  "tools": [
+    "warband_agent_manifest",
+    "warband_agent_turn",
+    "warband_agent_act",
+    "warband_agent_outcome",
+    "warband_agent_events"
+  ],
+  "manifest": {
+    "schema": "warband.agentic/v1",
+    "session_id": "session:mcp-usability:swadia",
+    "role": "faction.sovereign",
+    "actor": {
+      "runtime_id": "controller:faction:1",
+      "kind": "system",
+      "game_id": null
+    },
+    "submission": {
+      "required": [
+        "request_id",
+        "affordance_token",
+        "arguments",
+        "expected_revision"
+      ],
+      "server_owned": [
+        "action_id",
+        "actor",
+        "grant_id",
+        "lease_id",
+        "submitted_at_ms",
+        "handler_id"
+      ],
+      "expected_revision_source": "turn.observation.context.revision",
+      "request_id": {
+        "type": "client_chosen_idempotency_key",
+        "constraints": "1-200 printable characters",
+        "retry_rule": "reuse only for an identical submission; use a new value for changed intent",
+        "example": "decision:epoch-12:party-17"
+      },
+      "authorization": {
+        "source": "turn.affordances[]",
+        "capabilities": "descriptive schemas only; capability presence does not authorize an action"
+      },
+      "outcome_reconciliation": {
+        "lookup_key": "request_id",
+        "client_rule": "look up after submission; while required evidence has not been reached and state is not rejected, expired, or interrupted, retry with bounded backoff until the caller's deadline",
+        "success_rule": "accepted, dispatched, or acknowledged alone does not prove the required consequence"
+      },
+      "arguments": {
+        "schema_source": "turn.affordances[].parameters",
+        "required_properties_source": "turn.affordances[].parameters.required",
+        "const_properties": "submit_the_exact_value"
+      },
+      "affordance_time": {
+        "fields": [
+          "issued_at_ms",
+          "expires_at_ms"
+        ],
+        "unit": "milliseconds",
+        "clock": "session_runtime_clock",
+        "client_rule": "treat_as_same_session_validity_metadata_and_fetch_a_fresh_turn_after_expiry_or_conflict"
+      }
+    }
+  },
+  "first_revision": 7,
+  "stale_rejected": true,
+  "refreshed_revision": 8,
+  "action": {
+    "action_id": "action:direct-mcp:refreshed-defense",
+    "state": "observed",
+    "context": {
+      "kind": "campaign",
+      "scope_id": "campaign:world",
+      "revision": 8,
+      "session_id": null,
+      "game_time": 101
+    },
+    "resulting_revision": 9,
+    "engine_result": {
+      "result": 0
+    },
+    "facts": [
+      {
+        "key": "parties.17.order",
+        "value": "defend",
+        "source": "engine-observed",
+        "observed_revision": 9
+      }
+    ],
+    "evidence": [
+      {
+        "level": "engine-observed",
+        "source": "deterministic MCP fixture",
+        "detail": "Party 17 order read back as defend",
+        "event_sequence": null
+      }
+    ],
+    "reason": null,
+    "recorded_at_ms": 1300,
+    "schema": "warband.agentic/v1"
+  },
+  "outcome": {
+    "action_id": "action:direct-mcp:refreshed-defense",
+    "state": "observed",
+    "context": {
+      "kind": "campaign",
+      "scope_id": "campaign:world",
+      "revision": 8,
+      "session_id": null,
+      "game_time": 101
+    },
+    "resulting_revision": 9,
+    "engine_result": {
+      "result": 0
+    },
+    "facts": [
+      {
+        "key": "parties.17.order",
+        "value": "defend",
+        "source": "engine-observed",
+        "observed_revision": 9
+      }
+    ],
+    "evidence": [
+      {
+        "level": "engine-observed",
+        "source": "deterministic MCP fixture",
+        "detail": "Party 17 order read back as defend",
+        "event_sequence": null
+      }
+    ],
+    "reason": null,
+    "recorded_at_ms": 1300,
+    "schema": "warband.agentic/v1"
+  }
+}

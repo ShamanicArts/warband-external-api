@@ -108,17 +108,49 @@
         "what_was_confusing": "Capability schema looks freely composable (defend|raid plus any target_id) while only the issued affordance token and its const args are valid. The briefing also wraps extra evaluation fields around what warband_agent_turn would actually return.",
         "missing_information": "warband_agent_act requires a request_id, but the scored response and prior_attempt omit one, so the retry's idempotency key is unspecified."
       }
-    }
-  ],
-  "unavailable": [
+    },
     {
-      "requested": "DeepSeek 4.1 via OpenCode v2/Shelf",
-      "reason": "Not present in the provider model catalog; no substitute or guessed model ID was used."
+      "thread_id": "thr_tfp2pu4249",
+      "provider": "pi",
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "reasoning_effort": "high",
+      "wall_time_ms": 16850,
+      "reported_total_tokens": 29951,
+      "strict_json_wrapper_compliance": true,
+      "response": {
+        "affordance_token": "aff:defend-praven-r8",
+        "arguments": {
+          "order": "defend",
+          "target_id": 2
+        },
+        "expected_revision": 8
+      },
+      "mcp_sequence": [
+        "warband_agent_turn",
+        "warband_agent_act",
+        "warband_agent_outcome"
+      ],
+      "accepted": true,
+      "score": 100,
+      "capability": "party.issue-order",
+      "critique": {
+        "clarity_score_1_to_5": 4,
+        "what_was_clear": "The stale rejection (revision 7 vs current 8) and the requirement to use only currently issued affordances were explicit. The fresh turn lists exactly one defend-Praven binding, and its token plus const arguments and revision 8 map unambiguously onto the response schema.",
+        "what_was_confusing": "The export mixes descriptive capabilities with authoritative affordances, so the capability entry's enum/minimum schema could be mistaken for the submission contract; only the affordance's const-bound parameters and token are valid. The const values are easy to misread as defaults that may be omitted rather than required literals.",
+        "missing_information": "No explicit guidance here on whether the outcome lookup should be attempted immediately or only after a wait/poll interval, and no sample of the action-event shape returned for a queued versus engine-observed faction order."
+      }
     }
   ],
+  "unavailable": [],
+  "catalog_correction": {
+    "incorrect_prior_claim": "DeepSeek 4.1 was absent from the provider catalog.",
+    "corrected_discovery": "The original query inspected the wrong catalog surface. Pi exposed DeepSeek V4.1 Flash through several routes, including opencode-go/deepseek-v4.1-flash.",
+    "remediation": "A separately announced supplemental run used the exact OpenCode Go route through Pi; no substitute model was used."
+  },
   "findings_applied": [
     "The session manifest and warband_agent_act description now define request_id constraints, stable retry semantics, and an example.",
-    "The contract now says capability schemas are descriptive and that only a current affordance authorizes an action."
+    "The contract now says capability schemas are descriptive and that only a current affordance authorizes an action.",
+    "The manifest and API guide now define bounded outcome polling and show accepted versus observed lifecycle shapes."
   ],
   "cost": "No provider-reported monetary cost was exposed by BB for these runs.",
   "boundary": "The models reasoned over the documented MCP contract and a deterministic turn export; they did not receive a live MCP tool connection. A separate local stdio smoke proves the real MCP handshake and action/outcome round trip. Neither artifact proves live Warband party control."

@@ -21,7 +21,9 @@ mcp = FastMCP(
         "inspect the outcome evidence. Capability schemas describe possible shapes, "
         "but only a currently listed affordance authorizes an action. Choose a "
         "stable request_id for each intended action; reuse it only when retrying the "
-        "identical submission."
+        "identical submission. After submitting, look up the outcome. If required "
+        "evidence has not arrived and the action has not definitively failed, poll "
+        "with bounded backoff until the caller's deadline."
     ),
 )
 
@@ -74,7 +76,7 @@ async def warband_agent_act(
 
 @mcp.tool()
 async def warband_agent_outcome(request_id: str) -> dict:
-    """Reconcile a prior request with its latest evidence-bearing outcome."""
+    """Reconcile a request; poll boundedly until evidence or definitive failure."""
     return await anyio.to_thread.run_sync(lambda: _client().outcome(request_id))
 
 

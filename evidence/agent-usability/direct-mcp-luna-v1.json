@@ -1,0 +1,115 @@
+{
+  "schema": "warband.agentic/evidence/direct-model-mcp/v1",
+  "model": "gpt-6-luna",
+  "provider": "codex-cli",
+  "provider_thread_id": "01a125f2-190e-77b2-af06-342976eac9f9",
+  "reasoning_effort": "provider default",
+  "wall_time_ms": 28316,
+  "game_launched": false,
+  "backend": "deterministic constrained-session fixture",
+  "tool_surface": [
+    "warband_agent_manifest",
+    "warband_agent_turn",
+    "warband_agent_act",
+    "warband_agent_outcome",
+    "warband_agent_events"
+  ],
+  "tool_trace": [
+    {
+      "tool": "warband_agent_manifest",
+      "status": "completed"
+    },
+    {
+      "tool": "warband_agent_turn",
+      "status": "completed",
+      "revision": 7
+    },
+    {
+      "tool": "warband_agent_act",
+      "status": "stale_rejected",
+      "request_id": "defend-praven-party-17-rev-7",
+      "affordance_token": "mcp-fixture-token-1",
+      "arguments": {
+        "order": "defend",
+        "target_id": 2
+      },
+      "expected_revision": 7,
+      "error": "HTTP 409: Affordance is not part of the active turn"
+    },
+    {
+      "tool": "warband_agent_turn",
+      "status": "completed",
+      "revision": 8
+    },
+    {
+      "tool": "warband_agent_act",
+      "status": "completed",
+      "request_id": "defend-praven-party-17-rev-8",
+      "affordance_token": "mcp-fixture-token-3",
+      "arguments": {
+        "order": "defend",
+        "target_id": 2
+      },
+      "expected_revision": 8,
+      "outcome_state": "observed"
+    },
+    {
+      "tool": "warband_agent_outcome",
+      "status": "completed",
+      "request_id": "defend-praven-party-17-rev-8",
+      "outcome_state": "observed"
+    }
+  ],
+  "observed_outcome": {
+    "action_id": "action:defend-praven-party-17-rev-8",
+    "context_revision": 8,
+    "resulting_revision": 9,
+    "state": "observed",
+    "fact": {
+      "key": "parties.17.order",
+      "value": "defend",
+      "source": "engine-observed",
+      "observed_revision": 9
+    },
+    "evidence": {
+      "level": "engine-observed",
+      "source": "deterministic MCP fixture",
+      "detail": "Party 17 order read back as defend"
+    }
+  },
+  "final_turn": {
+    "revision": 9,
+    "affordance_count": 0,
+    "party_17_order": "defend"
+  },
+  "unauthorized_tool_calls": [],
+  "usage": {
+    "input_tokens": 161951,
+    "cached_input_tokens": 140544,
+    "output_tokens": 591,
+    "reasoning_output_tokens": 230,
+    "monetary_cost": null
+  },
+  "setup_attempts": [
+    {
+      "model": "opencode/muse-spark-1.3-contributor-free",
+      "model_invoked": false,
+      "fixture_touched": false,
+      "result": "OpenCode standalone session creation failed against the existing database because event.created was null."
+    },
+    {
+      "model": "opencode/muse-spark-1.3-contributor-free",
+      "model_invoked": false,
+      "fixture_touched": false,
+      "result": "A fresh isolated OpenCode state reached the provider but the standalone free-tier request was rejected with HTTP 403."
+    },
+    {
+      "model": "gpt-6-luna",
+      "model_invoked": true,
+      "fixture_touched": false,
+      "result": "The first Codex attempt failed closed because MCP calls required approval while global approval policy was never; manifest and turn were not executed."
+    }
+  ],
+  "accepted": true,
+  "boundary": "This proves an external model directly used the real constrained stdio MCP adapter and recovered one deterministic stale-context transition. It does not prove a live Warband action."
+}
