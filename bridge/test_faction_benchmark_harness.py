@@ -406,6 +406,73 @@ class FactionBenchmarkHarnessTests(unittest.TestCase):
                     advance_driver_factory=FakeAdvanceDriver,
                 )
 
+    def test_decision_checkpoint_restores_only_missing_provider_receipts(self):
+        harness = self._harness()
+        harness.begin()
+        harness.poll()
+        harness.start_epoch("epoch:1")
+        turns = harness.collect_turns()
+        batch = ProviderDecisionBatch(
+            "batch:epoch:1",
+            "epoch:1",
+            turns,
+            {
+                15: ProviderAssignment("provider-a", "model-a", {}),
+                16: ProviderAssignment("provider-b", "model-b", {}),
+            },
+            DecisionBudget(1000, 100, 30_000, 10_000),
+        )
+        wrong_turns = dict(turns)
+        wrong_turns[15] = {**wrong_turns[15], "forged": True}
+        wrong_batch = ProviderDecisionBatch(
+            "batch:wrong-turns",
+            "epoch:1",
+            wrong_turns,
+            {
+                15: ProviderAssignment("provider-a", "model-a", {}),
+                16: ProviderAssignment("provider-b", "model-b", {}),
+            },
+            DecisionBudget(1000, 100, 30_000, 10_000),
+        )
+        with self.assertRaisesRegex(ValueError, "another turn set"):
+            harness.bind_provider_batch(wrong_batch)
+        harness.bind_provider_batch(batch)
+        batch.record_success(
+            15,
+            {"request_id": "decision:15"},
+            DecisionUsage(500, 40, 1000, 2_000),
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "harness.checkpoint.json"
+            harness.write_checkpoint(checkpoint)
+            restored = FactionBenchmarkHarness.load_checkpoint(
+                checkpoint,
+                object(),
+                self.apps,
+                metric_collector_factory=lambda _store, snapshot_id, **_kwargs: (
+                    FakeMetricCollector(self.final)
+                ),
+                advance_driver_factory=FakeAdvanceDriver,
+            )
+
+            restored_batch = restored.provider_batch()
+            self.assertIs(
+                restored.status().state, FactionBenchmarkHarnessState.DECISIONS
+            )
+            self.assertEqual(restored_batch.pending_faction_ids(), (16,))
+            restored_batch.record_success(
+                16,
+                {"request_id": "decision:16"},
+                DecisionUsage(550, 45, 1100, 2_200),
+            )
+            restored.submit_provider_batch()
+
+            self.assertEqual(
+                [call for call in self.calls if call[0] == "submit"],
+                [("submit", 15, "decision:15"), ("submit", 16, "decision:16")],
+            )
+
     def test_metric_checkpoint_restarts_only_read_only_collection(self):
         harness = self._harness()
         harness.begin()

@@ -48,8 +48,8 @@ Current foundations include:
   commit order, bounded engine-clock advancement, evidence-gated scenario scoring
   and atomic hashed epoch/run artifacts, plus a fixed-clock campaign metric
   collector and restart-safe non-blocking full-epoch orchestration harness,
-  with equal-budget provider task/audit contracts but without embedding or
-  invoking models;
+  with equal-budget provider task/audit contracts and frozen-turn/partial-receipt
+  recovery but without embedding or invoking models;
 - a check-only [versioned benchmark plan](docs/benchmark-plan.md) that binds the
   host sessions, Native metric set, epoch bounds, reproducibility hashes and
   provider budgets before any game or network side effect;

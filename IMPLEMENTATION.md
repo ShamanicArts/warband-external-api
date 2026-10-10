@@ -1010,3 +1010,25 @@ Separated discovery passes **276 tests**: 132
 root, 94 bridge and 50 module-system. Packaging imports the adapter from the built
 wheel. No provider API, model, BB agent, Warband process or voice service was
 invoked.
+
+## Frozen-turn and partial-provider recovery
+
+The synchronized epoch checkpoint now accepts the `collecting` state only after
+all role-filtered faction turns share one scope/time and their canonical hash is
+frozen. Restore validates the hash and rejects any decision or campaign state
+smuggled into that pre-commit checkpoint. It still never calls `submit` during
+recovery.
+
+`FactionBenchmarkHarness` checkpoint v3 adds `awaiting-decisions` as a safe
+restore point and can bind a partial `ProviderDecisionBatch` to that exact epoch,
+faction set and turn hash. The atomically written harness checkpoint carries all
+completed provider receipts; after restore, `pending_faction_ids()` contains only
+work that still lacks a receipt. Later harness phases reject retained partial
+batches, and completed audits continue through the existing report validation.
+Older v2 harness checkpoints remain readable.
+
+Two new regressions prove frozen-turn restore before action submission and
+partial-provider restore without reissuing an already recorded faction call.
+Separated discovery passes **278 tests**: 133 root, 95 bridge and 50
+module-system. No provider API, model, BB agent, Warband process or voice service
+was invoked.

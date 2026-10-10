@@ -1,3 +1,4 @@
+import hashlib
 import json
 import tempfile
 import unittest
@@ -10,6 +11,7 @@ from warband_agentic import (
     ActorRef,
     AgentConflict,
     AgentTurn,
+    BenchmarkEpochState,
     ContextKind,
     ContextRef,
     Evidence,
@@ -214,14 +216,10 @@ class SynchronizedFactionEpochTests(unittest.TestCase):
             checkpoint = Path(directory) / "epoch-12.checkpoint.json"
             self.epoch.write_checkpoint(checkpoint)
             self.calls.clear()
-            resumed = SynchronizedFactionEpoch.load_checkpoint(
-                checkpoint, self.apps
-            )
+            resumed = SynchronizedFactionEpoch.load_checkpoint(checkpoint, self.apps)
             records = resumed.refresh_outcomes()
             self.assertEqual(records[15]["outcome"]["state"], "observed")
-            self.assertEqual(
-                [call for call in self.calls if call[0] == "submit"], []
-            )
+            self.assertEqual([call for call in self.calls if call[0] == "submit"], [])
             self.assertEqual(
                 [call for call in self.calls if call[0] == "outcome"],
                 [("outcome", 15, "decision:15")],
@@ -232,6 +230,42 @@ class SynchronizedFactionEpochTests(unittest.TestCase):
             checkpoint.write_text(json.dumps(damaged))
             with self.assertRaisesRegex(ValueError, "checksum"):
                 SynchronizedFactionEpoch.load_checkpoint(checkpoint, self.apps)
+
+    def test_frozen_turn_checkpoint_resumes_before_any_decision_is_submitted(self):
+        self.epoch.queue_observation_refreshes()
+        turns = self.epoch.collect_turns()
+
+        checkpoint = self.epoch.checkpoint()
+        self.calls.clear()
+        resumed = SynchronizedFactionEpoch.from_checkpoint(checkpoint, self.apps)
+
+        self.assertIs(resumed.state, BenchmarkEpochState.COLLECTING)
+        self.assertEqual(resumed.transcript()["turns"], turns)
+        resumed.commit_decisions(
+            {
+                15: {"request_id": "decision:15"},
+                16: {"request_id": "decision:16"},
+            }
+        )
+        self.assertEqual(
+            [call for call in self.calls if call[0] == "submit"],
+            [("submit", 15, "decision:15"), ("submit", 16, "decision:16")],
+        )
+
+        damaged = json.loads(json.dumps(checkpoint))
+        damaged["payload"]["decisions"] = {
+            "15": {"request_id": "forged:15"},
+            "16": {"request_id": "forged:16"},
+        }
+        canonical = json.dumps(
+            damaged["payload"],
+            allow_nan=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
+        damaged["payload_sha256"] = hashlib.sha256(canonical).hexdigest()
+        with self.assertRaisesRegex(ValueError, "committed state"):
+            SynchronizedFactionEpoch.from_checkpoint(damaged, self.apps)
 
 
 if __name__ == "__main__":

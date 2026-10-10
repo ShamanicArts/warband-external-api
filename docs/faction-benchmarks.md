@@ -5,7 +5,7 @@ decision-epoch core for multi-faction experiments. It coordinates two or more
 `NativeFactionAgentApplication` instances without invoking a model, advancing
 game time or embedding provider-specific code.
 
-An epoch performs four explicit phases:
+An epoch performs five explicit phases:
 
 1. Queue fresh engine party observations for every faction in sorted faction-ID
    order.
@@ -32,13 +32,14 @@ application objects. `write_transcript(path)` atomically replaces one canonical
 JSON artifact only after the epoch is resolved and its fixed-time advance is
 complete.
 
-After decisions are committed, `write_checkpoint(path)` atomically persists a
-checksummed coordinator checkpoint. `load_checkpoint(path, applications)`
-restores the exact turn set, decisions and latest records, verifies the turn hash
-and faction set, and relies on each constrained session's durable action recovery.
-It never calls `submit`. Deliberately, refreshing and collecting states are not
-resumable: their observation jobs and affordance tokens are time-sensitive and
-must not be presented as safely durable.
+After the synchronized turn set is frozen, `write_checkpoint(path)` atomically
+persists a checksummed coordinator checkpoint. Before commitment,
+`load_checkpoint(path, applications)` restores that exact turn set so provider
+work can continue without recollecting it. After commitment it also restores the
+decisions and latest records, verifies the turn hash and faction set, and relies
+on each constrained session's durable action recovery. It never calls `submit`.
+The earlier refresh-job phase remains non-resumable because the engine reads may
+still be pending and no synchronized turn has been proven yet.
 
 `bridge.campaign_epoch_driver.CampaignEpochDriver` starts bounded Native
 `rest_for_hours_interactive`, distinguishes command acknowledgement from elapsed
@@ -122,17 +123,20 @@ An unfinished `FactionBenchmarkRun` can emit and restore a checksummed checkpoin
 restore strictly rebuilds its scenario and engine-evidenced metric objects and
 revalidates every retained epoch. The harness wraps that state together with the
 active epoch and clock-driver checkpoints in one atomically replaced document.
-Safe restore points are: ready between epochs, resolving committed actions,
-advancing an already-started clock interval, and post-advance metrics. Restore
-never resubmits decisions or starts a replacement wait. Post-advance recovery may
-restart the read-only fixed-clock metric scan. Baseline collection, refresh jobs
-and uncommitted affordance tokens are intentionally not checkpointable.
+Safe restore points are: ready between epochs, awaiting decisions over a frozen
+turn set, resolving committed actions, advancing an already-started clock
+interval, and post-advance metrics. The awaiting-decisions checkpoint may embed
+a checksummed partial `ProviderDecisionBatch`; completed receipts survive and
+only missing factions remain dispatchable. Restore never resubmits decisions or
+starts a replacement wait. Post-advance recovery may restart the read-only
+fixed-clock metric scan. Baseline collection and incomplete refresh jobs remain
+intentionally non-resumable.
 
-The remaining full-harness work is game-supported save capture and process-loss
-recovery, scenario configuration/CLI, and concrete provider adapters. The
-SHA-256 fields detect corruption and inconsistency; they are not signatures
-against a malicious local editor. External model runs still require the
-user-visible preflight notice described in the design specification.
+The remaining full-harness work is executable runner composition,
+provider-specific wrappers, game-supported save capture and process-loss
+recovery. The SHA-256 fields detect corruption and inconsistency; they are not
+signatures against a malicious local editor. External model runs still require
+the user-visible preflight notice described in the design specification.
 
 ## Equal-budget provider handoff and audit
 
@@ -153,9 +157,13 @@ SHA-256-bound to the frozen turn set.
 
 A partially completed batch has its own checksummed checkpoint. Restore retains
 finished receipts and frozen tasks, so a host can resume only the missing provider
-calls without charging for or reissuing completed work. This does not make the
-epoch's expiring affordance tokens durable indefinitely: the host must still
-finish and submit the batch while the synchronized decision state is valid.
+calls without intentionally reissuing completed work. Binding that batch to the
+harness carries its checkpoint inside the same atomic awaiting-decisions
+artifact. A hard crash between a remote provider accepting a request and the host
+persisting its receipt can still duplicate a call, so wrappers should use the
+stable task ID as their provider idempotency key. Frozen turns also do not make
+affordance tokens valid indefinitely; the host must finish before their declared
+expiry.
 
 `FactionBenchmarkHarness.submit_provider_batch()` binds that audit to the active
 epoch before committing decisions. Canonical `benchmark-run/v2` reports retain

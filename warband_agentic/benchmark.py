@@ -248,16 +248,17 @@ class SynchronizedFactionEpoch:
         return self._atomic_write(path, self.transcript(), "transcript")
 
     def write_checkpoint(self, path):
-        """Persist a committed/resolved coordinator state without replaying it."""
+        """Persist a frozen or committed coordinator state without replaying it."""
         return self._atomic_write(path, self.checkpoint(), "checkpoint")
 
     def checkpoint(self):
-        """Return a checksummed JSON checkpoint for committed coordinator state."""
+        """Return a checksummed JSON checkpoint after the turn set is frozen."""
         if self.state not in (
+            BenchmarkEpochState.COLLECTING,
             BenchmarkEpochState.COMMITTED,
             BenchmarkEpochState.RESOLVED,
         ):
-            raise RuntimeError("checkpoint requires committed decisions")
+            raise RuntimeError("checkpoint requires a frozen turn set")
         payload = self.transcript()
         canonical = json.dumps(
             payload, allow_nan=False, separators=(",", ":"), sort_keys=True
@@ -321,6 +322,7 @@ class SynchronizedFactionEpoch:
         except (TypeError, ValueError) as exc:
             raise ValueError("Invalid benchmark checkpoint state") from exc
         if state not in (
+            BenchmarkEpochState.COLLECTING,
             BenchmarkEpochState.COMMITTED,
             BenchmarkEpochState.RESOLVED,
         ):
@@ -363,11 +365,25 @@ class SynchronizedFactionEpoch:
         if type(game_time) is not int or game_time < 0:
             raise ValueError("Checkpoint campaign game time is invalid")
         epoch._campaign_game_time = game_time
-        epoch._decisions = faction_map("decisions")
-        epoch._records = faction_map("decision_records")
-        epoch._campaign_advance = _json_copy(
-            payload["campaign_advance"], "campaign advance"
-        )
+        decisions = faction_map("decisions", optional=True)
+        records = faction_map("decision_records", optional=True)
+        campaign_advance = _json_copy(payload["campaign_advance"], "campaign advance")
+        if state is BenchmarkEpochState.COLLECTING:
+            if (
+                decisions is not None
+                or records is not None
+                or campaign_advance is not None
+            ):
+                raise ValueError("Frozen-turn checkpoint contains committed state")
+        else:
+            if decisions is None or records is None:
+                raise ValueError("Committed checkpoint lacks decision state")
+            if state is BenchmarkEpochState.COMMITTED and campaign_advance is not None:
+                raise ValueError("Committed checkpoint contains campaign advance")
+        epoch._decisions = decisions
+        epoch._records = records
+        if campaign_advance is not None:
+            epoch.record_campaign_advance(campaign_advance)
         return epoch
 
     @staticmethod
