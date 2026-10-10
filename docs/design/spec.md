@@ -541,5 +541,7 @@ The kit is ready for an initial public developer release when:
 - [x] Build a deterministic restricted-agent usability fixture before launching
       announced external models; three available requested models passed v1,
       while DeepSeek 4.1 was unavailable and not substituted.
+- [x] Add a Python-first constrained session and authenticated loopback API that
+      keeps identity/lease/handler bindings private and filters session events.
 - [ ] Complete the collated test/live/video evidence report before final handoff.
 - [ ] Resolve Q1 licensing before calling any artifact publicly releasable.

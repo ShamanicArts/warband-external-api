@@ -574,3 +574,28 @@ is retained as interface feedback. Requested DeepSeek 4.1 was absent from the
 provider catalog and was not substituted. This earns `agent-usable` evidence for
 the fixture interface only, not the unwired simulated party-order backend. Raw
 results and run metadata are in `evidence/agent-usability/`.
+
+## Constrained semantic agent API
+
+`warband_agentic.agent_api` binds one role grant to its perception policy,
+capability registry, current context, server-issued affordances, private control
+lease selection and validated dispatcher. Agents receive only filtered turns and
+submit request ID, affordance token, bounded arguments and expected revision.
+Action/actor/grant/lease/handler identity remains server-owned. Repeated turn reads
+do not mint duplicate tokens for an unchanged context; request IDs are idempotent,
+while conflicting reuse, stale context, consumed tokens and forged extra fields
+are rejected before dispatch.
+
+Validated backend exceptions become explicit interrupted outcomes. Returned
+outcomes must match the action and originating context and cannot regress the
+runtime revision. With `SemanticEventLog`, session action events are durable and
+retain the strongest actual evidence supplied by the backend. The restricted
+event cursor filters by session and never returns another session's payload.
+
+`warband_agentic.agent_http` adds a Bearer-authenticated IPv4-loopback adapter for
+manifest, turn, action submission/outcome lookup and cursor events. Nine tests
+cover policy omission, private-binding secrecy, context/lease injection, replay,
+conflict and stale rejection, backend interruption, cross-session event isolation,
+concurrent deduplication, HTTP auth and loopback refusal. The active suite is now
+**202 tests**. Production bridge wiring, durable outcome reconstruction and broader
+role-filtered game-event audiences remain explicit follow-up work.

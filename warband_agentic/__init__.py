@@ -8,6 +8,13 @@ from warband_agentic.adapters import (
     menu_operation_from_validated,
     register_menu_capability,
 )
+from warband_agentic.agent_api import (
+    AgentConflict,
+    AgentNotFound,
+    AgentTurn,
+    ConstrainedAgentSession,
+)
+from warband_agentic.agent_http import make_agent_server
 from warband_agentic.authority import (
     LeaseBook,
     ObservationFilter,
@@ -78,6 +85,9 @@ __all__ = [
     "ActionOutcome",
     "ActionState",
     "ActionSubmission",
+    "AgentConflict",
+    "AgentNotFound",
+    "AgentTurn",
     "AudioArtifact",
     "ActorKind",
     "ActorRef",
@@ -86,6 +96,7 @@ __all__ = [
     "ContextKind",
     "ContextRef",
     "ControlLease",
+    "ConstrainedAgentSession",
     "Evidence",
     "EvidenceLevel",
     "EVENT_STORE_SCHEMA_VERSION",
@@ -124,6 +135,7 @@ __all__ = [
     "issue_menu_affordances",
     "game_event_from_wire",
     "make_voice_server",
+    "make_agent_server",
     "menu_operation_from_validated",
     "register_menu_capability",
     "to_wire",

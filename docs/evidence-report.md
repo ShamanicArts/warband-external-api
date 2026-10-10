@@ -18,6 +18,7 @@ separate engine facts support it.
 | Durable semantic events | bridge simulated + live migration | `test_agentic_events.py`, `evidence/semantic-events/` | remaining domain result tables are not migrated |
 | Host voice | live provider synthesis | voice tests, `evidence/voice/` | host playback and dialogue wiring not yet exercised |
 | Restricted agent interface | agent usable (fixture only) | `test_agentic_usability.py`, `evidence/agent-usability/` | simulated action; not live party control |
+| Constrained session/API | bridge simulated | `test_agentic_agent_api.py`, `docs/constrained-agent-api.md` | production bridge application and restart outcome recovery pending |
 
 ## Video ledger
 

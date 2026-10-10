@@ -14,6 +14,9 @@ Current foundations include:
   observations, facts, affordances, actions, evidence, roles and control leases;
 - role-scoped capability discovery plus expiring, context-bound, single-use
   affordance validation with internal handlers hidden from agents;
+- an authenticated [constrained agent API](docs/constrained-agent-api.md) that
+  keeps actor/grant/lease/handler identity server-owned and exposes filtered
+  turns, bounded submissions, outcomes and session-safe event cursors;
 - trusted control-lease arbitration and role/context/source-filtered observations
   that report omissions without leaking hidden facts;
 - semantic adapters for canonical engine observations, committed dialogue events,
