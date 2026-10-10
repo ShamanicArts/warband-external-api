@@ -19,6 +19,7 @@ uv run warband-voice --help
 uv run warband-agent-usability --help
 uv run warband-benchmark --help
 uv run warband-benchmark-run --help
+uv run warband-provider-opencode --help
 ```
 
 The MCP command is `uv run warband-mcp`. It uses stdio and expects

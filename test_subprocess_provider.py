@@ -1,6 +1,7 @@
 import sys
 import time
 import unittest
+from unittest.mock import Mock, patch
 
 from warband_agentic import (
     DecisionBudget,
@@ -55,6 +56,20 @@ sys.stdout.write("x" * (256 * 1024 + 1))
 
 
 class SubprocessDecisionDispatcherTests(unittest.TestCase):
+    def test_termination_targets_the_adapter_process_group(self):
+        process = Mock()
+        process.pid = 4321
+        process.poll.return_value = None
+
+        with patch("warband_agentic.subprocess_provider.os.killpg") as killpg:
+            SubprocessDecisionDispatcher._terminate(process)
+
+        self.assertEqual(
+            [call.args for call in killpg.call_args_list],
+            [(4321, 15), (4321, 0), (4321, 9)],
+        )
+        process.wait.assert_called()
+
     def test_concurrent_local_adapters_complete_one_equal_budget_batch(self):
         batch = ProviderDecisionBatch(
             "batch:subprocess",

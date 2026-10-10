@@ -2,12 +2,19 @@
   "schema": "warband.agentic/subprocess-adapters/v1",
   "adapters": [
     {
-      "provider": "openai",
+      "provider": "opencode-v2",
       "argv": [
-        "/absolute/path/to/openai-warband-wrapper"
+        "/absolute/path/to/warband-provider-opencode",
+        "--executable",
+        "/absolute/path/to/shuvcode",
+        "--assignment-provider",
+        "opencode-v2",
+        "--dialect",
+        "v2"
       ],
       "pass_environment": [
-        "OPENAI_API_KEY"
+        "HOME",
+        "PATH"
       ]
     },
     {

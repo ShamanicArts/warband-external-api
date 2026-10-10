@@ -56,6 +56,7 @@ class PackagingTests(unittest.TestCase):
                 self.assertIn("bridge/benchmark_runner.py", names)
                 self.assertIn("bridge/benchmark_runtime_cli.py", names)
                 self.assertIn("bridge/provider_adapter_config.py", names)
+                self.assertIn("bridge/opencode_provider_adapter.py", names)
                 self.assertIn("bridge/campaign_metric_collector.py", names)
                 self.assertIn("bridge/benchmark_plan.py", names)
                 self.assertIn("bridge/native_faction_agent_app.py", names)
@@ -90,6 +91,7 @@ class PackagingTests(unittest.TestCase):
                     "warband-agent-usability",
                     "warband-benchmark",
                     "warband-benchmark-run",
+                    "warband-provider-opencode",
                 ):
                     self.assertIn(command, scripts)
                 self.assertFalse(
@@ -126,6 +128,7 @@ class PackagingTests(unittest.TestCase):
                         "import bridge.benchmark_runner; "
                         "import bridge.benchmark_runtime_cli; "
                         "import bridge.provider_adapter_config; "
+                        "import bridge.opencode_provider_adapter; "
                         "import bridge.campaign_metric_collector; "
                         "import bridge.benchmark_plan; "
                         "import module_system.build_mcp_module; "
@@ -150,6 +153,7 @@ class PackagingTests(unittest.TestCase):
                 "warband-agent-usability",
                 "warband-benchmark",
                 "warband-benchmark-run",
+                "warband-provider-opencode",
             ):
                 subprocess.run(
                     [installed / "bin" / command, "--help"],

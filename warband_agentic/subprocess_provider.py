@@ -2,6 +2,7 @@
 
 import json
 import os
+import signal
 import subprocess
 import tempfile
 import time
@@ -127,6 +128,7 @@ class SubprocessDecisionDispatcher:
                     stderr=subprocess.DEVNULL,
                     env=dict(adapter.environment),
                     shell=False,
+                    start_new_session=True,
                 )
                 self._running[faction_id] = _RunningAdapter(
                     process,
@@ -275,8 +277,21 @@ class SubprocessDecisionDispatcher:
     @staticmethod
     def _terminate(process):
         if process.poll() is None:
-            process.kill()
-        process.wait(timeout=2)
+            try:
+                os.killpg(process.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            try:
+                process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                pass
+            try:
+                os.killpg(process.pid, 0)
+            except ProcessLookupError:
+                return
+            os.killpg(process.pid, signal.SIGKILL)
+            if process.poll() is None:
+                process.wait(timeout=1)
 
     def _finish_if_complete(self):
         if not self._running and not self.batch.pending_faction_ids():

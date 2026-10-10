@@ -133,11 +133,12 @@ fixed-clock metric scan. Baseline collection and incomplete refresh jobs remain
 intentionally non-resumable.
 
 The [non-blocking runner](benchmark-runner.md) now composes these phases and
-automatically persists every safe state. Remaining work is host/CLI wiring,
-provider-specific wrappers, game-supported save capture and process-loss
-recovery. The SHA-256 fields detect corruption and inconsistency; they are not
-signatures against a malicious local editor. External model runs still require
-the user-visible preflight notice described in the design specification.
+automatically persists every safe state. Host/CLI wiring and the first OpenCode
+v1/v2 wrapper are implemented. Remaining work includes other provider wrappers,
+game-supported save capture and process-loss recovery. The SHA-256 fields detect
+corruption and inconsistency; they are not signatures against a malicious local
+editor. External model runs still require the user-visible preflight notice
+described in the design specification.
 
 ## Equal-budget provider handoff and audit
 

@@ -1051,9 +1051,9 @@ engine refresh stays in the refreshing state rather than becoming a false
 failure. The built wheel now imports the runner module.
 
 Separated discovery passes **280 tests**: 133 root, 97 bridge and 50
-module-system. Host/CLI wiring, provider-specific wrappers, live campaign
-acceptance and game-save/process recovery remain open. No provider API, model,
-BB agent, Warband process or voice service was invoked.
+module-system. At that checkpoint, host/CLI wiring, provider-specific wrappers,
+live campaign acceptance and game-save/process recovery remained open. No
+provider API, model, BB agent, Warband process or voice service was invoked.
 
 ## Preflight-gated host benchmark execution
 
@@ -1085,3 +1085,32 @@ cleanup. Separated discovery passes **287 tests**: 135 root, 102 bridge and 50
 module-system. The sdist-built wheel contains the new modules, eighth command and
 provider-adapter example. No provider API, external model, BB agent, Warband
 process or voice service was invoked.
+
+## Tool-denied OpenCode provider wrapper
+
+`warband-provider-opencode` now translates one canonical faction decision task
+through either ShelfCode/OpenCode v2 (the default) or legacy OpenCode v1. It uses
+a fresh empty game-work directory, bounded child output and exact response
+validation. V2 uses the registered service's real model catalog but creates a
+short-lived session with deny-all permissions; V1 uses a private process and
+deny-all local profile. Only completed provider text and real step usage are
+accepted; cache and reasoning tokens are included conservatively and provider USD
+cost is converted to integer microdollars. Missing token usage fails closed rather
+than fabricating benchmark data.
+
+The dispatcher now gives every wrapper a process group and terminates that entire
+tree on timeout/cancellation, preventing a killed wrapper from leaving its model
+CLI behind. Fake v1/v2 executables exercise translation, receipts, unsupported
+settings and cross-task response rejection without invoking a provider. The
+installed package adds the ninth command. Cursor/Grok is intentionally not yet an
+equal-budget wrapper because Cursor's documented headless result has no token or
+cost receipt; guessing would undermine the benchmark.
+
+Separated discovery passes **293 tests**: 136 root, 107 bridge and 50
+module-system. Packaging rebuilds the sdist and wheel, imports the new adapter
+outside the checkout and exercises all eight non-MCP command help paths. A
+no-prompt local ShelfCode probe verified real session creation, empty-context
+reading and deletion, and exposed/fixed incorrect path-parameter encoding. The
+experimental wait route was not meaningful on an idle session; prompt/wait/usage
+remain fake-service tested until an announced model run. No external provider API,
+model inference, BB agent, Warband process or voice service was invoked.

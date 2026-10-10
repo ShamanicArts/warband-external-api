@@ -552,9 +552,10 @@ The kit is ready for an initial public developer release when:
 - [x] Add evidence-gated, scenario-defined faction metrics/scoring, a canonical
       multi-epoch run report, a fixed-clock paged campaign metric collector and a
       restart-safe non-blocking baseline-to-report orchestration harness. Live
-      acceptance, game-save/process recovery and provider-specific wrappers
+      acceptance, game-save/process recovery and non-OpenCode provider wrappers
       remain open; equal-budget task/report-audit contracts, a bounded subprocess
-      adapter, restart-safe runner API, preflight-gated live CLI and a check-only
-      versioned benchmark plan are implemented.
+      adapter, a tool-denied OpenCode v1/v2 wrapper, restart-safe runner API,
+      preflight-gated live CLI and a check-only versioned benchmark plan are
+      implemented.
 - [ ] Complete the collated test/live/video evidence report before final handoff.
 - [ ] Resolve Q1 licensing before calling any artifact publicly releasable.

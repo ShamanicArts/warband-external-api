@@ -71,7 +71,7 @@ The current evidence index and final video ledger live in
 ## Installable toolkit
 
 The current Python package is `warband-agentic-kit` 0.2.0. A development install
-provides eight commands:
+provides nine commands:
 
 ```bash
 uv sync
@@ -83,6 +83,7 @@ uv run warband-voice --help
 uv run warband-agent-usability --help
 uv run warband-benchmark --help
 uv run warband-benchmark-run --help
+uv run warband-provider-opencode --help
 ```
 
 See [the packaging guide](docs/packaging.md) for reproducible sdist-to-wheel
