@@ -75,7 +75,7 @@ The current evidence index and final video ledger live in
 ## Installable toolkit
 
 The current Python package is `warband-agentic-kit` 0.2.0. A development install
-provides nine commands:
+provides ten commands:
 
 ```bash
 uv sync
@@ -88,10 +88,12 @@ uv run warband-agent-usability --help
 uv run warband-benchmark --help
 uv run warband-benchmark-run --help
 uv run warband-provider-opencode --help
+uv run warband-kit-install --help
 ```
 
-See [the packaging guide](docs/packaging.md) for reproducible sdist-to-wheel
-builds and isolated Native module generation. See the
+See [the packaging guide](docs/packaging.md) for the deterministic `plan`/`apply`
+installer, reproducible sdist-to-wheel builds and isolated Native module
+generation. See the
 [application-host guide](docs/application-host.md) for validated multi-session
 runtime startup and the [extension SDK guide](docs/extension-sdk.md) for explicit
 custom application registration. The repository is

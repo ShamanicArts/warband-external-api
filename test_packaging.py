@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import sys
@@ -5,6 +6,8 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+
+from test_installer import make_native
 
 
 class PackagingTests(unittest.TestCase):
@@ -61,6 +64,7 @@ class PackagingTests(unittest.TestCase):
                 self.assertIn("bridge/benchmark_plan.py", names)
                 self.assertIn("bridge/native_faction_agent_app.py", names)
                 self.assertIn("bridge/native_npc_speech_app.py", names)
+                self.assertIn("bridge/installer.py", names)
                 self.assertIn("module_system/build_mcp_module.py", names)
                 self.assertIn("src/warband_mcp.py", names)
                 for example in (
@@ -92,6 +96,7 @@ class PackagingTests(unittest.TestCase):
                     "warband-benchmark",
                     "warband-benchmark-run",
                     "warband-provider-opencode",
+                    "warband-kit-install",
                 ):
                     self.assertIn(command, scripts)
                 self.assertFalse(
@@ -129,6 +134,7 @@ class PackagingTests(unittest.TestCase):
                         "import bridge.benchmark_runtime_cli; "
                         "import bridge.provider_adapter_config; "
                         "import bridge.opencode_provider_adapter; "
+                        "import bridge.installer; "
                         "import bridge.campaign_metric_collector; "
                         "import bridge.benchmark_plan; "
                         "import module_system.build_mcp_module; "
@@ -154,6 +160,7 @@ class PackagingTests(unittest.TestCase):
                 "warband-benchmark",
                 "warband-benchmark-run",
                 "warband-provider-opencode",
+                "warband-kit-install",
             ):
                 subprocess.run(
                     [installed / "bin" / command, "--help"],
@@ -163,6 +170,42 @@ class PackagingTests(unittest.TestCase):
                     capture_output=True,
                     text=True,
                 )
+
+            fresh = Path(directory, "fresh")
+            native = make_native(fresh)
+            private_parent = fresh / "private"
+            private_parent.mkdir()
+            applied = subprocess.run(
+                [
+                    installed / "bin" / "warband-kit-install",
+                    "apply",
+                    "--native",
+                    native,
+                    "--install-root",
+                    private_parent / "warband-agentic",
+                ],
+                cwd=directory,
+                env=environment,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            receipt = json.loads(applied.stdout)
+            self.assertEqual(receipt["state"], "installed")
+            checked = subprocess.run(
+                [
+                    installed / "bin" / "warband-agent-host",
+                    "--config",
+                    private_parent / "warband-agentic/config/agent-host.json",
+                    "--check",
+                ],
+                cwd=directory,
+                env=environment,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(json.loads(checked.stdout)["status"], "ready")
 
 
 if __name__ == "__main__":

@@ -20,6 +20,7 @@ warband-agent-usability = "warband_agentic.usability_cli:main"
 warband-benchmark = "bridge.benchmark_plan:main"
 warband-benchmark-run = "bridge.benchmark_runtime_cli:main"
 warband-provider-opencode = "bridge.opencode_provider_adapter:main"
+warband-kit-install = "bridge.installer:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

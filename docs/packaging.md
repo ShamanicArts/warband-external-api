@@ -20,6 +20,7 @@ uv run warband-agent-usability --help
 uv run warband-benchmark --help
 uv run warband-benchmark-run --help
 uv run warband-provider-opencode --help
+uv run warband-kit-install --help
 ```
 
 The MCP command is `uv run warband-mcp`. It uses stdio and expects
@@ -44,6 +45,46 @@ JSON under `share/warband-agentic-kit/examples`.
 The current host example uses host-config v2 and therefore needs a distinct
 private `voice.token` matching the separately started `warband-voice` service.
 Legacy v1 host configs remain valid and expose voice handoff without the relay.
+
+## Guided private install
+
+The installed `warband-kit-install` command has a deterministic, agent-friendly
+interface. `plan` is target-read-only and prints a secret-free JSON plan. `apply`
+builds a new module from the user's own Native installation, creates a private
+runtime/configuration root, validates the generated module/host contract and
+prints a secret-free receipt:
+
+```bash
+warband-kit-install plan \
+  --native /path/to/Modules/Native \
+  --install-root /private/path/warband-agentic
+
+warband-kit-install apply \
+  --native /path/to/Modules/Native \
+  --install-root /private/path/warband-agentic
+```
+
+The default module destination is the new sibling `Modules/WarbandMCP`; use
+`--module-output` to select another new path. Both final paths and their parents
+are validated before work starts. Apply stages the module and private root,
+claims only previously absent destinations, and rolls back its own outputs when
+validation fails. It never modifies Native, an existing output or an MCP client.
+
+The private root contains four distinct mode-0600 credentials, a host config with
+one restricted `native-menu` starter session, a configurable local Kokoro voice
+service, an MCP stdio server snippet, a secret-free install manifest and explicit
+launch instructions. Add NPC and faction sessions only after selecting real live
+agent/party IDs and reviewed order options. Playback defaults to disabled; pass
+`--voice-playback pipewire` only when host audio playback is wanted.
+
+Vanilla Warband always sends HTTP to loopback port 80. Unless `--bridge-port 80`
+is selected, the receipt honestly reports that the operator must route
+`127.0.0.1:80` to the chosen bridge port. The installer does not request root,
+change firewall policy or create a privileged forwarder. MCP registration remains
+manual because client configuration formats and trust policies differ.
+
+The retained installed-wheel, rollback and real-Native acceptance evidence is in
+`evidence/packaging/`.
 
 ## Build an isolated game module
 
@@ -75,10 +116,10 @@ opening either runtime database or any listener.
 
 - No project license has been selected. Public distribution is blocked until the
   license and referenced-source/dependency terms are resolved.
-- The Python artifact and built-in multi-session host are reproducible, but there
-  is not yet a guided installer or automatic MCP-client registration.
+- The Python artifact, built-in multi-session host and fail-closed guided installer
+  are reproducible. MCP-client registration remains deliberately manual.
 - Explicit Python extension registration and exact-ID installed entry-point
   loading are packaged. Automatic loading, new compiled-handler generation and
   hot reload are not.
-- A fresh-install end-to-end module build and game acceptance run still needs
-  retained hardware-rendered evidence and final video clips.
+- A hardware-rendered game acceptance run from an installer-generated module still
+  needs retained interaction evidence and final video clips.

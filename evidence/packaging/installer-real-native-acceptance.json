@@ -1,0 +1,56 @@
+{
+  "schema": "warband.agentic/installer-acceptance/v1",
+  "accepted_at": "2026-10-10",
+  "jujutsu_change_id": "zqpzwuvs",
+  "source": "/home/shamanic/.local/share/Steam/steamapps/common/MountBlade Warband/Modules/Native",
+  "command": [
+    "warband-kit-install",
+    "apply",
+    "--native",
+    "/home/shamanic/.local/share/Steam/steamapps/common/MountBlade Warband/Modules/Native",
+    "--module-output",
+    "/tmp/warband-agentic-installer-acceptance-20261010/WarbandMCP",
+    "--install-root",
+    "/tmp/warband-agentic-installer-acceptance-20261010/private"
+  ],
+  "receipt": {
+    "schema": "warband.agentic/install-receipt/v1",
+    "state": "installed",
+    "hardware_safe_game_acceptance": true,
+    "loopback_port_80_route": true,
+    "manual_mcp_client_registration": true
+  },
+  "generated_module": {
+    "disk_usage": "84M",
+    "protocol": 2,
+    "integration_revision": 16,
+    "extensions": [
+      {
+        "extension_id": "warband.native",
+        "version": "0.2.0"
+      }
+    ],
+    "compiled_operations": []
+  },
+  "host_check": {
+    "schema": "warband.agentic/host-diagnostics/v1",
+    "status": "ready",
+    "bridge_port": 8765,
+    "control_port": 8879,
+    "voice_port": 8870,
+    "starter_session": {
+      "kind": "native-menu",
+      "session_id": "player-menu",
+      "port": 8890
+    }
+  },
+  "filesystem": {
+    "install_root_mode": "0700",
+    "module_root_mode": "0700",
+    "credential_count": 4,
+    "credential_modes": ["0600"],
+    "temporary_output": "moved to desktop trash after acceptance"
+  },
+  "native_mutation_evidence": "Byte-for-byte source preservation is asserted by test_installer.py; this live run did not retain a second source-tree hash.",
+  "external_models_invoked": []
+}
