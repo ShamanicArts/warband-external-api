@@ -115,6 +115,14 @@ trusted host-supplied player utterance and adds bounded durable conversation
 memory to the NPC observation. The player-input endpoint remains on the separate
 operator listener; it does not expand the NPC agent's authority.
 
+`MechanicalProposalBroker` supplies the separate consequence boundary for
+dialogue applications. It binds an opaque NPC-visible proposal option to an exact
+current affordance in its owning constrained session, waits for engine-observed
+speech and all named acceptors, then submits that unchanged affordance. See the
+[mechanical-proposal guide](mechanical-proposals.md). The packaged NPC host does
+not yet expose option/decision routes, so this core contract is not claimed as a
+live reference-application feature.
+
 ## HTTP adapter
 
 `make_agent_server(session, token)` binds only to `127.0.0.1` and requires a
@@ -163,4 +171,5 @@ acknowledgement is not promoted to observed outcome.
   orders, one-turn NPC speech and host-fed persistent NPC dialogue, including
   their command-correlation recovery. Diplomacy, synchronized multi-faction
   epochs, autonomous faction options, in-game player text/speech capture,
-  NPC-to-NPC conversations and mechanical dialogue proposals remain to be wired.
+  NPC-to-NPC conversations and packaged-host mechanical-proposal routing remain
+  to be wired.

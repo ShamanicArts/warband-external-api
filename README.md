@@ -29,6 +29,10 @@ Current foundations include:
   authenticated manual or policy-triggered asynchronous relay to the separate
   voice service, plus a durable host-fed player/NPC conversation loop for later
   in-game text or speech input;
+- a [mechanical-proposal broker](docs/mechanical-proposals.md) that binds an NPC's
+  structured intent to an exact current affordance, requires every named
+  participant's acceptance, and refuses stale execution without treating free
+  text as authority;
 - a trusted [Python extension SDK](docs/extension-sdk.md) with versioned
   declarations, collision checks, validated settings, explicit factories and
   scoped access to reviewed game-operation families, including exact-ID installed

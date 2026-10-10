@@ -241,6 +241,36 @@ def register_party_order_capabilities(registry):
     )
 
 
+def _npc_speech_parameters(proposal_tokens=None):
+    properties = {
+        "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": (
+                "Printable dialogue text without pipes, braces, newlines or "
+                "control characters."
+            ),
+        }
+    }
+    if proposal_tokens is not None:
+        tokens = tuple(proposal_tokens)
+        properties["proposal_token"] = {
+            "type": "string",
+            **({"enum": tokens} if tokens else {"minLength": 1, "maxLength": 512}),
+            "description": (
+                "Optional current mechanical proposal. It cannot execute until "
+                "the line is observed and every required participant accepts."
+            ),
+        }
+    return {
+        "type": "object",
+        "properties": properties,
+        "required": ("text",),
+        "additionalProperties": False,
+    }
+
+
 def register_npc_speech_capability(registry):
     """Register bounded generated speech for one controlled scene NPC."""
     if not isinstance(registry, CapabilityRegistry):
@@ -252,22 +282,7 @@ def register_npc_speech_capability(registry):
             "npc.dialogue",
             AuthorityClass.ACTOR_CONTROL,
             (ContextKind.MISSION,),
-            {
-                "type": "object",
-                "properties": {
-                    "text": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 200,
-                        "description": (
-                            "Printable dialogue text without pipes, braces, "
-                            "newlines or control characters."
-                        ),
-                    }
-                },
-                "required": ("text",),
-                "additionalProperties": False,
-            },
+            _npc_speech_parameters(()),
             RiskClass.CONSEQUENTIAL,
             False,
             "The line is shown to the player and cannot be retracted.",
@@ -286,6 +301,7 @@ def issue_npc_speech_affordance(
     grant,
     issued_at_ms,
     expires_at_ms,
+    proposal_tokens=(),
 ):
     """Issue one mission/session-bound free-text speech affordance."""
     if npc.kind is not ActorKind.AGENT or npc.game_id is None:
@@ -298,6 +314,7 @@ def issue_npc_speech_affordance(
         grant,
         issued_at_ms,
         expires_at_ms,
+        _npc_speech_parameters(proposal_tokens if proposal_tokens else None),
     )
 
 

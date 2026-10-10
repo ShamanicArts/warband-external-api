@@ -206,6 +206,12 @@ Generated dialogue may propose an intent such as recruitment, payment, travel or
 diplomacy. The application must resolve it against current affordances and obtain
 any required participant acceptance. Free text is never treated as execution.
 
+The implemented core broker now binds an opaque proposal option to one exact
+current affordance, delays proposal creation until the source dialogue is
+engine-observed, records independent participant decisions and refuses stale
+execution. Packaged-host routes, durable broker recovery and live consequence
+evidence remain application work.
+
 ## 8. Authority, control leases and multi-agent arbitration
 
 ### 8.1 Pick: explicit grants plus leases

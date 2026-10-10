@@ -89,6 +89,10 @@ from warband_agentic.extensions import (
     ScopedGameBackend,
     load_named_extension_entry_points,
 )
+from warband_agentic.proposals import (
+    MechanicalProposalBroker,
+    MechanicalProposalState,
+)
 from warband_agentic.provider_decisions import (
     PROVIDER_DECISION_BATCH_CHECKPOINT_SCHEMA,
     PROVIDER_DECISION_BATCH_SCHEMA,
@@ -199,6 +203,8 @@ __all__ = [
     "ObservationFilter",
     "OwnershipRule",
     "METRIC_SNAPSHOT_SCHEMA",
+    "MechanicalProposalBroker",
+    "MechanicalProposalState",
     "MetricObjective",
     "MetricObservation",
     "MetricRule",
