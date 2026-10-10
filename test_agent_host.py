@@ -23,6 +23,9 @@ from bridge.test_game_bridge import mission_telemetry
 from test_agentic_extensions import example_extension, grant_gold_operation
 from warband_agentic import (
     AudioArtifact,
+    ContextKind,
+    ContextRef,
+    SemanticEventLog,
     SpeechRequest,
     VoiceProfile,
     VoiceService,
@@ -449,8 +452,113 @@ class AgentApplicationHostCliTests(unittest.TestCase):
                     ]["status"],
                     "played",
                 )
+                self.assertFalse(
+                    any(
+                        event.event_type.startswith("voice.automatic-")
+                        for event in application.session.events().events
+                    )
+                )
             finally:
                 host.stop()
+
+    def test_automatic_voice_outbox_recovers_without_replaying_service_effect(self):
+        class Adapter:
+            def __init__(self):
+                self.calls = 0
+                self.called = threading.Event()
+
+            def synthesize(self, request, profile, created_at_ms):
+                self.calls += 1
+                self.called.set()
+                return AudioArtifact(
+                    "audio:outbox",
+                    request.request_id,
+                    "audio/wav",
+                    b"RIFF\x00\x00\x00\x00WAVEdata",
+                    created_at_ms,
+                )
+
+        adapter = Adapter()
+        voice = VoiceService(
+            {"local": adapter},
+            (VoiceProfile("trainer.default", "Trainer", "local", "voice"),),
+            clock_ms=iter(range(2000, 2100)).__next__,
+        )
+        voice_server = make_voice_server(voice, "e" * 64, port=0)
+        voice_thread = threading.Thread(target=voice_server.serve_forever, daemon=True)
+        voice_thread.start()
+        self.addCleanup(voice_thread.join)
+        self.addCleanup(voice_server.server_close)
+        self.addCleanup(voice_server.shutdown)
+        with tempfile.TemporaryDirectory() as directory:
+            events_path = Path(directory) / "events.sqlite3"
+            plan = AgentHostPlan(
+                None,
+                None,
+                events_path,
+                (),
+                2,
+                16,
+                built_in_extension_registry(),
+                VoiceHostPlan(
+                    f"http://127.0.0.1:{voice_server.server_port}/v1/voice/speech",
+                    Path("unused-voice.token"),
+                    "e" * 64,
+                    2000,
+                    voice_server.server_port,
+                ),
+            )
+            context = ContextRef(ContextKind.MISSION, "mission:42", 7, 1, 90)
+            policy = {
+                "profile_id": "trainer.default",
+                "delivery": "synthesize-only",
+                "speed": 1.0,
+            }
+            first = AgentApplicationHost(plan)
+            first._event_log = SemanticEventLog(events_path)
+            first._queue_automatic_voice(
+                "trainer",
+                "action:trainer:npc-turn:outbox",
+                "The watch changed at midnight.",
+                context,
+                policy,
+            )
+            queued_job = first._voice_dispatch_queue.get_nowait()
+            delivered = first._voice_client.speak(queued_job.request)
+            self.assertEqual(delivered.state.value, "ready")
+            self.assertEqual(adapter.calls, 1)
+            first._event_log.close()
+
+            recovered = AgentApplicationHost(plan)
+            recovered._event_log = SemanticEventLog(events_path)
+            recovered._restore_automatic_voice_dispatches()
+            worker = threading.Thread(target=recovered._run_voice_dispatches)
+            worker.start()
+            try:
+                recovered._voice_dispatch_queue.join()
+                dispatch = recovered.automatic_voice_dispatches()[
+                    "speech:action:trainer:npc-turn:outbox"
+                ]
+                self.assertEqual(dispatch["status"], "ready")
+                self.assertEqual(adapter.calls, 1)
+            finally:
+                recovered._stopping.set()
+                worker.join(timeout=2)
+                recovered._event_log.close()
+
+            terminal = AgentApplicationHost(plan)
+            terminal._event_log = SemanticEventLog(events_path)
+            try:
+                terminal._restore_automatic_voice_dispatches()
+                self.assertTrue(terminal._voice_dispatch_queue.empty())
+                self.assertEqual(
+                    terminal.automatic_voice_dispatches()[
+                        "speech:action:trainer:npc-turn:outbox"
+                    ]["status"],
+                    "ready",
+                )
+            finally:
+                terminal._event_log.close()
 
     def test_benchmark_bindings_expose_only_requested_ready_faction_apps(self):
         plan = AgentHostPlan(

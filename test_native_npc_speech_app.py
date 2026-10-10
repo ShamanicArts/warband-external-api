@@ -366,8 +366,8 @@ class NativeNpcSpeechApplicationTests(unittest.TestCase):
     def test_observed_speech_handler_is_exactly_once_and_cannot_falsify_outcome(self):
         notifications = []
 
-        def handler(action_id, text):
-            notifications.append((action_id, text))
+        def handler(action_id, text, context):
+            notifications.append((action_id, text, context))
             raise RuntimeError("voice service is offline")
 
         self.app.set_observed_speech_handler(handler)
@@ -400,6 +400,7 @@ class NativeNpcSpeechApplicationTests(unittest.TestCase):
                 (
                     "action:utterance:auto-voice",
                     "The game result remains authoritative.",
+                    turn.observation.context,
                 )
             ],
         )

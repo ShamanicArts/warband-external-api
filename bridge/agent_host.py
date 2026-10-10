@@ -1,12 +1,14 @@
 """Validated multi-session application-host configuration and CLI."""
 
 import argparse
+import hashlib
 import hmac
 import json
 import queue
 import stat
 import sys
 import threading
+import time
 from dataclasses import dataclass
 from functools import partial
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -17,13 +19,24 @@ from urllib.parse import unquote, urlparse
 from bridge.application_extensions import built_in_extension_registry
 from bridge.game_bridge import Store, make_server
 from warband_agentic.agent_http import make_agent_server
-from warband_agentic.contracts import to_wire
+from warband_agentic.contracts import (
+    ContextRef,
+    Evidence,
+    EvidenceLevel,
+    GameEvent,
+    to_wire,
+)
 from warband_agentic.events import SemanticEventLog
 from warband_agentic.extensions import (
     ExtensionRegistry,
     load_named_extension_entry_points,
 )
-from warband_agentic.voice import SpeechRequest, VoiceDelivery, VoiceOutcome
+from warband_agentic.voice import (
+    SpeechRequest,
+    VoiceDelivery,
+    VoiceOutcome,
+    VoiceState,
+)
 from warband_agentic.voice_http import VoiceHttpClient, VoiceHttpError
 
 HOST_CONFIG_SCHEMA_V1 = "warband.agentic/host-config/v1"
@@ -120,6 +133,22 @@ class BenchmarkHostBindings:
     applications: object
 
 
+@dataclass(frozen=True, slots=True)
+class _AutomaticVoiceJob:
+    session_id: str
+    request: SpeechRequest
+    context: ContextRef
+
+
+_AUTOMATIC_VOICE_TERMINAL_STATES = {
+    VoiceState.READY.value,
+    VoiceState.PLAYED.value,
+    VoiceState.SYNTHESIS_FAILED.value,
+    VoiceState.PLAYBACK_FAILED.value,
+    "failed",
+}
+
+
 def _exact_fields(value, expected, label):
     if not isinstance(value, dict) or set(value) != set(expected):
         raise ValueError(f"{label} fields do not match the host schema")
@@ -182,6 +211,41 @@ def _voice_diagnostics(plan_or_client):
         "host": endpoint.hostname,
         "port": endpoint.port,
     }
+
+
+def _speech_request_from_wire(value):
+    fields = {
+        "request_id",
+        "text",
+        "profile_id",
+        "delivery",
+        "speed",
+        "output_format",
+        "correlation_id",
+        "schema",
+    }
+    if not isinstance(value, dict) or set(value) != fields:
+        raise ValueError("Invalid automatic voice request in semantic event log")
+    try:
+        return SpeechRequest(
+            value["request_id"],
+            value["text"],
+            value["profile_id"],
+            VoiceDelivery(value["delivery"]),
+            value["speed"],
+            value["output_format"],
+            value["correlation_id"],
+            value["schema"],
+        )
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            "Invalid automatic voice request in semantic event log"
+        ) from exc
+
+
+def _automatic_voice_source_key(request_id, phase):
+    digest = hashlib.sha256(request_id.encode()).hexdigest()
+    return f"automatic-voice:{digest}:{phase}"
 
 
 def _voice_endpoint(value):
@@ -461,6 +525,7 @@ class AgentApplicationHost:
                     compiled_operations=self.plan.extensions.compiled_operations(),
                 )
                 self._event_log = SemanticEventLog(self.plan.events_database)
+                self._restore_automatic_voice_dispatches()
                 self._bridge_server = make_server(
                     self._store,
                     self.plan.bridge.token,
@@ -638,7 +703,9 @@ class AgentApplicationHost:
             "sessions": sessions,
         }
 
-    def _queue_automatic_voice(self, session_id, action_id, text, policy):
+    def _queue_automatic_voice(self, session_id, action_id, text, context, policy):
+        if not isinstance(context, ContextRef):
+            raise TypeError("automatic voice requires an observed action context")
         request = SpeechRequest(
             f"speech:{action_id}",
             text,
@@ -648,17 +715,41 @@ class AgentApplicationHost:
             "wav",
             action_id,
         )
+        event = GameEvent(
+            0,
+            "voice.automatic-dispatch-requested",
+            context,
+            (),
+            {
+                "host_session_id": session_id,
+                "request": to_wire(request),
+            },
+            Evidence(
+                EvidenceLevel.ENGINE_OBSERVED,
+                "NPC dialogue outcome reconciliation",
+                "Warband observed the utterance before automatic voice queueing",
+            ),
+            time.time_ns() // 1_000_000,
+            action_id,
+        )
         with self._lock:
             if request.request_id in self._automatic_voice_dispatches:
                 return
+            if self._event_log is None:
+                raise RuntimeError("semantic event log is unavailable")
+            self._event_log.append(
+                event,
+                _automatic_voice_source_key(request.request_id, "requested"),
+            )
             self._automatic_voice_dispatches[request.request_id] = {
                 "session_id": session_id,
                 "status": "queued",
                 "correlation_id": action_id,
                 "error_type": None,
             }
+            job = _AutomaticVoiceJob(session_id, request, context)
         try:
-            self._voice_dispatch_queue.put_nowait(request)
+            self._voice_dispatch_queue.put_nowait(job)
         except queue.Full:
             with self._lock:
                 dispatch = self._automatic_voice_dispatches[request.request_id]
@@ -668,23 +759,138 @@ class AgentApplicationHost:
     def _run_voice_dispatches(self):
         while not self._stopping.is_set():
             try:
-                request = self._voice_dispatch_queue.get(timeout=0.1)
+                job = self._voice_dispatch_queue.get(timeout=0.1)
             except queue.Empty:
                 continue
+            request = job.request
             try:
                 outcome = self._voice_client.speak(request)
                 if not isinstance(outcome, VoiceOutcome):
                     raise TypeError("voice service returned an invalid outcome")
                 status = outcome.state.value
+                if status not in _AUTOMATIC_VOICE_TERMINAL_STATES:
+                    raise TypeError("voice service returned a non-terminal outcome")
                 error_type = None
             except Exception as exc:
                 status = "failed"
                 error_type = type(exc).__name__
+            try:
+                self._event_log.append(
+                    GameEvent(
+                        0,
+                        "voice.automatic-dispatch-finished",
+                        job.context,
+                        (),
+                        {
+                            "host_session_id": job.session_id,
+                            "request_id": request.request_id,
+                            "status": status,
+                            "error_type": error_type,
+                        },
+                        Evidence(
+                            EvidenceLevel.DECLARED,
+                            "host voice service",
+                            "The automatic voice relay returned a terminal outcome",
+                        ),
+                        time.time_ns() // 1_000_000,
+                        request.correlation_id,
+                    ),
+                    _automatic_voice_source_key(request.request_id, "finished"),
+                )
+            except Exception as exc:
+                error_type = f"Outbox{type(exc).__name__}"
             with self._lock:
                 dispatch = self._automatic_voice_dispatches[request.request_id]
                 dispatch["status"] = status
                 dispatch["error_type"] = error_type
             self._voice_dispatch_queue.task_done()
+
+    def _restore_automatic_voice_dispatches(self):
+        requested = {}
+        finished = {}
+        cursor = 0
+        while True:
+            page = self._event_log.read(cursor, 1000)
+            for event in page.events:
+                if event.event_type == "voice.automatic-dispatch-requested":
+                    payload = event.payload
+                    if set(payload) != {"host_session_id", "request"}:
+                        raise ValueError("Invalid automatic voice outbox request")
+                    session_id = payload["host_session_id"]
+                    if not isinstance(session_id, str) or not session_id:
+                        raise ValueError("Invalid automatic voice outbox request")
+                    request = _speech_request_from_wire(to_wire(payload["request"]))
+                    if request.correlation_id != event.cause_action_id:
+                        raise ValueError("Automatic voice correlation is inconsistent")
+                    job = _AutomaticVoiceJob(session_id, request, event.context)
+                    previous = requested.setdefault(request.request_id, job)
+                    if previous != job:
+                        raise ValueError("Conflicting automatic voice outbox request")
+                elif event.event_type == "voice.automatic-dispatch-finished":
+                    payload = event.payload
+                    if set(payload) != {
+                        "host_session_id",
+                        "request_id",
+                        "status",
+                        "error_type",
+                    }:
+                        raise ValueError("Invalid automatic voice outbox result")
+                    request_id = payload["request_id"]
+                    if (
+                        not isinstance(payload["host_session_id"], str)
+                        or not payload["host_session_id"]
+                        or not isinstance(request_id, str)
+                        or not request_id
+                        or not isinstance(payload["status"], str)
+                        or payload["status"] not in _AUTOMATIC_VOICE_TERMINAL_STATES
+                        or payload["error_type"] is not None
+                        and (
+                            not isinstance(payload["error_type"], str)
+                            or not payload["error_type"]
+                        )
+                    ):
+                        raise ValueError("Invalid automatic voice outbox result")
+                    result = {
+                        "session_id": payload["host_session_id"],
+                        "status": payload["status"],
+                        "correlation_id": event.cause_action_id,
+                        "error_type": payload["error_type"],
+                    }
+                    request_job = requested.get(request_id)
+                    if (
+                        request_job is None
+                        or request_job.session_id != result["session_id"]
+                        or request_job.request.correlation_id
+                        != result["correlation_id"]
+                        or request_job.context != event.context
+                    ):
+                        raise ValueError(
+                            "Automatic voice outbox result does not match its request"
+                        )
+                    previous = finished.setdefault(request_id, result)
+                    if previous != result:
+                        raise ValueError("Conflicting automatic voice outbox result")
+            if (
+                page.next_sequence == cursor
+                or page.next_sequence >= page.high_watermark
+            ):
+                break
+            cursor = page.next_sequence
+        for request_id, job in requested.items():
+            if request_id in finished:
+                self._automatic_voice_dispatches[request_id] = finished[request_id]
+                continue
+            if self._voice_client is None:
+                raise ValueError(
+                    "pending automatic voice outbox requires a voice service"
+                )
+            self._automatic_voice_dispatches[request_id] = {
+                "session_id": job.session_id,
+                "status": "queued",
+                "correlation_id": job.request.correlation_id,
+                "error_type": None,
+            }
+            self._voice_dispatch_queue.put_nowait(job)
 
     def automatic_voice_dispatches(self):
         with self._lock:

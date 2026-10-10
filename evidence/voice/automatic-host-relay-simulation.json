@@ -19,6 +19,12 @@
     "audio_id": "audio:automatic",
     "dispatch_count_after_repeated_outcome_lookup": 1
   },
+  "restart_recovery": {
+    "requested_event_committed_before_delivery": true,
+    "same_request_id_reconstructed": true,
+    "running_voice_service_synthesis_calls_after_retry": 1,
+    "terminal_event_prevents_second_host_requeue": true
+  },
   "failure_isolation": "A separate application test forces the observed-speech callback to raise and retains the dialogue outcome as observed.",
-  "boundary": "The Warband bridge and audio player are deterministic test doubles. Live game-triggered PipeWire playback and automatic queue recovery across host restart remain unverified."
+  "boundary": "The Warband bridge and audio player are deterministic test doubles. The voice service remained alive during the host-restart test; its idempotency cache is not durable. Live game-triggered PipeWire playback remains unverified."
 }

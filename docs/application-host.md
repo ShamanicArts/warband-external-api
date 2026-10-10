@@ -127,6 +127,15 @@ request on a separate worker; synthesis/playback never blocks the action respons
 Runtime diagnostics show configured automatic sessions and bounded status counts,
 without tokens, provider settings, text or audio data.
 
+The semantic event log is also the automatic-voice outbox. A requested dispatch
+is committed before queueing and its terminal result is committed afterward. On
+host restart, unfinished requests are reconstructed with the same request and
+correlation IDs. A still-running voice service therefore returns its idempotent
+prior outcome instead of playing twice. If both processes fail after playback but
+before either retains a terminal receipt, audible exactly-once delivery is not
+claimed; the conservative retry remains visible under the same request ID. These
+host-only outbox events are excluded from constrained agent event cursors.
+
 Normal interruption closes every owned HTTP server, joins its threads, and closes
 both SQLite connections. It never starts Warband, Wine, Gamescope, a voice model
 or an external agent.
@@ -142,8 +151,9 @@ or an external agent.
 - Voice remains a separately authenticated process. Manual or automatic v2 relay
   owns only its loopback credential and bounded HTTP client; it does not co-host
   TTS.
-- Automatic dispatch deduplicates repeated reconciliation in one host process.
-  Its pending queue/status is not yet a durable restart-recovered outbox.
+- Automatic dispatch recovery relies on the semantic event database. The voice
+  service's own request-id cache is in memory, so simultaneous host/voice restart
+  after an uncertain delivery can still replay audio.
 - The listeners are plaintext loopback interfaces; remote exposure is unsupported.
 - Runtime lifecycle is bridge-simulated. A live hardware-rendered multi-session
   acceptance run and final video evidence are still pending.

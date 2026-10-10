@@ -135,5 +135,8 @@ text-entry UI, speech recognition, remote execution of original Native choices,
 NPC-to-NPC dialogue, long-term character memory or a mechanical-proposal system.
 Those layers can feed or consume this host contract without receiving bridge
 credentials. Automatic voice begins only when an observed outcome is reconciled;
-the host does not independently poll unreconciled agent actions, and its pending
-dispatch queue is not yet recovered across application-host restart.
+the host does not independently poll unreconciled agent actions. Its semantic
+event outbox restores unfinished requests after application-host restart using
+the same request ID. The current voice service's idempotency cache is not durable,
+so simultaneous failure of both services during uncertain playback can replay
+audio and is not described as audible exactly-once delivery.

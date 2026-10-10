@@ -612,7 +612,7 @@ class NativeNpcSpeechApplication:
                     text,
                     event,
                 )
-            self._notify_observed_speech(previous.action_id, text)
+            self._notify_observed_speech(previous.action_id, text, previous.context)
             return ActionOutcome(
                 previous.action_id,
                 ActionState.OBSERVED,
@@ -730,14 +730,14 @@ class NativeNpcSpeechApplication:
             if self._pending_utterance_id == utterance_id:
                 self._pending_utterance_id = None
 
-    def _notify_observed_speech(self, action_id, text):
+    def _notify_observed_speech(self, action_id, text, context):
         with self._lock:
             handler = self._observed_speech_handler
             if handler is None or action_id in self._notified_speech_action_ids:
                 return
             self._notified_speech_action_ids.add(action_id)
         try:
-            handler(action_id, text)
+            handler(action_id, text, context)
         except Exception as exc:
             with self._lock:
                 self._speech_notification_failures[action_id] = type(exc).__name__
