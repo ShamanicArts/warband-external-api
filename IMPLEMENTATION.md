@@ -645,3 +645,21 @@ composition is bridge-simulated; the underlying one-turn dialogue UI has prior
 visual evidence, while integrated NPC-agent and voice playback evidence remains
 pending. Arbitrary player replies, original-choice execution, persistent dialogue,
 NPC-to-NPC conversation, memory and mechanical proposals remain open.
+
+## Synchronized faction decision epochs
+
+`SynchronizedFactionEpoch` adds the provider-neutral coordination core for
+multi-faction experiments. It rejects overlapping controlled-party ownership,
+queues observation refreshes in faction-ID order, requires all filtered turns to
+share one campaign scope and exact game time, freezes and hashes the public turn
+set, and commits exactly one submitted response per faction in deterministic
+order. Accepted outcomes and invalid-decision errors are both retained; an
+invalid model response cannot disappear from the benchmark record.
+
+The transcript also carries caller-supplied JSON run metadata for module/save
+hashes, seed, model settings, budgets and costs. The coordinator does not invoke
+providers, expose private application objects or let response latency advance
+game time. Fixed-time campaign driving, safe rest stop, checkpoint persistence,
+resume, metrics/scoring and announced external-model runs remain separate future
+layers. Three coordinator tests bring separated discovery to **229 tests**: 95
+root, 86 bridge and 48 module-system.

@@ -29,6 +29,7 @@ from warband_agentic.authority import (
     PerceptionPolicy,
     default_perception_policies,
 )
+from warband_agentic.benchmark import BenchmarkEpochState, SynchronizedFactionEpoch
 from warband_agentic.capabilities import (
     CapabilityDefinition,
     CapabilityRegistry,
@@ -97,6 +98,7 @@ __all__ = [
     "AgentNotFound",
     "AgentTurn",
     "AudioArtifact",
+    "BenchmarkEpochState",
     "ActorKind",
     "ActorRef",
     "Affordance",
@@ -127,6 +129,7 @@ __all__ = [
     "RoleId",
     "SpeechRequest",
     "SemanticEventLog",
+    "SynchronizedFactionEpoch",
     "ValidatedAction",
     "UsabilityEvaluation",
     "VoiceDelivery",

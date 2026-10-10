@@ -19,7 +19,8 @@ separate engine facts support it.
 | Host voice | live provider synthesis | voice tests, `evidence/voice/` | host playback and dialogue wiring not yet exercised |
 | Restricted agent interface | agent usable (fixture only) | `test_agentic_usability.py`, `evidence/agent-usability/` | simulated action; not live party control |
 | Constrained session/API | production Store integration | `test_agentic_agent_api.py`, `test_native_menu_agent_app.py`, `test_native_faction_agent_app.py`, `docs/constrained-agent-api.md` | Native menu and reviewed party orders; restart recovery and broader domains pending |
-| Faction reference application | bridge simulated over live-proven mechanics | `test_native_faction_agent_app.py`, `docs/faction-agent.md`, `evidence/campaign-world/` | new composition not yet live-tested; no synchronized multi-faction runner or strategic scoring |
+| Faction reference application | bridge simulated over live-proven mechanics | `test_native_faction_agent_app.py`, `docs/faction-agent.md`, `evidence/campaign-world/` | new composition not yet live-tested; no live synchronized run or strategic scoring |
+| Synchronized faction epoch | structural | `test_agentic_benchmark.py`, `docs/faction-benchmarks.md` | no fixed-time campaign driver, scoring, checkpoint recovery or external-model run yet |
 | NPC speech application | bridge simulated over visually proven mechanic | `test_native_npc_speech_app.py`, `docs/npc-speech.md`, `evidence/scene-control/` | new composition and integrated voice handoff not yet live-tested; one-turn speech only |
 | GPU-safe live test harness | physical-GPU probe + live private launcher capture | `test_gpu_safe_runner.py`, `test_warband_gpu_supervisor.py`, `evidence/runtime/gpu-probe.json`, `evidence/runtime/gpu-safety-validation.json` | launcher capture is safe; unattended Play and game-process GPU proof remain open |
 

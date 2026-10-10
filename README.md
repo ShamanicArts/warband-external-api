@@ -37,6 +37,9 @@ Current foundations include:
   events and bounded audio retrieval;
 - a deterministic [restricted-agent usability fixture](docs/agent-usability.md)
   for later announced cross-model interface tests;
+- a provider-neutral [synchronized faction epoch](docs/faction-benchmarks.md)
+  that enforces disjoint party control, equal campaign-time turns, deterministic
+  commit order and exact hashed transcripts without invoking models;
 - a [GPU-safe off-screen test harness](bridge/CUA_RUNBOOK.md) that pins Gamescope
   to a physical AMD GPU, isolates CUA from the desktop, enforces systemd resource
   limits and refuses software rendering or missing game-process GPU proof;
