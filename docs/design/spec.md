@@ -538,6 +538,7 @@ The kit is ready for an initial public developer release when:
 - [x] Inspect the local voice system and implement its first adapter against §12
       (authenticated HTTP round trip and real Kokoro WAV synthesis verified;
       host playback available but deliberately not exercised during proof).
-- [ ] Build an agent-usability fixture before launching announced external models.
+- [x] Build a deterministic restricted-agent usability fixture before launching
+      announced external models (no external run or `agent-usable` claim yet).
 - [ ] Complete the collated test/live/video evidence report before final handoff.
 - [ ] Resolve Q1 licensing before calling any artifact publicly releasable.

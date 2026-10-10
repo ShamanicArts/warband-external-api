@@ -51,6 +51,11 @@ from warband_agentic.events import (
     SemanticEventLog,
     game_event_from_wire,
 )
+from warband_agentic.usability import (
+    FactionUsabilityFixture,
+    UsabilityEvaluation,
+    build_faction_usability_fixture,
+)
 from warband_agentic.voice import (
     AudioArtifact,
     KokoroAdapter,
@@ -88,6 +93,7 @@ __all__ = [
     "EventPage",
     "Fact",
     "FactSource",
+    "FactionUsabilityFixture",
     "GameEvent",
     "LeaseMode",
     "KokoroAdapter",
@@ -102,6 +108,7 @@ __all__ = [
     "SpeechRequest",
     "SemanticEventLog",
     "ValidatedAction",
+    "UsabilityEvaluation",
     "VoiceDelivery",
     "VoiceEvent",
     "VoiceOutcome",
@@ -109,6 +116,7 @@ __all__ = [
     "VoiceService",
     "VoiceState",
     "canonical_observation_from_snapshot",
+    "build_faction_usability_fixture",
     "contract_manifest",
     "context_from_snapshot",
     "default_perception_policies",

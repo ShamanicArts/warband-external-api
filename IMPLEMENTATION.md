@@ -546,3 +546,22 @@ active isolated revision-16 runtime, it imported **421 events**: 403 acknowledge
 events. A second migration inserted zero duplicates; all 421 events read back to
 the high-water mark. Evidence is retained under `evidence/semantic-events/`.
 Eight event-store tests bring the active suite to **188 tests**.
+
+## Restricted-agent usability fixture
+
+`warband_agentic.usability` builds a deterministic faction-sovereign scenario from
+the real contract, observation-policy, capability, affordance and lease layers. A
+role-filtered briefing reports an imminent threat to Praven while omitting an
+operator-only exact-strength fact. Two bounded party-order affordances are visible;
+private handler IDs and provider/transport details are not. The response surface
+accepts only an affordance token, arguments and expected revision, while trusted
+actor and lease identity remain runtime-owned.
+
+The evaluator runs submissions through the normal registry and distinguishes a
+valid but task-wrong raid from the requested defense. It rejects raw operation
+fields, stale revisions and argument attempts outside issued constants. A JSON CLI
+exports and evaluates the same fixture for future providers; its current export
+hash and run instructions are in `docs/agent-usability.md`. Five tests bring the
+active suite to **193 tests**. This is fixture readiness, not `agent-usable`
+evidence: no external model has been launched, and the required advance notice
+rule remains in force.

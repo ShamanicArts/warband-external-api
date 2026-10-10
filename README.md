@@ -23,6 +23,8 @@ Current foundations include:
 - an authenticated, loopback-only [host voice service](docs/voice.md) with named
   public profiles, a local Kokoro adapter, optional PipeWire playback, lifecycle
   events and bounded audio retrieval;
+- a deterministic [restricted-agent usability fixture](docs/agent-usability.md)
+  for later announced cross-model interface tests;
 - reproducible tests and retained engine/visual evidence.
 
 MCP is one adapter, not the core product boundary. CUA is used only for isolated
