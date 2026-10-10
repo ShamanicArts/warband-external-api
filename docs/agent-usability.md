@@ -62,3 +62,20 @@ explicit. The external run still establishes `agent-usable` only for the
 restricted deterministic fixture, not for a live party-order backend or every
 capability. Future external runs still require advance notice, raw response,
 evaluation, settings, timing and the available cost record.
+
+The constrained MCP v3 evaluation then asked the same three available model
+families to read the MCP contract, recover the v2 stale context, choose the
+submission, name the `turn` → `act` → `outcome` sequence, and critique the
+interface. All three returned strict JSON, selected the fresh defense affordance
+and passed the real evaluator at 100/100. DeepSeek 4.1 was still absent and was
+not substituted. Luna and Grok independently called out the omitted
+`request_id`; Grok also noted that a broad capability schema can look like
+authority to compose arguments. The manifest, MCP tool description and API guide
+now define a stable client-chosen request-ID convention and state that only a
+current affordance authorizes action.
+
+This v3 run is contract-comprehension evidence, not a claim that the external
+models were attached to the MCP server. The exact prompt and raw outputs are in
+`evidence/agent-usability/constrained-mcp-v3-*`; the separate
+`constrained-mcp-smoke.json` proves a real local stdio handshake and action/outcome
+round trip. Live model-over-MCP control of a running Warband session remains open.

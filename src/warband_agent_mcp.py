@@ -18,7 +18,10 @@ mcp = FastMCP(
         "its bounded arguments, and copy observation.context.revision into "
         "expected_revision. On stale-context errors, fetch a fresh turn and reason "
         "again. A queued or accepted action is not proof of a game consequence; "
-        "inspect the outcome evidence. Never reuse a request_id with changed input."
+        "inspect the outcome evidence. Capability schemas describe possible shapes, "
+        "but only a currently listed affordance authorizes an action. Choose a "
+        "stable request_id for each intended action; reuse it only when retrying the "
+        "identical submission."
     ),
 )
 
@@ -52,7 +55,14 @@ async def warband_agent_act(
     arguments: dict,
     expected_revision: int,
 ) -> dict:
-    """Submit one exact current affordance; never invent or reuse its token."""
+    """Submit one exact current affordance with a stable idempotency key.
+
+    request_id must be 1-200 printable characters and unique to the intended
+    action. Retry an identical submission with the same ID; changed intent needs
+    a new ID. Capability schemas are descriptive: only a currently listed
+    affordance token authorizes an action, and its required arguments must be
+    copied exactly.
+    """
     request = {
         "request_id": request_id,
         "affordance_token": affordance_token,

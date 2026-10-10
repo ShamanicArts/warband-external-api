@@ -226,8 +226,30 @@ class ConstrainedAgentSessionTests(unittest.TestCase):
         self.assertEqual(first.observation.context, refreshed.observation.context)
         self.assertNotEqual(first.affordances[0].token, refreshed.affordances[0].token)
 
-    def test_manifest_explains_argument_binding_and_affordance_time(self):
+    def test_manifest_explains_submission_binding_and_affordance_time(self):
         submission = self.harness.session.manifest()["submission"]
+        self.assertEqual(
+            submission["request_id"],
+            {
+                "type": "client_chosen_idempotency_key",
+                "constraints": "1-200 printable characters",
+                "retry_rule": (
+                    "reuse only for an identical submission; use a new value "
+                    "for changed intent"
+                ),
+                "example": "decision:epoch-12:party-17",
+            },
+        )
+        self.assertEqual(
+            submission["authorization"],
+            {
+                "source": "turn.affordances[]",
+                "capabilities": (
+                    "descriptive schemas only; capability presence does not "
+                    "authorize an action"
+                ),
+            },
+        )
         self.assertEqual(
             submission["arguments"],
             {

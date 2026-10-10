@@ -1,0 +1,125 @@
+{
+  "evaluation": "Each nested response object was submitted verbatim to warband_agentic.usability_cli evaluate --fixture faction-revision-recovery-v2.",
+  "fixture": "faction-revision-recovery-v2",
+  "fixture_sha256": "2c8bd1b6e632ebb7ad2b37f33356926f853e1a4680ae0424ac4611759dd1ac20",
+  "prompt": "evidence/agent-usability/constrained-mcp-v3-prompt.md",
+  "transport_smoke": "evidence/agent-usability/constrained-mcp-smoke.json",
+  "advance_notice": {
+    "scope": "Read the constrained MCP contract, inspect one fixed faction turn, select the exact current affordance after stale context, name the submit/reconcile tool sequence, and critique usability. No game launch or mutation.",
+    "expected_runtime": "3-10 minutes per model",
+    "models": [
+      "GPT-6 Luna via Codex",
+      "Muse Spark 1.3 Contributor via OpenCode",
+      "DeepSeek 4.1 via OpenCode if available",
+      "Grok 4.6 via Cursor"
+    ],
+    "cost_notice": "Short prompts with minimal provider-dependent cost; BB exposed no monetary receipt. No substitutions permitted."
+  },
+  "results": [
+    {
+      "thread_id": "thr_h7khyrp89g",
+      "provider": "codex",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "medium",
+      "wall_time_ms": 12778,
+      "reported_total_tokens": 46069,
+      "strict_json_wrapper_compliance": true,
+      "response": {
+        "affordance_token": "aff:defend-praven-r8",
+        "arguments": {
+          "order": "defend",
+          "target_id": 2
+        },
+        "expected_revision": 8
+      },
+      "mcp_sequence": [
+        "warband_agent_turn",
+        "warband_agent_act",
+        "warband_agent_outcome"
+      ],
+      "accepted": true,
+      "score": 100,
+      "capability": "party.issue-order",
+      "critique": {
+        "clarity_score_1_to_5": 5,
+        "what_was_clear": "The current turn provides a defense affordance for Praven, its required arguments, and revision 8.",
+        "what_was_confusing": "Nothing material; the stale prior attempt is clearly marked.",
+        "missing_information": "A client request ID is needed for idempotency, but its format is unspecified."
+      }
+    },
+    {
+      "thread_id": "thr_bgz4dt2ft4",
+      "provider": "opencode",
+      "model": "opencode/muse-spark-1.3-contributor-free",
+      "reasoning_effort": "high",
+      "wall_time_ms": 55184,
+      "reported_total_tokens": 58021,
+      "strict_json_wrapper_compliance": true,
+      "response": {
+        "affordance_token": "aff:defend-praven-r8",
+        "arguments": {
+          "order": "defend",
+          "target_id": 2
+        },
+        "expected_revision": 8
+      },
+      "mcp_sequence": [
+        "warband_agent_turn",
+        "warband_agent_act",
+        "warband_agent_outcome"
+      ],
+      "accepted": true,
+      "score": 100,
+      "capability": "party.issue-order",
+      "critique": {
+        "clarity_score_1_to_5": 5,
+        "what_was_clear": "Retry defense of Praven with current token/revision; defend affordance matches task.",
+        "what_was_confusing": "Nothing material; raid affordance is clearly a distractor.",
+        "missing_information": "None; token, const args, and revision 8 were all explicit."
+      }
+    },
+    {
+      "thread_id": "thr_xzftjpkeur",
+      "provider": "acp-cursor",
+      "model": "grok-4.6",
+      "reasoning_effort": "high",
+      "wall_time_ms": 42685,
+      "reported_total_tokens": null,
+      "strict_json_wrapper_compliance": true,
+      "response": {
+        "affordance_token": "aff:defend-praven-r8",
+        "arguments": {
+          "order": "defend",
+          "target_id": 2
+        },
+        "expected_revision": 8
+      },
+      "mcp_sequence": [
+        "warband_agent_turn",
+        "warband_agent_act",
+        "warband_agent_outcome"
+      ],
+      "accepted": true,
+      "score": 100,
+      "capability": "party.issue-order",
+      "critique": {
+        "clarity_score_1_to_5": 4,
+        "what_was_clear": "Stale attempt is rejected at revision 7 with token aff:defend-praven. Current turn is revision 8; retry defense of Praven with aff:defend-praven-r8 and const arguments order=defend, target_id=2. Raid affordance is a distractor.",
+        "what_was_confusing": "Capability schema looks freely composable (defend|raid plus any target_id) while only the issued affordance token and its const args are valid. The briefing also wraps extra evaluation fields around what warband_agent_turn would actually return.",
+        "missing_information": "warband_agent_act requires a request_id, but the scored response and prior_attempt omit one, so the retry's idempotency key is unspecified."
+      }
+    }
+  ],
+  "unavailable": [
+    {
+      "requested": "DeepSeek 4.1 via OpenCode v2/Shelf",
+      "reason": "Not present in the provider model catalog; no substitute or guessed model ID was used."
+    }
+  ],
+  "findings_applied": [
+    "The session manifest and warband_agent_act description now define request_id constraints, stable retry semantics, and an example.",
+    "The contract now says capability schemas are descriptive and that only a current affordance authorizes an action."
+  ],
+  "cost": "No provider-reported monetary cost was exposed by BB for these runs.",
+  "boundary": "The models reasoned over the documented MCP contract and a deterministic turn export; they did not receive a live MCP tool connection. A separate local stdio smoke proves the real MCP handshake and action/outcome round trip. Neither artifact proves live Warband party control."
+}

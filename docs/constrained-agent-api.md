@@ -26,6 +26,14 @@ copy exactly, not permission to omit that property. `issued_at_ms` and
 them only as same-session validity metadata and fetch a fresh turn after expiry
 or any conflict; fixture clocks may intentionally be synthetic.
 
+The capability list describes semantic action families and their general schema;
+it is not authority to compose an arbitrary action. Only an entry in the current
+turn's `affordances` list authorizes a submission, and its token, required values
+and revision are one exact binding. The client chooses a 1–200 character printable
+`request_id`, preferably a readable stable key such as
+`decision:epoch-12:party-17`. Reuse that ID only to retry the identical payload.
+Any changed intent, token, arguments or revision needs a new ID.
+
 `ConstrainedAgentSession` receives application callbacks for canonical
 observation, affordance issuance and validated dispatch. It applies the named
 perception policy before returning a turn. Turns are cached for an unchanged
@@ -172,7 +180,9 @@ Each process is pinned to exactly one session by `WARBAND_AGENT_URL` and
 `http://127.0.0.1:<port>` so the adapter cannot send a private session token to a
 remote host. The tool descriptions tell an agent to copy the current affordance
 token and observation revision, refresh and reason again after stale context, and
-distinguish accepted work from evidence-bearing outcomes.
+distinguish accepted work from evidence-bearing outcomes. They also state that
+capability schemas are descriptive rather than grants and define the
+`request_id` constraints and retry rule directly on `warband_agent_act`.
 
 [`config/agent-mcp.example.json`](../config/agent-mcp.example.json) is a public
 shape only. The installer writes a private `agent-mcp-server.json` for its

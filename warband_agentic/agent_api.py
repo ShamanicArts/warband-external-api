@@ -235,6 +235,22 @@ class ConstrainedAgentSession:
                     "handler_id",
                 ],
                 "expected_revision_source": "turn.observation.context.revision",
+                "request_id": {
+                    "type": "client_chosen_idempotency_key",
+                    "constraints": "1-200 printable characters",
+                    "retry_rule": (
+                        "reuse only for an identical submission; use a new value "
+                        "for changed intent"
+                    ),
+                    "example": "decision:epoch-12:party-17",
+                },
+                "authorization": {
+                    "source": "turn.affordances[]",
+                    "capabilities": (
+                        "descriptive schemas only; capability presence does not "
+                        "authorize an action"
+                    ),
+                },
                 "arguments": {
                     "schema_source": "turn.affordances[].parameters",
                     "required_properties_source": (
