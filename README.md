@@ -52,11 +52,12 @@ The current evidence index and final video ledger live in
 ## Installable toolkit
 
 The current Python package is `warband-agentic-kit` 0.2.0. A development install
-provides five commands:
+provides six commands:
 
 ```bash
 uv sync
 uv run warband-game-bridge --help
+uv run warband-agent-host --help
 uv run warband-build-module --help
 uv run warband-mcp
 uv run warband-voice --help
@@ -64,7 +65,9 @@ uv run warband-agent-usability --help
 ```
 
 See [the packaging guide](docs/packaging.md) for reproducible sdist-to-wheel
-builds, isolated Native module generation and runtime startup. The repository is
+builds and isolated Native module generation. See the
+[application-host guide](docs/application-host.md) for validated multi-session
+runtime startup. The repository is
 not ready for public release yet: no project license has been selected, and
 fresh-install/live acceptance plus final video evidence remain open.
 

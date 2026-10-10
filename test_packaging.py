@@ -52,6 +52,19 @@ class PackagingTests(unittest.TestCase):
                 self.assertIn("bridge/native_npc_speech_app.py", names)
                 self.assertIn("module_system/build_mcp_module.py", names)
                 self.assertIn("src/warband_mcp.py", names)
+                for example in (
+                    "agent-host.example.json",
+                    "voice.example.json",
+                ):
+                    self.assertTrue(
+                        any(
+                            name.endswith(
+                                "share/warband-agentic-kit/examples/" + example
+                            )
+                            for name in names
+                        ),
+                        f"wheel does not contain {example}",
+                    )
                 entry_points = next(
                     name for name in names if name.endswith("/entry_points.txt")
                 )
@@ -59,6 +72,7 @@ class PackagingTests(unittest.TestCase):
                 for command in (
                     "warband-mcp",
                     "warband-game-bridge",
+                    "warband-agent-host",
                     "warband-build-module",
                     "warband-voice",
                     "warband-agent-usability",
@@ -106,6 +120,7 @@ class PackagingTests(unittest.TestCase):
             )
             for command in (
                 "warband-game-bridge",
+                "warband-agent-host",
                 "warband-build-module",
                 "warband-voice",
                 "warband-agent-usability",

@@ -723,3 +723,23 @@ against the durable Store, then continues status/stop handling without queuing a
 second wait or stop. Two regression tests raise separated discovery to **239
 tests**: 105 root, 86 bridge and 48 module-system. Live game-process/save recovery,
 scenario metrics and external-provider scheduling remain open.
+
+## Packaged built-in application host
+
+`warband-agent-host` now validates a versioned JSON plan for one game bridge,
+one operator control listener and up to 32 separately authenticated constrained
+sessions. Check mode verifies protocol 2/revision 16 manifests, catalog JSON,
+private 0600 tokens, database parents, unique loopback ports/session IDs and
+disjoint player, party and NPC ownership without binding sockets or creating
+databases. Diagnostics omit paths, credentials, handlers and command IDs.
+
+Runtime starts the bridge/control listeners, waits for actual protocol telemetry,
+then constructs only the menu, faction and NPC-speech reference applications and
+binds their per-session servers. The operator control interface exposes safe
+diagnostics and explicit faction/NPC observation refresh counts; it never grants
+that authority to session agents. A loopback integration test proves waiting,
+activation, authenticated NPC manifest/refresh and complete listener teardown.
+The wheel installs the host command and both host/voice examples. Two host tests
+raise separated discovery to **241 tests**: 107 root, 86 bridge and 48
+module-system. Third-party discovery, hot reload, client registration and live
+multi-session acceptance remain open.

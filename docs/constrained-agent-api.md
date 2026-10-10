@@ -31,6 +31,11 @@ emitting a distinct action event for every observed transition.
 Late engine evidence may promote an expired or interrupted action to observed;
 the runtime never replays the uncertain mutation to obtain that evidence.
 
+`warband-agent-host` loads the three reviewed built-in applications from a
+versioned JSON configuration, gives every session a separate loopback port/token,
+and exposes explicit trusted faction/NPC refresh through a distinct operator
+control listener. See [the application-host guide](application-host.md).
+
 ## Native menu application
 
 `bridge.native_menu_agent_app.NativeMenuAgentApplication` is the first
@@ -124,8 +129,9 @@ acknowledgement is not promoted to observed outcome.
 
 ## Current limitations
 
-- Construction is Python-first; packaged application loading and multi-session
-  lifecycle management are not implemented yet.
+- Packaged loading and lifecycle management cover the three static built-in
+  applications. Third-party discovery, hot reload and dynamic session creation
+  are not implemented.
 - When a `SemanticEventLog` is supplied, new action records durably reconstruct
   exact request idempotency, the latest public outcome and private
   application-owned bridge correlation after restart. Recovery never dispatches

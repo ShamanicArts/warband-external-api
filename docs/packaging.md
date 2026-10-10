@@ -12,6 +12,7 @@ From a checkout:
 ```bash
 uv sync
 uv run warband-game-bridge --help
+uv run warband-agent-host --help
 uv run warband-build-module --help
 uv run warband-voice --help
 uv run warband-agent-usability --help
@@ -34,6 +35,8 @@ uv build --wheel --out-dir dist dist/warband_agentic_kit-0.2.0.tar.gz
 `test_packaging.py` repeats that path, checks the locked project metadata and
 artifact contents, installs the wheel into a temporary location, imports the
 runtime outside the checkout, and starts every non-MCP command through `--help`.
+The wheel also carries the host and voice example JSON under
+`share/warband-agentic-kit/examples`.
 
 ## Build an isolated game module
 
@@ -62,9 +65,8 @@ game launch; software rendering is forbidden.
 
 - No project license has been selected. Public distribution is blocked until the
   license and referenced-source/dependency terms are resolved.
-- The Python artifact is reproducible, but there is not yet a guided installer or
-  automatic MCP-client registration.
-- Application construction remains Python-first; plugin discovery and durable
-  multi-session application recovery are not packaged yet.
+- The Python artifact and built-in multi-session host are reproducible, but there
+  is not yet a guided installer or automatic MCP-client registration.
+- Third-party application/extension discovery and hot reload are not packaged.
 - A fresh-install end-to-end module build and game acceptance run still needs
   retained hardware-rendered evidence and final video clips.

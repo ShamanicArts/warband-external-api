@@ -1,0 +1,46 @@
+{
+  "schema": "warband.agentic/host-config/v1",
+  "bridge": {
+    "database": "../runtime/bridge.sqlite3",
+    "catalog": "/path/to/Modules/WarbandMCP/mcp-catalog.json",
+    "build_manifest": "/path/to/Modules/WarbandMCP/mcp-build.json",
+    "token_file": "../runtime/bridge.token",
+    "port": 8765
+  },
+  "control": {
+    "token_file": "../runtime/host-control.token",
+    "port": 8879
+  },
+  "events_database": "../runtime/agentic-events.sqlite3",
+  "sessions": [
+    {
+      "kind": "native-menu",
+      "session_id": "player-menu",
+      "token_file": "../runtime/player-menu.token",
+      "port": 8869
+    },
+    {
+      "kind": "native-faction",
+      "session_id": "swadia",
+      "token_file": "../runtime/swadia.token",
+      "port": 8870,
+      "faction_id": 15,
+      "controlled_party_ids": [500],
+      "order_options": [
+        {
+          "party_id": 500,
+          "order": "travel",
+          "target_party_id": 26,
+          "title": "Defend Praven"
+        }
+      ]
+    },
+    {
+      "kind": "native-npc-speech",
+      "session_id": "trainer",
+      "token_file": "../runtime/trainer.token",
+      "port": 8871,
+      "agent_id": 7
+    }
+  ]
+}

@@ -23,6 +23,7 @@ separate engine facts support it.
 | Synchronized faction epoch | bridge simulated + coordinator restart simulation | `test_agentic_benchmark.py`, `test_campaign_epoch_driver.py`, `docs/faction-benchmarks.md` | committed actions and wait/stop commands resume without replay; no game-save recovery, live multi-faction run, scoring or external-model run yet |
 | NPC speech application | bridge simulated over visually proven mechanic | `test_native_npc_speech_app.py`, `docs/npc-speech.md`, `evidence/scene-control/` | new composition and integrated voice handoff not yet live-tested; one-turn speech only |
 | Python package and commands | installed-wheel structural proof | `test_packaging.py`, `docs/packaging.md`, `pyproject.toml` | no project license, guided installer, client registration or fresh-install game acceptance yet |
+| Packaged application host | loopback runtime simulation | `test_agent_host.py`, `docs/application-host.md`, `config/agent-host.example.json` | one NPC session lifecycle/refresh exercised; three-session plan structurally validated; no live game or multi-session runtime acceptance yet |
 | GPU-safe live test harness | physical-GPU probe + live private launcher capture | `test_gpu_safe_runner.py`, `test_warband_gpu_supervisor.py`, `evidence/runtime/gpu-probe.json`, `evidence/runtime/gpu-safety-validation.json` | launcher capture is safe; unattended Play and game-process GPU proof remain open |
 
 ## Video ledger
