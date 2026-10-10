@@ -37,6 +37,10 @@ class AgentNotFound(ValueError):
     """The requested session-owned resource does not exist."""
 
 
+class AgentPending(RuntimeError):
+    """Fresh engine-backed state was requested but is not complete yet."""
+
+
 @dataclass(frozen=True, slots=True)
 class AgentTurn:
     session_id: str

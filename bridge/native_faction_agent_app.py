@@ -12,6 +12,7 @@ from warband_agentic import (
     ActionState,
     ActorKind,
     ActorRef,
+    AgentPending,
     AuthorityClass,
     CapabilityRegistry,
     ConstrainedAgentSession,
@@ -223,7 +224,7 @@ class NativeFactionAgentApplication:
             command = self.store.command(command_id)
             result = self.store.world_result(command_id)
             if command["status"] != "acknowledged" or not result.get("complete"):
-                raise RuntimeError("Fresh faction observation is still pending")
+                raise AgentPending("Fresh faction observation is still pending")
             facts = result.get("facts", {})
             if facts.get("party_id") != party_id:
                 raise ValueError("Faction observation returned another party")

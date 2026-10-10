@@ -1032,3 +1032,25 @@ partial-provider restore without reissuing an already recorded faction call.
 Separated discovery passes **278 tests**: 133 root, 95 bridge and 50
 module-system. No provider API, model, BB agent, Warband process or voice service
 was invoked.
+
+## Non-blocking benchmark runner composition
+
+`bridge.benchmark_runner.FactionBenchmarkRunner` now composes a validated plan,
+live harness and provider adapter map into a bounded caller-driven lifecycle. It
+generates stable epoch/batch IDs, waits on the new typed `AgentPending` engine
+refresh signal, freezes turns, starts provider dispatch, submits a completed
+audit, drives action/campaign/metric phases, and writes the final canonical
+report after the configured epoch count. It does not own a sleep loop or launch
+the host, game, save or model.
+
+An optional checkpoint path is atomically updated after every safely resumable
+poll, including every partial provider receipt. The integration regression
+simulates a process restart after faction 15 completes and proves the restored
+dispatcher starts only faction 16. A second regression proves an incomplete
+engine refresh stays in the refreshing state rather than becoming a false
+failure. The built wheel now imports the runner module.
+
+Separated discovery passes **280 tests**: 133 root, 97 bridge and 50
+module-system. Host/CLI wiring, provider-specific wrappers, live campaign
+acceptance and game-save/process recovery remain open. No provider API, model,
+BB agent, Warband process or voice service was invoked.

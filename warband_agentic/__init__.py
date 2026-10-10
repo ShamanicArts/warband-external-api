@@ -19,6 +19,7 @@ from warband_agentic.adapters import (
 from warband_agentic.agent_api import (
     AgentConflict,
     AgentNotFound,
+    AgentPending,
     AgentTurn,
     ConstrainedAgentSession,
 )
@@ -151,6 +152,7 @@ __all__ = [
     "AgenticExtension",
     "AgentConflict",
     "AgentNotFound",
+    "AgentPending",
     "AgentTurn",
     "AudioArtifact",
     "ApplicationKind",

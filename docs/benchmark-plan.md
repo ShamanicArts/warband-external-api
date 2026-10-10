@@ -35,3 +35,8 @@ This command is deliberately check-only. It does not start the application host,
 capture a save, dispatch provider tasks or drive an epoch. Actual model execution
 still requires the user-visible preflight naming models, scope, expected cost and
 runtime, and evaluation criteria.
+
+Validated plans can be supplied programmatically to the
+[`FactionBenchmarkRunner`](benchmark-runner.md). That runner composes already
+constructed live resources but deliberately does not weaken this command's
+side-effect-free `--check` contract.

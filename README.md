@@ -56,6 +56,9 @@ Current foundations include:
 - a bounded [subprocess provider adapter](docs/provider-adapters.md) for trusted
   local wrappers, with concurrent start, non-blocking polling, hard deadlines and
   audited failures but no embedded model SDK;
+- a restart-safe [non-blocking benchmark runner](docs/benchmark-runner.md) that
+  composes validated plans, frozen turns, provider dispatch, campaign epochs,
+  automatic checkpoints and final reports without launching the game itself;
 - a [GPU-safe off-screen test harness](bridge/CUA_RUNBOOK.md) that pins Gamescope
   to a physical AMD GPU, isolates CUA from the desktop, enforces systemd resource
   limits and refuses software rendering or missing game-process GPU proof;

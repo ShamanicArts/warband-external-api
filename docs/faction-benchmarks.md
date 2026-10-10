@@ -132,7 +132,8 @@ starts a replacement wait. Post-advance recovery may restart the read-only
 fixed-clock metric scan. Baseline collection and incomplete refresh jobs remain
 intentionally non-resumable.
 
-The remaining full-harness work is executable runner composition,
+The [non-blocking runner](benchmark-runner.md) now composes these phases and
+automatically persists every safe state. Remaining work is host/CLI wiring,
 provider-specific wrappers, game-supported save capture and process-loss
 recovery. The SHA-256 fields detect corruption and inconsistency; they are not
 signatures against a malicious local editor. External model runs still require
