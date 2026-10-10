@@ -1,0 +1,155 @@
+{
+  "schema": "warband.agentic/evidence/deterministic-faction-arena-model-run/v1",
+  "recorded_date": "2026-10-10",
+  "run_id": "deterministic-border-war-1",
+  "epoch_id": "arena:epoch:1",
+  "backend": "deterministic-simulator",
+  "game_launched": false,
+  "fixture": {
+    "briefing_sha256": "053ceddb91ff9f66d8a019e95d29e83dbfbfc470505259f861a49434c945f291",
+    "turn_set_sha256": "030464cb624bab50f0f3f9a6257e2ba6dc90b244d8903c812544174c2d1a288a",
+    "faction_15_task_sha256": "cfb74f1e730b4692b0cba7518bf4d6ee5187402828e3eced87073c13073f9f7f",
+    "faction_16_task_sha256": "6fcd4cd8132665044cd6e29d5dc17258e5e411f808b6bca341d1f7f7c8cc7211",
+    "delivery": "Each model received a compact, semantically equivalent rendering of only its own private task.",
+    "faction_15_prompt_sha256": "65ae4008701206fdcd5eb77e495f651452378d8689679bff6f28789151b1e5f0",
+    "faction_16_prompt_sha256": "62ac92bbc557195aa4c5118684defcbfa9fd724cb3dec059e2e2ab372b28e2cc"
+  },
+  "advance_notice": {
+    "scope": "One simultaneous deterministic epoch; investigation only; no code writing, tools, game process, GUI or save",
+    "models": [
+      "opencode-go/deepseek-v4.1-flash via Pi for faction 15",
+      "gpt-6-luna via Codex for faction 16"
+    ],
+    "declared_budget": {
+      "max_input_tokens": 8192,
+      "max_output_tokens": 512,
+      "timeout_ms": 120000,
+      "max_cost_microusd": null
+    },
+    "cost_notice": "BB exposed no provider monetary receipt for either call."
+  },
+  "results": [
+    {
+      "faction_id": 15,
+      "thread_id": "thr_p7nrfbi3i5",
+      "provider": "pi",
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "settings": {
+        "reasoning_level": "high",
+        "permission_mode": "full",
+        "tools_used": false
+      },
+      "permission_note": "Pi rejected auto permission mode and requires full; the prompt prohibited tools and the trace contained no tool calls.",
+      "response": {
+        "request_id": "deepseek-swadia-epoch-1",
+        "affordance_token": "arena-f15-token-2",
+        "arguments": {
+          "action": "defend",
+          "target_id": 2
+        },
+        "expected_revision": 1
+      },
+      "reasoning_summary": "Defending preserves my settlement and avoids the 20-strength plus settlement loss, which is the safest survival-maximizing simultaneous play.",
+      "strict_json_compliance": true,
+      "contract_accepted": true,
+      "usage": {
+        "uncached_input_tokens": 2306,
+        "cached_input_tokens": 22528,
+        "accounted_input_tokens": 24834,
+        "output_tokens_including_reasoning": 712,
+        "elapsed_ms": 7977,
+        "cost_microusd": null
+      }
+    },
+    {
+      "faction_id": 16,
+      "thread_id": "thr_sh2uw7sbw4",
+      "provider": "codex",
+      "model": "gpt-6-luna",
+      "settings": {
+        "reasoning_level": "medium",
+        "permission_mode": "auto",
+        "tools_used": false
+      },
+      "response": {
+        "request_id": "luna-vaegirs-epoch-1",
+        "affordance_token": "arena-f16-token-2",
+        "arguments": {
+          "action": "defend",
+          "target_id": 1
+        },
+        "expected_revision": 1
+      },
+      "reasoning_summary": "Defending preserves our settlement against a simultaneous attack while avoiding the irreversible risk of an uncertain attack.",
+      "strict_json_compliance": true,
+      "contract_accepted": true,
+      "usage": {
+        "input_tokens": 20222,
+        "cached_input_tokens": 1792,
+        "output_tokens": 73,
+        "elapsed_ms": 4182,
+        "cost_microusd": null
+      }
+    }
+  ],
+  "direct_contract_resolution": {
+    "report_sha256": "30d04af3512f98e72a958dfebcefd95809f11cc0028e87391ed99ebf73cdede0",
+    "decisions_accepted": {
+      "15": true,
+      "16": true
+    },
+    "simultaneous_actions": {
+      "15": "defend",
+      "16": "defend"
+    },
+    "final": {
+      "15": {
+        "military_strength": 100,
+        "settlements": 1,
+        "surviving": true,
+        "points": 10.0,
+        "rank": 1
+      },
+      "16": {
+        "military_strength": 100,
+        "settlements": 1,
+        "surviving": true,
+        "points": 10.0,
+        "rank": 1
+      }
+    },
+    "ranking": [15, 16]
+  },
+  "equal_budget_audit": {
+    "accepted_as_scored_provider_run": false,
+    "report_sha256": "7edf68c78de462c9181996afedc532865f5d75eff24717f1b0c01431ec0fd9ae",
+    "audit_sha256": "dc8bf25e62ff363371909f524003e433569973a8687d11d077454a52bab9bec1",
+    "records": {
+      "15": {
+        "status": "budget-exceeded",
+        "detail": "input token budget was exceeded; output token budget was exceeded",
+        "discarded_response_sha256": "8474c4bdaf7d33562cdac5cce923bc059a028c845de31e02942b560bff363eb0"
+      },
+      "16": {
+        "status": "budget-exceeded",
+        "detail": "input token budget was exceeded",
+        "discarded_response_sha256": "482983c065475c047f65e5f8d8fc13097b642f81eaa8533e266d52002cee7bc8"
+      }
+    },
+    "substituted_decisions": {
+      "15": "arena:batch:1:faction:15:no-decision",
+      "16": "arena:batch:1:faction:16:no-decision"
+    },
+    "world_actions_accepted": {
+      "15": false,
+      "16": false
+    },
+    "total_usage": {
+      "input_tokens": 45056,
+      "output_tokens": 785,
+      "elapsed_ms_sum": 12159,
+      "cost_microusd": null
+    }
+  },
+  "boundary": "The direct path proves two external models understood exact private affordances and drove one deterministic simultaneous epoch. The equal-budget path failed closed because BB provider wrappers exceeded frozen limits. Evidence levels named engine-observed refer to the deterministic simulator's state getter, not Warband. No live game outcome is claimed."
+}

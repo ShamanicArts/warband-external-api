@@ -50,6 +50,10 @@ Current foundations include:
   events, bounded audio retrieval and a strict host-config v2 client;
 - a deterministic [restricted-agent usability fixture](docs/agent-usability.md)
   for later announced cross-model interface tests;
+- a model-ready [deterministic two-faction arena](docs/deterministic-faction-arena.md)
+  that gives two agents independently role-filtered turns, commits one bounded
+  decision per faction, resolves both simultaneously and binds provider identity,
+  usage, outcomes and evidence-gated scores into one canonical audit artifact;
 - a provider-neutral [synchronized faction epoch](docs/faction-benchmarks.md)
   that enforces disjoint party control, equal campaign-time turns, deterministic
   commit order, bounded engine-clock advancement, evidence-gated scenario scoring
@@ -83,7 +87,7 @@ The current evidence index and final video ledger live in
 ## Installable toolkit
 
 The current Python package is `warband-agentic-kit` 0.2.0. A development install
-provides ten commands:
+provides twelve commands:
 
 ```bash
 uv sync
@@ -94,6 +98,7 @@ uv run warband-mcp
 uv run warband-agent-mcp
 uv run warband-voice --help
 uv run warband-agent-usability --help
+uv run warband-faction-arena --help
 uv run warband-benchmark --help
 uv run warband-benchmark-run --help
 uv run warband-provider-opencode --help

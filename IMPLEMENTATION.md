@@ -1140,3 +1140,27 @@ not play sound or claim a live Warband/Kokoro/PipeWire run.
 Separated discovery passes **296 tests**: 139 root, 107 bridge and 50
 module-system. No external model, voice model, speaker output or Warband process
 was launched for this slice.
+
+## Deterministic two-faction model arena
+
+`warband_agentic.faction_arena` composes the production role filter, leases,
+capability registry, constrained sessions, synchronized epoch, provider receipts
+and evidence-gated scorer into one deterministic Swadia-versus-Vaegirs
+acceptance fixture. The installed `warband-faction-arena` command exports one
+private task at a time and resolves either bare decisions or provider-tagged
+receipts into canonical hashed reports. It does not launch Warband.
+
+An announced head-to-head sent independently filtered tasks to DeepSeek V4.1
+Flash through Pi and GPT-6 Luna through Codex. Both selected their exact current
+defend affordance; the normal contract path accepted both decisions and produced
+a 10-10 tie at campaign hour 101. Provider-reported BB wrapper usage exceeded
+the predeclared 8,192/512 token caps, so the equal-budget path correctly
+discarded both responses, committed two `no-decision` records and left the world
+unchanged. The evidence retains both replay inputs and both canonical report
+hashes rather than presenting the contract result as a successful fair-budget
+comparison.
+
+The repository's standard discovery command passes **188 tests**. The arena is
+one epoch and one deterministic simulator scenario; persistent model memory,
+successful lean-provider budget receipts and a live synchronized campaign remain
+open.

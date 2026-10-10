@@ -551,8 +551,9 @@ The kit is ready for an initial public developer release when:
       (authenticated HTTP round trip and real Kokoro WAV synthesis verified;
       host playback available but deliberately not exercised during proof).
 - [x] Build a deterministic restricted-agent usability fixture before launching
-      announced external models; three available requested models passed v1,
-      while DeepSeek 4.1 was unavailable and not substituted.
+      announced external models; Luna, Muse and Grok passed the original run,
+      and a corrective Pi/OpenCode Go run proved DeepSeek V4.1 Flash was also
+      available and passed the revision-recovery fixture.
 - [x] Add a Python-first constrained session and authenticated loopback API that
       keeps identity/lease/handler bindings private and filters session events.
 - [x] Add explicit trusted Python extension registration with versioned

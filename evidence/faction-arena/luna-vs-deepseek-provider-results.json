@@ -1,0 +1,54 @@
+{
+  "15": {
+    "assignment": {
+      "provider": "pi",
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "settings": {
+        "reasoning_level": "high",
+        "permission_mode": "full",
+        "tools_used": false
+      }
+    },
+    "response": {
+      "request_id": "deepseek-swadia-epoch-1",
+      "affordance_token": "arena-f15-token-2",
+      "arguments": {
+        "action": "defend",
+        "target_id": 2
+      },
+      "expected_revision": 1
+    },
+    "usage": {
+      "input_tokens": 24834,
+      "output_tokens": 712,
+      "elapsed_ms": 7977,
+      "cost_microusd": null
+    }
+  },
+  "16": {
+    "assignment": {
+      "provider": "codex",
+      "model": "gpt-6-luna",
+      "settings": {
+        "reasoning_level": "medium",
+        "permission_mode": "auto",
+        "tools_used": false
+      }
+    },
+    "response": {
+      "request_id": "luna-vaegirs-epoch-1",
+      "affordance_token": "arena-f16-token-2",
+      "arguments": {
+        "action": "defend",
+        "target_id": 1
+      },
+      "expected_revision": 1
+    },
+    "usage": {
+      "input_tokens": 20222,
+      "output_tokens": 73,
+      "elapsed_ms": 4182,
+      "cost_microusd": null
+    }
+  }
+}

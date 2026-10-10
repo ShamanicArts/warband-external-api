@@ -1,0 +1,20 @@
+{
+  "15": {
+    "request_id": "deepseek-swadia-epoch-1",
+    "affordance_token": "arena-f15-token-2",
+    "arguments": {
+      "action": "defend",
+      "target_id": 2
+    },
+    "expected_revision": 1
+  },
+  "16": {
+    "request_id": "luna-vaegirs-epoch-1",
+    "affordance_token": "arena-f16-token-2",
+    "arguments": {
+      "action": "defend",
+      "target_id": 1
+    },
+    "expected_revision": 1
+  }
+}
