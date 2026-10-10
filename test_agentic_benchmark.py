@@ -200,6 +200,39 @@ class SynchronizedFactionEpochTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "game time"):
             epoch.collect_turns()
 
+    def test_committed_checkpoint_resumes_without_resubmitting_decisions(self):
+        self.epoch.queue_observation_refreshes()
+        self.epoch.collect_turns()
+        self.epoch.commit_decisions(
+            {
+                15: {"request_id": "decision:15"},
+                16: {"request_id": "decision:16"},
+            }
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "epoch-12.checkpoint.json"
+            self.epoch.write_checkpoint(checkpoint)
+            self.calls.clear()
+            resumed = SynchronizedFactionEpoch.load_checkpoint(
+                checkpoint, self.apps
+            )
+            records = resumed.refresh_outcomes()
+            self.assertEqual(records[15]["outcome"]["state"], "observed")
+            self.assertEqual(
+                [call for call in self.calls if call[0] == "submit"], []
+            )
+            self.assertEqual(
+                [call for call in self.calls if call[0] == "outcome"],
+                [("outcome", 15, "decision:15")],
+            )
+
+            damaged = json.loads(checkpoint.read_text())
+            damaged["payload"]["campaign_game_time"] = 91
+            checkpoint.write_text(json.dumps(damaged))
+            with self.assertRaisesRegex(ValueError, "checksum"):
+                SynchronizedFactionEpoch.load_checkpoint(checkpoint, self.apps)
+
 
 if __name__ == "__main__":
     unittest.main()

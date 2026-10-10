@@ -1,6 +1,7 @@
 """Provider-neutral synchronized decision epochs for faction benchmarks."""
 
 import hashlib
+import hmac
 import json
 import os
 import tempfile
@@ -104,6 +105,8 @@ class SynchronizedFactionEpoch:
             context = turn.observation.context
             if context.kind is not ContextKind.CAMPAIGN:
                 raise ValueError("faction benchmark turn is not in campaign context")
+            if type(context.game_time) is not int or context.game_time < 0:
+                raise ValueError("faction benchmark turn has no valid engine time")
             game_times.add(context.game_time)
             scopes.add(context.scope_id)
             turns[faction_id] = to_wire(turn)
@@ -242,17 +245,133 @@ class SynchronizedFactionEpoch:
             raise RuntimeError("only a resolved epoch can be persisted")
         if self._campaign_advance is None:
             raise RuntimeError("epoch has no completed campaign advance")
+        return self._atomic_write(path, self.transcript(), "transcript")
+
+    def write_checkpoint(self, path):
+        """Persist a committed/resolved coordinator state without replaying it."""
+        if self.state not in (
+            BenchmarkEpochState.COMMITTED,
+            BenchmarkEpochState.RESOLVED,
+        ):
+            raise RuntimeError("checkpoint requires committed decisions")
+        payload = self.transcript()
+        canonical = json.dumps(
+            payload, allow_nan=False, separators=(",", ":"), sort_keys=True
+        ).encode()
+        return self._atomic_write(
+            path,
+            {
+                "schema": "warband.agentic/benchmark-checkpoint/v1",
+                "payload_sha256": hashlib.sha256(canonical).hexdigest(),
+                "payload": payload,
+            },
+            "checkpoint",
+        )
+
+    @classmethod
+    def load_checkpoint(cls, path, applications):
+        """Restore coordinator state; constrained sessions restore action state."""
+        target = Path(path)
+        try:
+            wrapper = json.loads(target.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError("Cannot read benchmark checkpoint") from exc
+        if not isinstance(wrapper, dict) or set(wrapper) != {
+            "schema",
+            "payload_sha256",
+            "payload",
+        }:
+            raise ValueError("Invalid benchmark checkpoint fields")
+        if wrapper["schema"] != "warband.agentic/benchmark-checkpoint/v1":
+            raise ValueError("Unsupported benchmark checkpoint schema")
+        payload = wrapper["payload"]
+        if not isinstance(payload, dict):
+            raise ValueError("Invalid benchmark checkpoint payload")
+        canonical = json.dumps(
+            payload, allow_nan=False, separators=(",", ":"), sort_keys=True
+        ).encode()
+        if not isinstance(wrapper["payload_sha256"], str) or not hmac.compare_digest(
+            wrapper["payload_sha256"], hashlib.sha256(canonical).hexdigest()
+        ):
+            raise ValueError("Benchmark checkpoint checksum does not match")
+        expected = {
+            "schema",
+            "epoch_id",
+            "state",
+            "run_metadata",
+            "campaign_game_time",
+            "turn_set_sha256",
+            "refresh_jobs",
+            "turns",
+            "decisions",
+            "decision_records",
+            "campaign_advance",
+        }
+        if set(payload) != expected:
+            raise ValueError("Invalid benchmark checkpoint payload fields")
+        if payload["schema"] != "warband.agentic/benchmark-epoch/v1":
+            raise ValueError("Unsupported benchmark epoch schema")
+        try:
+            state = BenchmarkEpochState(payload["state"])
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Invalid benchmark checkpoint state") from exc
+        if state not in (
+            BenchmarkEpochState.COMMITTED,
+            BenchmarkEpochState.RESOLVED,
+        ):
+            raise ValueError("Benchmark checkpoint is not safely resumable")
+        epoch = cls(
+            payload["epoch_id"],
+            applications,
+            run_metadata=payload["run_metadata"],
+        )
+        faction_ids = set(epoch._applications)
+
+        def faction_map(name, *, optional=False):
+            value = payload[name]
+            if optional and value is None:
+                return None
+            if not isinstance(value, dict):
+                raise ValueError(f"Checkpoint {name} must be an object")
+            try:
+                converted = {int(key): item for key, item in value.items()}
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"Checkpoint {name} has invalid faction IDs") from exc
+            if set(converted) != faction_ids or len(converted) != len(value):
+                raise ValueError(
+                    f"Checkpoint {name} factions do not match applications"
+                )
+            return converted
+
+        turns = faction_map("turns")
+        turn_canonical = json.dumps(
+            turns, allow_nan=False, separators=(",", ":"), sort_keys=True
+        ).encode()
+        turn_hash = hashlib.sha256(turn_canonical).hexdigest()
+        if payload["turn_set_sha256"] != turn_hash:
+            raise ValueError("Checkpoint turn-set hash does not match")
+        epoch.state = state
+        epoch._refresh_jobs = faction_map("refresh_jobs")
+        epoch._turns = turns
+        epoch._turn_set_sha256 = turn_hash
+        game_time = payload["campaign_game_time"]
+        if type(game_time) is not int or game_time < 0:
+            raise ValueError("Checkpoint campaign game time is invalid")
+        epoch._campaign_game_time = game_time
+        epoch._decisions = faction_map("decisions")
+        epoch._records = faction_map("decision_records")
+        epoch._campaign_advance = _json_copy(
+            payload["campaign_advance"], "campaign advance"
+        )
+        return epoch
+
+    @staticmethod
+    def _atomic_write(path, value, label):
         target = Path(path)
         if not target.name or not target.parent.is_dir():
-            raise ValueError("transcript parent directory must already exist")
+            raise ValueError(f"{label} parent directory must already exist")
         payload = (
-            json.dumps(
-                self.transcript(),
-                allow_nan=False,
-                indent=2,
-                sort_keys=True,
-            )
-            + "\n"
+            json.dumps(value, allow_nan=False, indent=2, sort_keys=True) + "\n"
         )
         descriptor, temporary_name = tempfile.mkstemp(
             dir=target.parent,

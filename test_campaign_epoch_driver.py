@@ -73,6 +73,42 @@ class CampaignEpochDriverTests(unittest.TestCase):
         self.assertEqual(completed.elapsed_hours, 1)
         self.assertTrue(completed.stop_acknowledged)
 
+    def test_checkpoint_restores_existing_wait_without_starting_another(self):
+        self.driver.begin(hours=1, speed=2)
+        checkpoint = self.driver.checkpoint()
+        restored = CampaignEpochDriver.restore(self.store, checkpoint)
+
+        self.assertEqual(restored.checkpoint(), checkpoint)
+        command_count = self.store.db.execute(
+            "SELECT count(*) FROM commands"
+        ).fetchone()[0]
+        fields = self.store.poll(self.query).split("|")
+        start_command_id = int(fields[2])
+        self.assertEqual(start_command_id, checkpoint["start_command_id"])
+        self.assertEqual(
+            self.store.db.execute("SELECT count(*) FROM commands").fetchone()[0],
+            command_count,
+        )
+
+        self.store.poll(campaign_telemetry(ack=start_command_id, clock=91))
+        self.assertIs(restored.status().state, CampaignAdvanceState.TARGET_REACHED)
+        restored.request_stop()
+        stop_checkpoint = restored.checkpoint()
+        restored = CampaignEpochDriver.restore(self.store, stop_checkpoint)
+        before_repeat_stop = self.store.db.execute(
+            "SELECT count(*) FROM commands"
+        ).fetchone()[0]
+        restored.request_stop()
+        self.assertEqual(
+            self.store.db.execute("SELECT count(*) FROM commands").fetchone()[0],
+            before_repeat_stop,
+        )
+        stop_command_id = int(
+            self.store.poll(campaign_telemetry(clock=91)).split("|")[2]
+        )
+        self.store.poll(campaign_telemetry(ack=stop_command_id, clock=91))
+        self.assertIs(restored.status().state, CampaignAdvanceState.COMPLETE)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -659,9 +659,9 @@ invalid model response cannot disappear from the benchmark record.
 The transcript also carries caller-supplied JSON run metadata for module/save
 hashes, seed, model settings, budgets and costs. The coordinator does not invoke
 providers, expose private application objects or let response latency advance
-game time. Fixed-time campaign driving, safe rest stop, checkpoint persistence,
-resume, metrics/scoring and announced external-model runs remain separate future
-layers. Three coordinator tests bring separated discovery to **229 tests**: 95
+game time. At that slice, fixed-time campaign driving, safe rest stop, checkpoint
+persistence, resume, metrics/scoring and announced external-model runs remained
+separate future layers. Three coordinator tests bring separated discovery to **229 tests**: 95
 root, 86 bridge and 48 module-system.
 
 `CampaignEpochDriver` now provides the bounded time-advance half of that contract
@@ -672,8 +672,8 @@ completion. The coordinator only accepts a matching completed advance after all
 faction actions resolve, validates its clock arithmetic and stop proof, and can
 then atomically persist canonical transcript JSON. The bridge-simulated driver
 test raises separated discovery to **230 tests**: 96 root, 86 bridge and 48
-module-system. Live multi-faction orchestration, save/checkpoint recovery and
-strategic scoring remain open.
+module-system. At that slice, live multi-faction orchestration, save/checkpoint
+recovery and strategic scoring remained open.
 
 ## Installable Python distribution
 
@@ -706,5 +706,20 @@ action-to-bridge-command mapping. Restart tests continue queued command lifecycl
 promote later game evidence, and preserve NPC voice handoff text while asserting
 that no duplicate command is inserted. This raises separated discovery to **237
 tests**: 103 root, 86 bridge and 48 module-system. Recovery is bridge-simulated;
-live process-restart acceptance, multi-session hosting and benchmark checkpoint
-resume remain open.
+live process-restart acceptance and multi-session hosting remain open.
+
+## Benchmark coordinator checkpoints
+
+Committed and resolved faction epochs now write atomic checksummed coordinator
+checkpoints and strictly reload only when the epoch schema, faction set and frozen
+turn hash match. Reloading reconstructs decisions and records but never calls
+`submit`; recovered constrained sessions remain the source of action outcomes.
+Refreshing/collecting phases are intentionally non-resumable because their jobs
+and affordance tokens are time-sensitive.
+
+`CampaignEpochDriver` separately checkpoints the original Native wait and stop
+command IDs plus clock bounds. Restore validates command kind and exact arguments
+against the durable Store, then continues status/stop handling without queuing a
+second wait or stop. Two regression tests raise separated discovery to **239
+tests**: 105 root, 86 bridge and 48 module-system. Live game-process/save recovery,
+scenario metrics and external-provider scheduling remain open.

@@ -131,6 +131,69 @@ class CampaignEpochDriver:
             reason,
         )
 
+    def checkpoint(self):
+        if self._start_command_id is None:
+            raise RuntimeError("campaign epoch advance has not started")
+        return {
+            "schema": "warband.agentic/campaign-advance-checkpoint/v1",
+            "epoch_id": self.epoch_id,
+            "start_clock": self._start_clock,
+            "target_clock": self._target_clock,
+            "start_command_id": self._start_command_id,
+            "stop_command_id": self._stop_command_id,
+        }
+
+    @classmethod
+    def restore(cls, store, checkpoint):
+        expected = {
+            "schema",
+            "epoch_id",
+            "start_clock",
+            "target_clock",
+            "start_command_id",
+            "stop_command_id",
+        }
+        if not isinstance(checkpoint, dict) or set(checkpoint) != expected:
+            raise ValueError("Invalid campaign advance checkpoint fields")
+        if checkpoint["schema"] != (
+            "warband.agentic/campaign-advance-checkpoint/v1"
+        ):
+            raise ValueError("Unsupported campaign advance checkpoint schema")
+        for name in ("start_clock", "target_clock", "start_command_id"):
+            if type(checkpoint[name]) is not int or checkpoint[name] < 0:
+                raise ValueError(f"Campaign advance {name} is invalid")
+        stop_id = checkpoint["stop_command_id"]
+        if stop_id is not None and (type(stop_id) is not int or stop_id < 0):
+            raise ValueError("Campaign advance stop_command_id is invalid")
+        hours = checkpoint["target_clock"] - checkpoint["start_clock"]
+        if not 1 <= hours <= 24:
+            raise ValueError("Campaign advance checkpoint has invalid clock bounds")
+        driver = cls(store, checkpoint["epoch_id"])
+        start = store.command(checkpoint["start_command_id"])
+        arguments = start.get("arguments", {})
+        if (
+            start.get("kind") != "campaign_wait"
+            or arguments.get("hours") != hours
+            or type(arguments.get("speed")) is not int
+            or not 1 <= arguments["speed"] <= 5
+        ):
+            raise ValueError("Campaign advance start command does not match checkpoint")
+        if stop_id is not None:
+            stop = store.command(stop_id)
+            if (
+                stop_id == checkpoint["start_command_id"]
+                or stop.get("kind") != "campaign_wait"
+                or stop.get("arguments") != {"hours": 0, "speed": 1}
+            ):
+                raise ValueError(
+                    "Campaign advance stop command does not match checkpoint"
+                )
+        driver._start_clock = checkpoint["start_clock"]
+        driver._target_clock = checkpoint["target_clock"]
+        driver._start_command_id = checkpoint["start_command_id"]
+        driver._stop_command_id = stop_id
+        return driver
+
     def _campaign_snapshot(self):
         snapshot = self.store.snapshot()
         if (
