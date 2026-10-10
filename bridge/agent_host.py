@@ -21,9 +21,11 @@ from warband_agentic.extensions import (
     ExtensionRegistry,
     load_named_extension_entry_points,
 )
-from warband_agentic.voice import SpeechRequest, VoiceDelivery
+from warband_agentic.voice import SpeechRequest, VoiceDelivery, VoiceOutcome
+from warband_agentic.voice_http import VoiceHttpClient, VoiceHttpError
 
-HOST_CONFIG_SCHEMA = "warband.agentic/host-config/v1"
+HOST_CONFIG_SCHEMA_V1 = "warband.agentic/host-config/v1"
+HOST_CONFIG_SCHEMA = "warband.agentic/host-config/v2"
 HOST_DIAGNOSTICS_SCHEMA = "warband.agentic/host-diagnostics/v1"
 EXPECTED_PROTOCOL = 2
 EXPECTED_INTEGRATION_REVISION = 16
@@ -57,6 +59,15 @@ class ControlHostPlan:
 
 
 @dataclass(frozen=True, slots=True)
+class VoiceHostPlan:
+    endpoint: str
+    token_file: Path
+    token: str
+    timeout_ms: int
+    port: int
+
+
+@dataclass(frozen=True, slots=True)
 class AgentHostPlan:
     bridge: BridgeHostPlan
     control: ControlHostPlan
@@ -65,6 +76,7 @@ class AgentHostPlan:
     module_protocol: int
     integration_revision: int
     extensions: ExtensionRegistry
+    voice: VoiceHostPlan | None = None
 
     def diagnostics(self):
         return {
@@ -76,6 +88,7 @@ class AgentHostPlan:
             },
             "bridge": {"host": "127.0.0.1", "port": self.bridge.port},
             "control": {"host": "127.0.0.1", "port": self.control.port},
+            "voice": _voice_diagnostics(self.voice),
             "extensions": list(self.extensions.summaries()),
             "sessions": [
                 {
@@ -150,6 +163,42 @@ def _port(value, label):
     return value
 
 
+def _voice_diagnostics(plan_or_client):
+    if plan_or_client is None:
+        return {"configured": False}
+    endpoint = urlparse(plan_or_client.endpoint)
+    return {
+        "configured": True,
+        "host": endpoint.hostname,
+        "port": endpoint.port,
+    }
+
+
+def _voice_endpoint(value):
+    if not isinstance(value, str):
+        raise ValueError("voice endpoint must be a string")
+    parsed = urlparse(value)
+    if (
+        parsed.scheme != "http"
+        or parsed.hostname != "127.0.0.1"
+        or parsed.port is None
+        or parsed.path != "/v1/voice/speech"
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError("voice endpoint must be loopback /v1/voice/speech")
+    _port(parsed.port, "voice endpoint port")
+    return value, parsed.port
+
+
+def _timeout_ms(value, label):
+    if type(value) is not int or not 100 <= value <= 120_000:
+        raise ValueError(f"{label} must be from 100 through 120000 ms")
+    return value
+
+
 def _identifier(value, label):
     if not isinstance(value, str) or not value.strip() or len(value) > 128:
         raise ValueError(f"{label} must be 1-128 characters")
@@ -195,13 +244,21 @@ def load_agent_host_plan(path, extensions=None):
         raise TypeError("extensions must be an ExtensionRegistry")
     config_path = Path(path).resolve()
     config = _read_json(config_path, "host configuration", 256 * 1024)
-    _exact_fields(
-        config,
-        ("schema", "bridge", "control", "events_database", "sessions"),
-        "host configuration",
-    )
-    if config["schema"] != HOST_CONFIG_SCHEMA:
+    schema = config.get("schema")
+    if schema == HOST_CONFIG_SCHEMA_V1:
+        fields = ("schema", "bridge", "control", "events_database", "sessions")
+    elif schema == HOST_CONFIG_SCHEMA:
+        fields = (
+            "schema",
+            "bridge",
+            "control",
+            "voice",
+            "events_database",
+            "sessions",
+        )
+    else:
         raise ValueError("Unsupported host configuration schema")
+    _exact_fields(config, fields, "host configuration")
     bridge = config["bridge"]
     _exact_fields(
         bridge,
@@ -277,6 +334,25 @@ def load_agent_host_plan(path, extensions=None):
         control_token,
         _port(control["port"], "control port"),
     )
+    voice_plan = None
+    if schema == HOST_CONFIG_SCHEMA:
+        voice = config["voice"]
+        _exact_fields(
+            voice,
+            ("endpoint", "token_file", "timeout_ms"),
+            "voice configuration",
+        )
+        endpoint, voice_port = _voice_endpoint(voice["endpoint"])
+        voice_token_file, voice_token = _read_token(
+            base, voice["token_file"], "voice token file"
+        )
+        voice_plan = VoiceHostPlan(
+            endpoint,
+            voice_token_file,
+            voice_token,
+            _timeout_ms(voice["timeout_ms"], "voice timeout"),
+            voice_port,
+        )
     sessions = config["sessions"]
     if not isinstance(sessions, list) or not 1 <= len(sessions) <= 32:
         raise ValueError("sessions must contain 1-32 entries")
@@ -288,11 +364,15 @@ def load_agent_host_plan(path, extensions=None):
     if len(session_ids) != len(set(session_ids)):
         raise ValueError("session IDs must be unique")
     ports = [bridge_plan.port, control_plan.port, *(plan.port for plan in plans)]
+    if voice_plan is not None:
+        ports.append(voice_plan.port)
     if len(ports) != len(set(ports)):
-        raise ValueError("bridge and session ports must be unique")
+        raise ValueError("host service ports must be unique")
     tokens = [bridge_plan.token, control_plan.token, *(plan.token for plan in plans)]
+    if voice_plan is not None:
+        tokens.append(voice_plan.token)
     if len(tokens) != len(set(tokens)):
-        raise ValueError("bridge and session tokens must be distinct")
+        raise ValueError("host service tokens must be distinct")
     control_claims = {}
     for plan in plans:
         for claim in extensions.control_claims(plan.kind, plan.settings):
@@ -313,16 +393,28 @@ def load_agent_host_plan(path, extensions=None):
         build["protocol"],
         build["integration_revision"],
         extensions,
+        voice_plan,
     )
 
 
 class AgentApplicationHost:
     """Own one game bridge and the configured constrained session servers."""
 
-    def __init__(self, plan):
+    def __init__(self, plan, *, voice_client=None):
         if not isinstance(plan, AgentHostPlan):
             raise TypeError("plan must be an AgentHostPlan")
+        if voice_client is not None and not isinstance(voice_client, VoiceHttpClient):
+            raise TypeError("voice_client must be a VoiceHttpClient")
+        if voice_client is not None and plan.voice is not None:
+            raise ValueError("voice_client conflicts with configured voice service")
         self.plan = plan
+        self._voice_client = voice_client
+        if self._voice_client is None and plan.voice is not None:
+            self._voice_client = VoiceHttpClient(
+                plan.voice.endpoint,
+                plan.voice.token,
+                timeout_ms=plan.voice.timeout_ms,
+            )
         self._lock = threading.RLock()
         self._ready = threading.Event()
         self._stopping = threading.Event()
@@ -487,6 +579,7 @@ class AgentApplicationHost:
                 if status in ("waiting-for-game", "ready")
                 else status,
             },
+            "voice": _voice_diagnostics(self._voice_client),
             "extensions": list(self.plan.extensions.summaries()),
             "sessions": sessions,
         }
@@ -581,6 +674,53 @@ class AgentApplicationHost:
         delivery,
         speed,
     ):
+        request = self._create_voice_request(
+            session_id,
+            action_request_id,
+            profile_id,
+            delivery,
+            speed,
+        )
+        return to_wire(request)
+
+    def dispatch_voice_request(
+        self,
+        session_id,
+        action_request_id,
+        profile_id,
+        delivery,
+        speed,
+    ):
+        if self._voice_client is None:
+            raise RuntimeError("application host has no voice service configured")
+        request = self._create_voice_request(
+            session_id,
+            action_request_id,
+            profile_id,
+            delivery,
+            speed,
+        )
+        outcome = self._voice_client.speak(request)
+        if not isinstance(outcome, VoiceOutcome):
+            raise TypeError("voice service returned an invalid outcome")
+        return {
+            "schema": "warband.agentic/host-voice-dispatch/v1",
+            "session_id": session_id,
+            "request_id": outcome.request_id,
+            "correlation_id": outcome.correlation_id,
+            "state": outcome.state.value,
+            "audio_id": outcome.audio_id,
+            "error": outcome.error,
+        }
+
+    def _create_voice_request(
+        self,
+        session_id,
+        action_request_id,
+        profile_id,
+        delivery,
+        speed,
+    ):
         if not isinstance(session_id, str) or not session_id:
             raise ValueError("session_id must be a non-empty string")
         with self._lock:
@@ -601,7 +741,7 @@ class AgentApplicationHost:
         )
         if not isinstance(request, SpeechRequest):
             raise TypeError("application returned an invalid voice request")
-        return to_wire(request)
+        return request
 
     def stop(self):
         with self._lock:
@@ -729,8 +869,9 @@ def make_host_control_server(host, token, bind_host="127.0.0.1", port=8879):
                         body["utterance_id"],
                         body["text"],
                     )
-                elif path.endswith("/voice-requests"):
-                    suffix = "/voice-requests"
+                elif path.endswith(("/voice-requests", "/voice-dispatches")):
+                    dispatch = path.endswith("/voice-dispatches")
+                    suffix = "/voice-dispatches" if dispatch else "/voice-requests"
                     session_id = unquote(path[len(prefix) : -len(suffix)])
                     length = int(self.headers.get("Content-Length", "0"))
                     if not 1 <= length <= 2048:
@@ -746,7 +887,12 @@ def make_host_control_server(host, token, bind_host="127.0.0.1", port=8879):
                         "speed",
                     }:
                         raise ValueError("Voice handoff fields do not match")
-                    result = host.prepare_voice_request(
+                    method = (
+                        host.dispatch_voice_request
+                        if dispatch
+                        else host.prepare_voice_request
+                    )
+                    result = method(
                         session_id,
                         body["action_request_id"],
                         body["profile_id"],
@@ -760,6 +906,8 @@ def make_host_control_server(host, token, bind_host="127.0.0.1", port=8879):
                 self.reply(status, result)
             except KeyError as exc:
                 self.reply(404, {"error": str(exc)})
+            except VoiceHttpError as exc:
+                self.reply(502, {"error": str(exc)})
             except RuntimeError as exc:
                 self.reply(409, {"error": str(exc)})
             except (TypeError, ValueError) as exc:

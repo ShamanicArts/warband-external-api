@@ -7,6 +7,9 @@ from urllib.request import Request, urlopen
 
 from warband_agentic import (
     AudioArtifact,
+    SpeechRequest,
+    VoiceDelivery,
+    VoiceHttpClient,
     VoiceProfile,
     VoiceService,
     make_voice_server,
@@ -33,11 +36,7 @@ class VoiceHttpTests(unittest.TestCase):
         self.adapter = Adapter()
         self.service = VoiceService(
             {"local": self.adapter},
-            (
-                VoiceProfile(
-                    "elder.calm", "Village elder", "local", "bm_george"
-                ),
-            ),
+            (VoiceProfile("elder.calm", "Village elder", "local", "bm_george"),),
             clock_ms=iter(range(1000, 1100)).__next__,
         )
         self.token = "a" * 64
@@ -101,12 +100,31 @@ class VoiceHttpTests(unittest.TestCase):
             [event["state"] for event in events["events"]],
             ["synthesizing", "ready"],
         )
-        _, lookup = self.request(
-            "/v1/voice/requests/" + quote("speech:1", safe="")
-        )
+        _, lookup = self.request("/v1/voice/requests/" + quote("speech:1", safe=""))
         self.assertEqual(lookup, outcome)
         _, audio = self.request("/v1/voice/audio/" + quote("audio:one", safe=""))
         self.assertTrue(audio.startswith(b"RIFF"))
+
+    def test_client_dispatches_a_typed_request_and_validates_the_outcome(self):
+        client = VoiceHttpClient(
+            self.base + "/v1/voice/speech", self.token, timeout_ms=2_000
+        )
+        request = SpeechRequest(
+            "speech:client:1",
+            "The road to Suno is unsafe.",
+            "elder.calm",
+            VoiceDelivery.SYNTHESIZE_ONLY,
+            correlation_id="action:npc-turn:1",
+        )
+
+        outcome = client.speak(request)
+
+        self.assertEqual(outcome.request_id, "speech:client:1")
+        self.assertEqual(outcome.state.value, "ready")
+        self.assertEqual(outcome.correlation_id, "action:npc-turn:1")
+        self.assertEqual(outcome.audio_id, "audio:one")
+        self.assertEqual(self.adapter.calls, 1)
+        self.assertNotIn(self.token, repr(client))
 
     def test_malformed_or_expansive_requests_are_rejected(self):
         with self.assertRaises(HTTPError) as error:

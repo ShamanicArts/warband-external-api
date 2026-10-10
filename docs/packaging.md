@@ -41,6 +41,9 @@ artifact contents, installs the wheel into a temporary location, imports the
 runtime outside the checkout, and starts every non-MCP command through `--help`.
 The wheel also carries the host, benchmark, provider-adapter and voice example
 JSON under `share/warband-agentic-kit/examples`.
+The current host example uses host-config v2 and therefore needs a distinct
+private `voice.token` matching the separately started `warband-voice` service.
+Legacy v1 host configs remain valid and expose voice handoff without the relay.
 
 ## Build an isolated game module
 

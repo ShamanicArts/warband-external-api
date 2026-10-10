@@ -18,7 +18,9 @@ paths resolve from the configuration file, not the caller's working directory.
 
 Create every database parent directory and every token file first. Tokens must
 contain 64 lowercase hexadecimal characters, have no group/other permissions and
-be distinct for the game bridge, operator control and every agent session.
+be distinct for the game bridge, operator control, voice service and every agent
+session. Host-config v2 adds the authenticated loopback voice relay; v1 remains
+accepted as a handoff-only compatibility format.
 
 ```bash
 mkdir -p runtime
@@ -32,6 +34,9 @@ protocol 2 and integration revision 16, rejects port collisions, duplicate
 session IDs, more than one player-menu controller, and overlapping faction-party
 or NPC-agent ownership. Its JSON diagnostics contain no paths, tokens, private
 command IDs or handler names.
+For v2 it also validates an exact `http://127.0.0.1:<port>/v1/voice/speech`
+endpoint, bounded timeout and distinct private token without contacting or
+starting the voice service.
 It also requires the build manifest to provide the exact ID/version of every
 loaded extension marked as needing compiled module support. If any loaded bundle
 declares compiled operations, their full manifests must also exactly match the
@@ -99,8 +104,20 @@ POST /v1/host/sessions/{session_id}/voice-requests
 
 The exact body contains `action_request_id`, `profile_id`, `delivery` and
 `speed`. The response is a provider-neutral `SpeechRequest` ready for
-`POST /v1/voice/speech`; the application host does not hold voice-service
-credentials or synthesize/play audio itself.
+`POST /v1/voice/speech`.
+
+With host-config v2, the same trusted caller can request the complete relay:
+
+```text
+POST /v1/host/sessions/{session_id}/voice-dispatches
+```
+
+The host creates the same engine-evidence-gated request, authenticates to the
+separate loopback voice service and validates its bounded terminal outcome. The
+response reports request/correlation IDs, state, optional audio ID and error. A
+voice failure is reported but never changes or rolls back the dialogue outcome.
+The voice token stays in host memory and is never accepted from a request body or
+returned in diagnostics.
 
 Normal interruption closes every owned HTTP server, joins its threads, and closes
 both SQLite connections. It never starts Warband, Wine, Gamescope, a voice model
@@ -114,7 +131,8 @@ or an external agent.
   automatic loading or hot reload; JSON never names an import path.
 - Refresh scheduling is explicit host/runner policy. The host does not silently
   choose faction decision epochs or repeatedly scan an NPC scene.
-- Voice remains a separately authenticated host process. It is not co-hosted.
+- Voice remains a separately authenticated process. The optional v2 relay owns
+  only its loopback credential and bounded HTTP client; it does not co-host TTS.
 - The listeners are plaintext loopback interfaces; remote exposure is unsupported.
 - Runtime lifecycle is bridge-simulated. A live hardware-rendered multi-session
   acceptance run and final video evidence are still pending.

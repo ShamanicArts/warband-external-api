@@ -3,16 +3,29 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.request import Request, urlopen
 
-from bridge.agent_host import AgentApplicationHost, AgentHostPlan, load_agent_host_plan
+from bridge.agent_host import (
+    AgentApplicationHost,
+    AgentHostPlan,
+    VoiceHostPlan,
+    load_agent_host_plan,
+    make_host_control_server,
+)
 from bridge.application_extensions import built_in_extension_registry
 from bridge.native_npc_speech_app import NativeNpcSpeechApplication
 from test_agentic_extensions import example_extension, grant_gold_operation
-from warband_agentic import SpeechRequest
+from warband_agentic import (
+    AudioArtifact,
+    SpeechRequest,
+    VoiceProfile,
+    VoiceService,
+    make_voice_server,
+)
 
 
 def available_port():
@@ -22,6 +35,213 @@ def available_port():
 
 
 class AgentApplicationHostCliTests(unittest.TestCase):
+    def test_v2_plan_configures_loopback_voice_without_disclosing_credential(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            catalog = root / "mcp-catalog.json"
+            catalog.write_text(json.dumps({"menus": {}}))
+            build = root / "mcp-build.json"
+            build.write_text(
+                json.dumps(
+                    {
+                        "protocol": 2,
+                        "integration_revision": 16,
+                        "extensions": [
+                            {
+                                "extension_id": "warband.native",
+                                "version": "0.2.0",
+                            }
+                        ],
+                    }
+                )
+            )
+            tokens = {
+                "bridge": "a" * 64,
+                "control": "b" * 64,
+                "session": "c" * 64,
+                "voice": "d" * 64,
+            }
+            for name, token in tokens.items():
+                path = root / f"{name}.token"
+                path.write_text(token)
+                path.chmod(0o600)
+            ports = {
+                "bridge": available_port(),
+                "control": available_port(),
+                "session": available_port(),
+                "voice": available_port(),
+            }
+            while len(set(ports.values())) != len(ports):
+                ports = {name: available_port() for name in ports}
+            config = root / "host.json"
+            config.write_text(
+                json.dumps(
+                    {
+                        "schema": "warband.agentic/host-config/v2",
+                        "bridge": {
+                            "database": "bridge.sqlite3",
+                            "catalog": "mcp-catalog.json",
+                            "build_manifest": "mcp-build.json",
+                            "token_file": "bridge.token",
+                            "port": ports["bridge"],
+                        },
+                        "control": {
+                            "token_file": "control.token",
+                            "port": ports["control"],
+                        },
+                        "voice": {
+                            "endpoint": (
+                                f"http://127.0.0.1:{ports['voice']}/v1/voice/speech"
+                            ),
+                            "token_file": "voice.token",
+                            "timeout_ms": 15_000,
+                        },
+                        "events_database": "events.sqlite3",
+                        "sessions": [
+                            {
+                                "kind": "native-menu",
+                                "session_id": "player-menu",
+                                "token_file": "session.token",
+                                "port": ports["session"],
+                            }
+                        ],
+                    }
+                )
+            )
+
+            plan = load_agent_host_plan(config)
+            diagnostics = plan.diagnostics()
+
+            self.assertEqual(plan.voice.timeout_ms, 15_000)
+            self.assertEqual(
+                diagnostics["voice"],
+                {
+                    "configured": True,
+                    "host": "127.0.0.1",
+                    "port": ports["voice"],
+                },
+            )
+            serialized = json.dumps(diagnostics)
+            self.assertNotIn(tokens["voice"], serialized)
+            self.assertNotIn("voice.token", serialized)
+            self.assertEqual(
+                AgentApplicationHost(plan).runtime_diagnostics()["voice"],
+                diagnostics["voice"],
+            )
+
+    def test_operator_can_dispatch_engine_observed_speech_to_voice_service(self):
+        class Adapter:
+            def __init__(self):
+                self.calls = 0
+
+            def synthesize(self, request, profile, created_at_ms):
+                self.calls += 1
+                return AudioArtifact(
+                    "audio:host-dispatch",
+                    request.request_id,
+                    "audio/wav",
+                    b"RIFF\x00\x00\x00\x00WAVEdata",
+                    created_at_ms,
+                )
+
+        class Player:
+            def __init__(self):
+                self.audio_ids = []
+
+            def play(self, artifact):
+                self.audio_ids.append(artifact.audio_id)
+
+        adapter = Adapter()
+        player = Player()
+        voice = VoiceService(
+            {"local": adapter},
+            (VoiceProfile("trainer.default", "Trainer", "local", "bm_george"),),
+            player=player,
+            clock_ms=iter(range(1000, 1100)).__next__,
+        )
+        voice_server = make_voice_server(voice, "v" * 64, port=0)
+        voice_thread = threading.Thread(target=voice_server.serve_forever, daemon=True)
+        voice_thread.start()
+        plan = AgentHostPlan(
+            None,
+            None,
+            Path("unused-events.sqlite3"),
+            (),
+            2,
+            16,
+            built_in_extension_registry(),
+            VoiceHostPlan(
+                f"http://127.0.0.1:{voice_server.server_port}/v1/voice/speech",
+                Path("unused-voice.token"),
+                "v" * 64,
+                30_000,
+                voice_server.server_port,
+            ),
+        )
+        host = AgentApplicationHost(plan)
+        host._state = "ready"
+        host._applications = {
+            "trainer": SimpleNamespace(
+                voice_request=lambda request_id, profile_id, *, delivery, speed: (
+                    SpeechRequest(
+                        f"speech:action:{request_id}",
+                        "Caravans vanished near Suno.",
+                        profile_id,
+                        delivery,
+                        speed,
+                        correlation_id=f"action:{request_id}",
+                    )
+                )
+            )
+        }
+        control = make_host_control_server(host, "c" * 64, port=0)
+        control_thread = threading.Thread(target=control.serve_forever, daemon=True)
+        control_thread.start()
+        try:
+            request = Request(
+                (
+                    f"http://127.0.0.1:{control.server_port}"
+                    "/v1/host/sessions/trainer/voice-dispatches"
+                ),
+                data=json.dumps(
+                    {
+                        "action_request_id": "npc-turn:1",
+                        "profile_id": "trainer.default",
+                        "delivery": "play-host",
+                        "speed": 1.0,
+                    }
+                ).encode(),
+                method="POST",
+                headers={
+                    "Authorization": "Bearer " + "c" * 64,
+                    "Content-Type": "application/json",
+                },
+            )
+            with urlopen(request, timeout=2) as response:
+                result = json.load(response)
+                self.assertEqual(response.status, 200)
+            self.assertEqual(
+                result,
+                {
+                    "schema": "warband.agentic/host-voice-dispatch/v1",
+                    "session_id": "trainer",
+                    "request_id": "speech:action:npc-turn:1",
+                    "correlation_id": "action:npc-turn:1",
+                    "state": "played",
+                    "audio_id": "audio:host-dispatch",
+                    "error": None,
+                },
+            )
+            self.assertEqual(adapter.calls, 1)
+            self.assertEqual(player.audio_ids, ["audio:host-dispatch"])
+        finally:
+            control.shutdown()
+            control.server_close()
+            control_thread.join()
+            voice_server.shutdown()
+            voice_server.server_close()
+            voice_thread.join()
+
     def test_benchmark_bindings_expose_only_requested_ready_faction_apps(self):
         plan = AgentHostPlan(
             None,
@@ -157,6 +377,7 @@ class AgentApplicationHostCliTests(unittest.TestCase):
                     "module": {"protocol": 2, "integration_revision": 16},
                     "bridge": {"host": "127.0.0.1", "port": 8765},
                     "control": {"host": "127.0.0.1", "port": 8766},
+                    "voice": {"configured": False},
                     "extensions": [
                         {"extension_id": "warband.native", "version": "0.2.0"}
                     ],

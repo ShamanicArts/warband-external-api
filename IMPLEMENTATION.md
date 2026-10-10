@@ -1114,3 +1114,29 @@ reading and deletion, and exposed/fixed incorrect path-parameter encoding. The
 experimental wait route was not meaningful on an idle session; prompt/wait/usage
 remain fake-service tested until an announced model run. No external provider API,
 model inference, BB agent, Warband process or voice service was invoked.
+
+## Evidence-gated host voice relay
+
+Host-config v2 now adds one separately authenticated loopback voice-service
+target while retaining v1 handoff-only compatibility. Check mode validates the
+exact `/v1/voice/speech` route, timeout, credential permissions and cross-service
+port/token uniqueness without contacting the voice process. Runtime diagnostics
+show only configured host/port state; the credential remains private.
+
+`VoiceHttpClient` sends the existing typed `SpeechRequest` without proxies or
+redirects, bounds and strictly decodes the response, checks request/profile/
+delivery/correlation identity and accepts only terminal voice states. The operator
+`/voice-dispatches` endpoint composes that client with the existing requirement
+that Warband first observe the NPC line. Voice failure remains separate from game
+truth. The older `/voice-requests` handoff remains available.
+
+The first red integration test exposed a real contract mismatch: host handoff
+included the contract `schema`, while the voice server rejected that same field
+despite documentation saying the payload could be posted unchanged. The server
+now accepts and validates it. An in-process two-service test exercises the full
+authenticated `play-host` route through a fake synthesizer and audio sink; it does
+not play sound or claim a live Warband/Kokoro/PipeWire run.
+
+Separated discovery passes **296 tests**: 139 root, 107 bridge and 50
+module-system. No external model, voice model, speaker output or Warband process
+was launched for this slice.

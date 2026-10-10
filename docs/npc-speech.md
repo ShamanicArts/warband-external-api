@@ -53,7 +53,10 @@ Content-Type: application/json
 
 The returned JSON is the exact provider-neutral request accepted by
 `POST /v1/voice/speech`. The two services keep separate tokens and lifecycle
-truth; callers may choose synthesis-only or host playback.
+truth; callers may choose synthesis-only or host playback. A host-config v2
+deployment can instead call `/voice-dispatches` at the same session path to have
+the application host perform that authenticated relay and return the validated
+terminal voice outcome.
 
 With a `SemanticEventLog`, restart recovery restores the exact action outcome and
 private bridge command correlation without replay. A later Warband dialogue event
@@ -109,7 +112,8 @@ and one session is capped at 64 player/NPC turns.
 
 Every NPC response still uses the existing one-turn custom speech path with a
 fixed Native return choice. The persistent loop does not yet provide an in-game
-text-entry UI, speech recognition, automatic voice dispatch, remote execution of
+text-entry UI, speech recognition, policy-triggered automatic voice dispatch,
+remote execution of
 original Native choices, NPC-to-NPC dialogue, long-term character memory or a
 mechanical-proposal system. Those layers can feed or consume this host contract
 without receiving bridge credentials.

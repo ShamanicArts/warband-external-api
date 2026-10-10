@@ -25,8 +25,9 @@ Current foundations include:
   reviewed orders into engine-observed outcomes without exposing world control;
 - a constrained [NPC speech application](docs/npc-speech.md) that binds one
   freshly scanned scene agent to bounded dialogue, then creates an optional host
-  voice request only after Warband reports the utterance, plus a durable
-  host-fed player/NPC conversation loop for later in-game text or speech input;
+  voice request only after Warband reports the utterance, with an optional
+  authenticated relay to the separate voice service, plus a durable host-fed
+  player/NPC conversation loop for later in-game text or speech input;
 - a trusted [Python extension SDK](docs/extension-sdk.md) with versioned
   declarations, collision checks, validated settings, explicit factories and
   scoped access to reviewed game-operation families, including exact-ID installed
@@ -40,7 +41,7 @@ Current foundations include:
   source idempotency and honest migration of terminal command/dialogue history;
 - an authenticated, loopback-only [host voice service](docs/voice.md) with named
   public profiles, a local Kokoro adapter, optional PipeWire playback, lifecycle
-  events and bounded audio retrieval;
+  events, bounded audio retrieval and a strict host-config v2 client;
 - a deterministic [restricted-agent usability fixture](docs/agent-usability.md)
   for later announced cross-model interface tests;
 - a provider-neutral [synchronized faction epoch](docs/faction-benchmarks.md)

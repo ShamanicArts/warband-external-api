@@ -136,7 +136,12 @@ from warband_agentic.voice import (
     VoiceState,
     voice_outcome_manifest,
 )
-from warband_agentic.voice_http import make_voice_server
+from warband_agentic.voice_http import (
+    VoiceHttpClient,
+    VoiceHttpError,
+    make_voice_server,
+    voice_outcome_from_manifest,
+)
 
 __all__ = [
     "CONTRACT_VERSION",
@@ -222,6 +227,8 @@ __all__ = [
     "UsabilityEvaluation",
     "VoiceDelivery",
     "VoiceEvent",
+    "VoiceHttpClient",
+    "VoiceHttpError",
     "VoiceOutcome",
     "VoiceProfile",
     "VoiceService",
@@ -251,4 +258,5 @@ __all__ = [
     "score_scenario",
     "to_wire",
     "voice_outcome_manifest",
+    "voice_outcome_from_manifest",
 ]

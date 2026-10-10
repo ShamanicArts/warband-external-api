@@ -1,5 +1,5 @@
 {
-  "schema": "warband.agentic/host-config/v1",
+  "schema": "warband.agentic/host-config/v2",
   "bridge": {
     "database": "../runtime/bridge.sqlite3",
     "catalog": "/path/to/Modules/WarbandMCP/mcp-catalog.json",
@@ -11,19 +11,24 @@
     "token_file": "../runtime/host-control.token",
     "port": 8879
   },
+  "voice": {
+    "endpoint": "http://127.0.0.1:8870/v1/voice/speech",
+    "token_file": "../runtime/voice.token",
+    "timeout_ms": 30000
+  },
   "events_database": "../runtime/agentic-events.sqlite3",
   "sessions": [
     {
       "kind": "native-menu",
       "session_id": "player-menu",
       "token_file": "../runtime/player-menu.token",
-      "port": 8869
+      "port": 8890
     },
     {
       "kind": "native-faction",
       "session_id": "swadia",
       "token_file": "../runtime/swadia.token",
-      "port": 8870,
+      "port": 8891,
       "faction_id": 15,
       "controlled_party_ids": [500],
       "order_options": [
@@ -36,17 +41,17 @@
       ]
     },
     {
-      "kind": "native-npc-speech",
+      "kind": "native-npc-dialogue",
       "session_id": "trainer",
       "token_file": "../runtime/trainer.token",
-      "port": 8871,
+      "port": 8892,
       "agent_id": 7
     },
     {
       "kind": "native-faction",
       "session_id": "vaegirs",
       "token_file": "../runtime/vaegirs.token",
-      "port": 8872,
+      "port": 8893,
       "faction_id": 16,
       "controlled_party_ids": [600],
       "order_options": [

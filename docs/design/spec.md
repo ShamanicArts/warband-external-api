@@ -329,8 +329,10 @@ durable artifact recovery are future protocol extensions, not current claims.
 Credentials and provider configuration stay outside the game module and evidence
 artifacts. The first adapter uses the user's loopback OpenAI-compatible Kokoro
 `/v1/audio/speech` endpoint and optional PipeWire playback. The HTTP facade is
-bearer-authenticated and refuses non-loopback binds. Dialogue-event wiring remains
-application work; audio is not part of game truth.
+bearer-authenticated and refuses non-loopback binds. The packaged host can relay
+an engine-observed dialogue utterance through a separately authenticated loopback
+voice service; policy-triggered dispatch remains application work, and audio is
+not part of game truth.
 
 ## 13. Faction agents and benchmark harness
 

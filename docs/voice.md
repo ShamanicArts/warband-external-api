@@ -63,6 +63,8 @@ implemented.
 `SpeechRequest` only after Warband reports the corresponding NPC dialogue event.
 The packaged application host exposes that handoff at
 `POST /v1/host/sessions/{session_id}/voice-requests`; its response can be posted
-unchanged to `POST /v1/voice/speech`. The services deliberately retain separate
-tokens and failure domains. Actual host playback has not yet been exercised
-through this integrated path.
+unchanged to `POST /v1/voice/speech`. Host-config v2 also exposes
+`POST /v1/host/sessions/{session_id}/voice-dispatches`, which performs that relay
+with a private loopback credential and validates the terminal outcome. The
+services deliberately retain separate tokens and failure domains. Actual host
+playback has not yet been exercised through this integrated path.
