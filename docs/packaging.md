@@ -18,6 +18,7 @@ uv run warband-build-module --help
 uv run warband-voice --help
 uv run warband-agent-usability --help
 uv run warband-benchmark --help
+uv run warband-benchmark-run --help
 ```
 
 The MCP command is `uv run warband-mcp`. It uses stdio and expects
@@ -37,8 +38,8 @@ uv build --wheel --out-dir dist dist/warband_agentic_kit-0.2.0.tar.gz
 `test_packaging.py` repeats that path, checks the locked project metadata and
 artifact contents, installs the wheel into a temporary location, imports the
 runtime outside the checkout, and starts every non-MCP command through `--help`.
-The wheel also carries the host, benchmark and voice example JSON under
-`share/warband-agentic-kit/examples`.
+The wheel also carries the host, benchmark, provider-adapter and voice example
+JSON under `share/warband-agentic-kit/examples`.
 
 ## Build an isolated game module
 

@@ -61,6 +61,12 @@ GET /v1/host/extensions
 The extension endpoint returns compatible declarations and safe resource claims,
 not Python factories, paths, tokens or live application objects.
 
+For an in-process benchmark only, `benchmark_bindings()` accepts the validated
+faction-to-session map and returns the shared Store plus exactly those matching
+faction applications. It is unavailable until the host is ready and rejects
+unknown, duplicate or faction-mismatched sessions. This trusted seam is consumed
+by [`warband-benchmark-run`](benchmark-runner.md); it is never exposed over HTTP.
+
 Faction and NPC observations require explicit fresh engine reads. A trusted host
 or benchmark runner queues them without exposing bridge command IDs:
 

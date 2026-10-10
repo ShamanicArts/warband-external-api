@@ -5,7 +5,7 @@ import os
 import subprocess
 import tempfile
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Mapping
 
@@ -23,8 +23,8 @@ _OUTPUT_LIMIT = 256 * 1024
 class SubprocessProviderAdapter:
     """One explicit argv and in-memory environment for a provider wrapper."""
 
-    argv: tuple[str, ...]
-    environment: Mapping[str, str]
+    argv: tuple[str, ...] = field(repr=False)
+    environment: Mapping[str, str] = field(repr=False)
 
     def __post_init__(self):
         argv = tuple(self.argv)

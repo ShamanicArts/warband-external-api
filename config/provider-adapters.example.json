@@ -1,0 +1,23 @@
+{
+  "schema": "warband.agentic/subprocess-adapters/v1",
+  "adapters": [
+    {
+      "provider": "openai",
+      "argv": [
+        "/absolute/path/to/openai-warband-wrapper"
+      ],
+      "pass_environment": [
+        "OPENAI_API_KEY"
+      ]
+    },
+    {
+      "provider": "cursor",
+      "argv": [
+        "/absolute/path/to/cursor-warband-wrapper"
+      ],
+      "pass_environment": [
+        "CURSOR_API_KEY"
+      ]
+    }
+  ]
+}

@@ -2,8 +2,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from bridge.agent_host import AgentApplicationHost, AgentHostPlan
+from bridge.application_extensions import built_in_extension_registry
 from bridge.benchmark_plan import BenchmarkParticipantPlan, FactionBenchmarkPlan
-from bridge.benchmark_runner import FactionBenchmarkRunner
+from bridge.benchmark_runner import (
+    FactionBenchmarkRunner,
+    build_host_benchmark_runner,
+)
 from bridge.faction_benchmark_harness import (
     FactionBenchmarkHarness,
     FactionBenchmarkHarnessState,
@@ -94,9 +99,18 @@ class FactionBenchmarkRunnerTests(unittest.TestCase):
             15: ProviderAssignment("provider-a", "model-a", {}),
             16: ProviderAssignment("provider-b", "model-b", {}),
         }
+        self.host_plan = AgentHostPlan(
+            None,
+            None,
+            Path("unused-events.sqlite3"),
+            (),
+            2,
+            16,
+            built_in_extension_registry(),
+        )
         self.plan = FactionBenchmarkPlan(
             "run:1",
-            object(),
+            self.host_plan,
             self.scenario,
             tuple(
                 BenchmarkParticipantPlan(
@@ -224,6 +238,53 @@ class FactionBenchmarkRunnerTests(unittest.TestCase):
         self.assertEqual(waiting.state, "running")
         self.assertIs(waiting.harness_state, FactionBenchmarkHarnessState.REFRESHING)
         self.assertIs(ready.harness_state, FactionBenchmarkHarnessState.DECISIONS)
+
+    def test_host_builder_binds_ready_resources_without_launching_any_process(self):
+        host = AgentApplicationHost(self.host_plan)
+        store = object()
+        host._store = store
+        host._state = "ready"
+        host._applications = {
+            "session:15": self.apps[15],
+            "session:16": self.apps[16],
+        }
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            checkpoint = root / "run.checkpoint.json"
+            report = root / "run.report.json"
+            runner = build_host_benchmark_runner(
+                self.plan,
+                host,
+                self.adapters,
+                checkpoint_path=checkpoint,
+                report_path=report,
+                metric_collector_factory=lambda _store, snapshot_id, **_kwargs: (
+                    FakeMetricCollector(
+                        self.baseline
+                        if snapshot_id.endswith(":baseline")
+                        else self.final
+                    )
+                ),
+                advance_driver_factory=FakeAdvanceDriver,
+                dispatcher_factory=OneReceiptPerPollDispatcher,
+            )
+
+            self.assertEqual(runner.status().state, "created")
+            self.assertIs(runner.harness.store, store)
+            self.assertEqual(list(runner.harness.applications), [15, 16])
+            checkpoint.write_text("occupied")
+            with self.assertRaisesRegex(ValueError, "already exists"):
+                build_host_benchmark_runner(
+                    self.plan,
+                    host,
+                    self.adapters,
+                    checkpoint_path=checkpoint,
+                    report_path=report,
+                    metric_collector_factory=lambda *_args, **_kwargs: None,
+                    advance_driver_factory=FakeAdvanceDriver,
+                    dispatcher_factory=OneReceiptPerPollDispatcher,
+                )
 
 
 if __name__ == "__main__":

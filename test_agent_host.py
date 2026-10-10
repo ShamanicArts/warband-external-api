@@ -5,9 +5,10 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from urllib.request import Request, urlopen
 
-from bridge.agent_host import AgentApplicationHost, load_agent_host_plan
+from bridge.agent_host import AgentApplicationHost, AgentHostPlan, load_agent_host_plan
 from bridge.application_extensions import built_in_extension_registry
 from bridge.native_npc_speech_app import NativeNpcSpeechApplication
 from test_agentic_extensions import example_extension, grant_gold_operation
@@ -21,6 +22,39 @@ def available_port():
 
 
 class AgentApplicationHostCliTests(unittest.TestCase):
+    def test_benchmark_bindings_expose_only_requested_ready_faction_apps(self):
+        plan = AgentHostPlan(
+            None,
+            None,
+            Path("unused-events.sqlite3"),
+            (),
+            2,
+            16,
+            built_in_extension_registry(),
+        )
+        host = AgentApplicationHost(plan)
+        store = object()
+        host._store = store
+        host._state = "ready"
+        host._applications = {
+            "swadia": SimpleNamespace(faction_id=15),
+            "vaegirs": SimpleNamespace(faction_id=16),
+            "trainer": SimpleNamespace(agent_id=7),
+        }
+
+        bindings = host.benchmark_bindings({16: "vaegirs", 15: "swadia"})
+
+        self.assertIs(bindings.store, store)
+        self.assertEqual(list(bindings.applications), [15, 16])
+        self.assertIs(bindings.applications[15], host._applications["swadia"])
+        with self.assertRaises(TypeError):
+            bindings.applications[17] = object()
+        with self.assertRaisesRegex(ValueError, "faction"):
+            host.benchmark_bindings({15: "vaegirs", 16: "swadia"})
+        host._state = "waiting-for-game"
+        with self.assertRaisesRegex(RuntimeError, "not ready"):
+            host.benchmark_bindings({15: "swadia", 16: "vaegirs"})
+
     def test_check_validates_three_session_plan_without_side_effects_or_secrets(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

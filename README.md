@@ -58,7 +58,8 @@ Current foundations include:
   audited failures but no embedded model SDK;
 - a restart-safe [non-blocking benchmark runner](docs/benchmark-runner.md) that
   composes validated plans, frozen turns, provider dispatch, campaign epochs,
-  automatic checkpoints and final reports without launching the game itself;
+  automatic checkpoints and final reports without launching the game itself,
+  plus a hash-acknowledged live command that refuses unreviewed execution;
 - a [GPU-safe off-screen test harness](bridge/CUA_RUNBOOK.md) that pins Gamescope
   to a physical AMD GPU, isolates CUA from the desktop, enforces systemd resource
   limits and refuses software rendering or missing game-process GPU proof;
@@ -70,7 +71,7 @@ The current evidence index and final video ledger live in
 ## Installable toolkit
 
 The current Python package is `warband-agentic-kit` 0.2.0. A development install
-provides seven commands:
+provides eight commands:
 
 ```bash
 uv sync
@@ -81,6 +82,7 @@ uv run warband-mcp
 uv run warband-voice --help
 uv run warband-agent-usability --help
 uv run warband-benchmark --help
+uv run warband-benchmark-run --help
 ```
 
 See [the packaging guide](docs/packaging.md) for reproducible sdist-to-wheel

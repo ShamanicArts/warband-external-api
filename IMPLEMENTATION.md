@@ -1054,3 +1054,34 @@ Separated discovery passes **280 tests**: 133 root, 97 bridge and 50
 module-system. Host/CLI wiring, provider-specific wrappers, live campaign
 acceptance and game-save/process recovery remain open. No provider API, model,
 BB agent, Warband process or voice service was invoked.
+
+## Preflight-gated host benchmark execution
+
+The ready application host now exposes one narrow in-process benchmark binding:
+an explicit faction-to-session map yields only the shared Store and matching
+faction applications. It rejects unready hosts, unknown sessions, duplicate
+session ownership and faction mismatches. `build_host_benchmark_runner()` binds
+those resources to either a new run or validated checkpoint while refusing
+checkpoint/report collisions and accidental overwrite.
+
+`bridge.provider_adapter_config` loads trusted wrapper argv plus an allowlist of
+environment-variable names. Executables are resolved and checked before host
+startup; credential-like argv flags are refused, values remain in memory, and
+adapter reprs/diagnostics omit argv, names and values. The packaged example is a
+template rather than a working provider integration.
+
+The installed `warband-benchmark-run` command adds a mandatory two-step gate. A
+side-effect-free `--preflight` reports exact faction/model assignments, scenario
+scope, provider-call count, game hours, token/time/cost limits and scoring metrics
+with a canonical confirmation hash. `--execute` must acknowledge that current
+hash before databases, listeners or wrappers can start. The command starts only
+the application host, waits for a separately launched campaign connection, runs
+the bounded coordinator, and always closes provider children and host resources
+on completion, interruption, timeout or Ctrl-C. It never launches Warband.
+
+Seven new regressions cover host binding, missing-only builder state, secret-safe
+adapter loading, preflight/no-side-effect refusal, successful cleanup and timeout
+cleanup. Separated discovery passes **287 tests**: 135 root, 102 bridge and 50
+module-system. The sdist-built wheel contains the new modules, eighth command and
+provider-adapter example. No provider API, external model, BB agent, Warband
+process or voice service was invoked.

@@ -3,7 +3,10 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from bridge.agent_host import AgentApplicationHost
 from bridge.benchmark_plan import FactionBenchmarkPlan
+from bridge.campaign_epoch_driver import CampaignEpochDriver
+from bridge.campaign_metric_collector import CampaignMetricCollector
 from bridge.faction_benchmark_harness import (
     FactionBenchmarkHarness,
     FactionBenchmarkHarnessState,
@@ -213,3 +216,76 @@ class FactionBenchmarkRunner:
             and self.harness.status().state in self._CHECKPOINTABLE
         ):
             self.harness.write_checkpoint(self.checkpoint_path)
+
+
+def build_host_benchmark_runner(
+    plan,
+    host,
+    adapters,
+    *,
+    checkpoint_path,
+    report_path,
+    resume=False,
+    metric_collector_factory=CampaignMetricCollector,
+    advance_driver_factory=CampaignEpochDriver,
+    dispatcher_factory=SubprocessDecisionDispatcher,
+):
+    """Bind one ready application host to a new or restored benchmark runner."""
+    if not isinstance(plan, FactionBenchmarkPlan):
+        raise TypeError("plan must be a FactionBenchmarkPlan")
+    if not isinstance(host, AgentApplicationHost):
+        raise TypeError("host must be an AgentApplicationHost")
+    if host.plan != plan.host:
+        raise ValueError("benchmark plan belongs to another application host")
+    if type(resume) is not bool:
+        raise TypeError("resume must be a boolean")
+    checkpoint = Path(checkpoint_path)
+    report = Path(report_path)
+    if checkpoint.resolve() == report.resolve():
+        raise ValueError("benchmark checkpoint and report paths must differ")
+    if not checkpoint.name or not checkpoint.parent.is_dir():
+        raise ValueError("benchmark checkpoint parent directory must exist")
+    if not report.name or not report.parent.is_dir():
+        raise ValueError("benchmark report parent directory must exist")
+    if report.exists():
+        raise ValueError("benchmark report already exists")
+    if resume:
+        if not checkpoint.is_file():
+            raise ValueError("benchmark resume checkpoint does not exist")
+    elif checkpoint.exists():
+        raise ValueError("benchmark checkpoint already exists")
+
+    participant_sessions = {
+        participant.faction_id: participant.session_id
+        for participant in plan.participants
+    }
+    bindings = host.benchmark_bindings(participant_sessions)
+    if resume:
+        harness = FactionBenchmarkHarness.load_checkpoint(
+            checkpoint,
+            bindings.store,
+            dict(bindings.applications),
+            metric_collector_factory=metric_collector_factory,
+            advance_driver_factory=advance_driver_factory,
+        )
+    else:
+        harness = FactionBenchmarkHarness(
+            bindings.store,
+            plan.run_id,
+            plan.scenario,
+            dict(bindings.applications),
+            settlement_party_ids=plan.settlement_party_ids,
+            run_metadata=plan.run_metadata,
+            epoch_hours=plan.epoch_hours,
+            epoch_speed=plan.epoch_speed,
+            metric_collector_factory=metric_collector_factory,
+            advance_driver_factory=advance_driver_factory,
+        )
+    return FactionBenchmarkRunner(
+        plan,
+        harness,
+        adapters,
+        checkpoint_path=checkpoint,
+        report_path=report,
+        dispatcher_factory=dispatcher_factory,
+    )

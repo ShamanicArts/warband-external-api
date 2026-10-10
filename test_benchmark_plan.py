@@ -236,6 +236,90 @@ class FactionBenchmarkPlanTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "collector metric set"):
                 load_faction_benchmark_plan(config)
 
+    def test_runtime_preflight_is_hashed_and_has_no_host_or_provider_side_effects(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config, tokens = self._write_fixture(root)
+            wrapper = root / "provider-wrapper"
+            wrapper.write_text("#!/bin/sh\nexit 0\n")
+            wrapper.chmod(0o700)
+            adapters = root / "adapters.json"
+            adapters.write_text(
+                json.dumps(
+                    {
+                        "schema": "warband.agentic/subprocess-adapters/v1",
+                        "adapters": [
+                            {
+                                "provider": provider,
+                                "argv": [str(wrapper)],
+                                "pass_environment": [],
+                            }
+                            for provider in ("openai", "cursor")
+                        ],
+                    }
+                )
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "bridge.benchmark_runtime_cli",
+                    "--config",
+                    config,
+                    "--adapter-config",
+                    adapters,
+                    "--preflight",
+                ],
+                cwd=Path(__file__).parent,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            preflight = json.loads(result.stdout)
+            self.assertEqual(
+                preflight["schema"],
+                "warband.agentic/benchmark-execution-preflight/v1",
+            )
+            self.assertEqual(preflight["run_id"], "native-border-war-42")
+            self.assertEqual(
+                [item["model"] for item in preflight["participants"]],
+                ["luna", "grok-4.6"],
+            )
+            self.assertEqual(len(preflight["confirmation_sha256"]), 64)
+            self.assertFalse((root / "bridge.sqlite3").exists())
+            self.assertFalse((root / "events.sqlite3").exists())
+            encoded = json.dumps(preflight)
+            for token in tokens:
+                self.assertNotIn(token.read_text(), encoded)
+
+            refused = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "bridge.benchmark_runtime_cli",
+                    "--config",
+                    config,
+                    "--adapter-config",
+                    adapters,
+                    "--execute",
+                    "--acknowledge-preflight",
+                    "0" * 64,
+                    "--checkpoint",
+                    root / "run.checkpoint.json",
+                    "--report",
+                    root / "run.report.json",
+                ],
+                cwd=Path(__file__).parent,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(refused.returncode, 2)
+            self.assertIn("current --preflight", refused.stderr)
+            self.assertFalse((root / "bridge.sqlite3").exists())
+            self.assertFalse((root / "events.sqlite3").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

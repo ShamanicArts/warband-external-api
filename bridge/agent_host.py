@@ -9,6 +9,7 @@ import threading
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from types import MappingProxyType
 from urllib.parse import unquote, urlparse
 
 from bridge.application_extensions import built_in_extension_registry
@@ -86,6 +87,14 @@ class AgentHostPlan:
                 for session in self.sessions
             ],
         }
+
+
+@dataclass(frozen=True, slots=True)
+class BenchmarkHostBindings:
+    """Trusted in-process resources for one validated faction benchmark."""
+
+    store: object
+    applications: object
 
 
 def _exact_fields(value, expected, label):
@@ -484,6 +493,43 @@ class AgentApplicationHost:
 
     def extension_catalog(self):
         return self.plan.extensions.catalog()
+
+    def benchmark_bindings(self, participant_sessions):
+        """Return Store/application references for explicit faction sessions."""
+        if (
+            not isinstance(participant_sessions, dict)
+            or not 2 <= len(participant_sessions) <= 16
+        ):
+            raise ValueError("participant_sessions must contain 2-16 factions")
+        normalized = {}
+        seen_sessions = set()
+        for faction_id in sorted(participant_sessions):
+            session_id = participant_sessions[faction_id]
+            if type(faction_id) is not int or not 0 <= faction_id < 1_000_000:
+                raise ValueError("benchmark faction IDs must be bounded integers")
+            _identifier(session_id, "benchmark session_id")
+            if session_id in seen_sessions:
+                raise ValueError("benchmark sessions must be unique")
+            normalized[faction_id] = session_id
+            seen_sessions.add(session_id)
+        with self._lock:
+            if self._state != "ready" or self._store is None:
+                raise RuntimeError("application host is not ready for a benchmark")
+            applications = {}
+            for faction_id, session_id in normalized.items():
+                try:
+                    application = self._applications[session_id]
+                except KeyError as exc:
+                    raise ValueError("benchmark session is not hosted") from exc
+                if getattr(application, "faction_id", None) != faction_id:
+                    raise ValueError(
+                        "benchmark session application does not match its faction"
+                    )
+                applications[faction_id] = application
+            return BenchmarkHostBindings(
+                self._store,
+                MappingProxyType(applications),
+            )
 
     def refresh(self, session_id):
         if not isinstance(session_id, str) or not session_id:

@@ -59,3 +59,39 @@ automatic partial-receipt checkpoints and missing-only restart. They do not prov
 a live Warband run or any provider-specific wrapper. Before a real model run, the
 operator must receive the required preflight naming models, scope, expected
 cost/runtime and evaluation criteria.
+
+## Preflight-gated live command
+
+`warband-benchmark-run` supplies the outer host loop while preserving the
+side-effect-free `warband-benchmark --check` command. It never launches Warband;
+the operator connects a campaign instance separately using the GPU-safe runbook.
+
+Execution is deliberately two-step. First inspect the exact models, factions,
+epoch/game-time scope, provider-call count, token/time/cost limits and scoring
+metrics:
+
+```bash
+warband-benchmark-run \
+  --config benchmark.json \
+  --adapter-config provider-adapters.json \
+  --preflight
+```
+
+The output contains `confirmation_sha256`. Execution refuses to open host
+databases, bind listeners or start wrappers unless the current hash is supplied:
+
+```bash
+warband-benchmark-run \
+  --config benchmark.json \
+  --adapter-config provider-adapters.json \
+  --execute \
+  --acknowledge-preflight HASH_FROM_PREVIOUS_COMMAND \
+  --checkpoint benchmark.checkpoint.json \
+  --report benchmark.report.json
+```
+
+Use `--resume` only with an existing checkpoint. New runs refuse existing
+checkpoint or report targets, and resumed runs refuse an existing final report.
+Host readiness and total wall time have bounded configurable deadlines. On
+completion, interruption, timeout or Ctrl-C, active provider children are
+closed and the application host releases its loopback listeners and databases.

@@ -47,6 +47,16 @@ adapters in the same batch. Credentials belong only in the adapter's in-memory
 environment or its own external credential mechanism; they must never appear in
 the benchmark plan's public settings.
 
+`bridge.provider_adapter_config.load_subprocess_adapter_config()` loads the
+versioned `subprocess-adapters/v1` document used by the live runner. Each entry
+contains a provider name, explicit argv and a list of environment-variable names
+to pass. Relative executables resolve against the configuration directory and
+must be executable files. Credential-like argv flags are rejected; values are
+read only from the named environment variables. Adapter reprs and check
+diagnostics omit argv, environment names and values. The packaged
+`provider-adapters.example.json` is a template and its placeholder executables
+must be replaced before use.
+
 The repository tests concurrency, valid receipts and hard timeout cleanup with
 tiny local Python subprocesses. They do not invoke a model, provider API, BB
 agent, Warband or voice service. Before any real model run, the operator must

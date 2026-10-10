@@ -54,6 +54,8 @@ class PackagingTests(unittest.TestCase):
                 self.assertIn("bridge/game_bridge.py", names)
                 self.assertIn("bridge/application_extensions.py", names)
                 self.assertIn("bridge/benchmark_runner.py", names)
+                self.assertIn("bridge/benchmark_runtime_cli.py", names)
+                self.assertIn("bridge/provider_adapter_config.py", names)
                 self.assertIn("bridge/campaign_metric_collector.py", names)
                 self.assertIn("bridge/benchmark_plan.py", names)
                 self.assertIn("bridge/native_faction_agent_app.py", names)
@@ -63,6 +65,7 @@ class PackagingTests(unittest.TestCase):
                 for example in (
                     "agent-host.example.json",
                     "benchmark.example.json",
+                    "provider-adapters.example.json",
                     "voice.example.json",
                 ):
                     self.assertTrue(
@@ -86,6 +89,7 @@ class PackagingTests(unittest.TestCase):
                     "warband-voice",
                     "warband-agent-usability",
                     "warband-benchmark",
+                    "warband-benchmark-run",
                 ):
                     self.assertIn(command, scripts)
                 self.assertFalse(
@@ -120,6 +124,8 @@ class PackagingTests(unittest.TestCase):
                         "import bridge.native_faction_agent_app; "
                         "import bridge.application_extensions; "
                         "import bridge.benchmark_runner; "
+                        "import bridge.benchmark_runtime_cli; "
+                        "import bridge.provider_adapter_config; "
                         "import bridge.campaign_metric_collector; "
                         "import bridge.benchmark_plan; "
                         "import module_system.build_mcp_module; "
@@ -143,6 +149,7 @@ class PackagingTests(unittest.TestCase):
                 "warband-voice",
                 "warband-agent-usability",
                 "warband-benchmark",
+                "warband-benchmark-run",
             ):
                 subprocess.run(
                     [installed / "bin" / command, "--help"],
