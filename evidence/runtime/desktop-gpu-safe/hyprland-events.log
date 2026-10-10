@@ -1,79 +1,65 @@
-windowtitle>>5f286dde2820
-windowtitlev2>>5f286dde2820,Input
-windowtitle>>5f2870011490
-windowtitlev2>>5f2870011490,WineD3D fake window
-windowtitle>>5f2870011490
-windowtitlev2>>5f2870011490,Mount&Blade Warband
+windowtitle>>5f286fee0810
+windowtitlev2>>5f286fee0810,Input
+windowtitle>>5f286df0dfa0
+windowtitlev2>>5f286df0dfa0,Default IME
+windowtitle>>5f2870adeac0
+windowtitlev2>>5f2870adeac0,WineD3D fake window
+windowtitle>>5f2870adeac0
+windowtitlev2>>5f2870adeac0,Mount&Blade Warband
 createworkspace>>warband-agent
 createworkspacev2>>-1337,warband-agent
-openwindow>>5f2870011490,warband-agent,steam_app_48700,Mount&Blade Warband
-activewindow>>bb-desktop,Grok this project
-activewindowv2>>5f286ddcfa20
-focusedmon>>DP-4,6
-focusedmonv2>>DP-4,6
+openwindow>>5f2870adeac0,warband-agent,steam_app_48700,Mount&Blade Warband
 activewindow>>chrome-chatgpt.com__-Default,Why Rust Seems Unreadable
 activewindowv2>>5f286ddce920
-closelayer>>omarchy-notifications
-activewindow>>chrome-chatgpt.com__-Default,Why Rust Seems Unreadable
-activewindowv2>>5f286ddce920
-closelayer>>omarchy-notifications
-focusedmon>>HDMI-A-2,11
-focusedmonv2>>HDMI-A-2,11
-activewindow>>bb-desktop,Grok this project
-activewindowv2>>5f286ddcfa20
-windowtitle>>5f286ddcfa20
-windowtitlev2>>5f286ddcfa20,Review Grok thread
-activewindow>>bb-desktop,Review Grok thread
-activewindowv2>>5f286ddcfa20
-closewindow>>5f2870011490
+closewindow>>5f2870adeac0
 destroyworkspace>>warband-agent
 destroyworkspacev2>>-1337,warband-agent
-windowtitle>>5f2870cdbb30
-windowtitlev2>>5f2870cdbb30,WineD3D fake window
-windowtitle>>5f2870cdbb30
-windowtitlev2>>5f2870cdbb30,WineD3D fake window
-windowtitle>>5f2870cdbb30
-windowtitlev2>>5f2870cdbb30,Hidden D3D Window
-windowtitle>>5f2870cdbb30
-windowtitlev2>>5f2870cdbb30,WineD3D fake window
-windowtitle>>5f2870cdbb30
-windowtitlev2>>5f2870cdbb30,Hidden D3D Window
-windowtitle>>5f2870cdbb30
-windowtitlev2>>5f2870cdbb30,Bink Video Player
-windowtitle>>5f286d88af20
-windowtitlev2>>5f286d88af20,Default IME
+windowtitle>>5f2870adeac0
+windowtitlev2>>5f2870adeac0,WineD3D fake window
+windowtitle>>5f2870adeac0
+windowtitlev2>>5f2870adeac0,WineD3D fake window
+windowtitle>>5f2870adeac0
+windowtitlev2>>5f2870adeac0,Hidden D3D Window
+windowtitle>>5f2870adeac0
+windowtitlev2>>5f2870adeac0,WineD3D fake window
+windowtitle>>5f2870adeac0
+windowtitlev2>>5f2870adeac0,Hidden D3D Window
+windowtitle>>5f2870adeac0
+windowtitlev2>>5f2870adeac0,Bink Video Player
+windowtitle>>5f286dbe60b0
+windowtitlev2>>5f286dbe60b0,Default IME
 createworkspace>>warband-agent
 createworkspacev2>>-1337,warband-agent
-openwindow>>5f2870cdbb30,warband-agent,steam_app_48700,Bink Video Player
-activewindow>>bb-desktop,Review Grok thread
-activewindowv2>>5f286ddcfa20
-windowtitle>>5f286deddbf0
-windowtitlev2>>5f286deddbf0,Mount&Blade Warband
-openwindow>>5f286deddbf0,warband-agent,steam_app_48700,Mount&Blade Warband
-activewindow>>bb-desktop,Review Grok thread
-activewindowv2>>5f286ddcfa20
-windowtitle>>5f2870a80660
-windowtitlev2>>5f2870a80660,WineD3D fake window
-windowtitle>>5f2870a80660
-windowtitlev2>>5f2870a80660,WineD3D fake window
-windowtitle>>5f2870a80660
-windowtitlev2>>5f2870a80660,WineD3D fake window
-windowtitle>>5f2870a80660
-windowtitlev2>>5f2870a80660,Hidden D3D Window
-windowtitle>>5f2870a80660
-windowtitlev2>>5f2870a80660,WineD3D fake window
-windowtitle>>5f2870a80660
-windowtitlev2>>5f2870a80660,Hidden D3D Window
-windowtitle>>5f2870a80660
-windowtitlev2>>5f2870a80660,WineD3D fake window
-windowtitle>>5f2870a80660
-windowtitlev2>>5f2870a80660,WineD3D fake window
-windowtitle>>5f2870a80660
-windowtitlev2>>5f2870a80660,WineD3D fake window
-windowtitle>>5f2870a80660
-windowtitlev2>>5f2870a80660,Hidden D3D Window
-windowtitle>>5f2870a80660
-windowtitlev2>>5f2870a80660,WineD3D fake window
-closewindow>>5f2870cdbb30
-windowtitle>>5f2870a80660
-windowtitlev2>>5f2870a80660,Hidden D3D Window
+openwindow>>5f2870adeac0,warband-agent,steam_app_48700,Bink Video Player
+activewindow>>chrome-chatgpt.com__-Default,Why Rust Seems Unreadable
+activewindowv2>>5f286ddce920
+windowtitle>>5f286df0d7a0
+windowtitlev2>>5f286df0d7a0,Mount&Blade Warband
+openwindow>>5f286df0d7a0,warband-agent,steam_app_48700,Mount&Blade Warband
+activewindow>>chrome-chatgpt.com__-Default,Why Rust Seems Unreadable
+activewindowv2>>5f286ddce920
+windowtitle>>5f2870009890
+windowtitlev2>>5f2870009890,WineD3D fake window
+windowtitle>>5f2870009890
+windowtitlev2>>5f2870009890,WineD3D fake window
+windowtitle>>5f2870009890
+windowtitlev2>>5f2870009890,WineD3D fake window
+windowtitle>>5f2870009890
+windowtitlev2>>5f2870009890,Hidden D3D Window
+windowtitle>>5f2870009890
+windowtitlev2>>5f2870009890,WineD3D fake window
+windowtitle>>5f2870009890
+windowtitlev2>>5f2870009890,Hidden D3D Window
+windowtitle>>5f2870009890
+windowtitlev2>>5f2870009890,WineD3D fake window
+windowtitle>>5f2870009890
+windowtitlev2>>5f2870009890,WineD3D fake window
+windowtitle>>5f2870009890
+windowtitlev2>>5f2870009890,WineD3D fake window
+windowtitle>>5f2870009890
+windowtitlev2>>5f2870009890,Hidden D3D Window
+windowtitle>>5f2870009890
+windowtitlev2>>5f2870009890,WineD3D fake window
+windowtitle>>5f2870009890
+windowtitlev2>>5f2870009890,Hidden D3D Window
+closewindow>>5f2870adeac0

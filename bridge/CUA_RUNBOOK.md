@@ -42,11 +42,19 @@ run_dir=$(mktemp -u /tmp/warband-desktop-safe.XXXXXX)
 python bridge/warband_desktop_runner.py run \
   --graphics-backend wined3d \
   --prefix /tmp/shuvcode/warband-cua/compatdata \
+  --auto-play \
   --log-dir "$run_dir"
 ```
 
-The command prints the `session.json` path and waits. In a second terminal, find
-the launcher through the existing X11 CUA daemon:
+The command discovers only the exact `steam_app_48700` launcher PID owned by its
+transient cgroup. It captures that window, sends Play through CUA background
+delivery, waits for game-PID AMD DRM activity, and captures the resulting game
+window. ImageMagick is used to reject technically valid but visually black
+transition frames. Once all acceptance gates pass, the runner tears down its
+exact cgroup and exits zero.
+
+For manual diagnostics only, omit `--auto-play`, then inspect the launcher in a
+second terminal through the existing X11 CUA daemon:
 
 ```bash
 cua-driver-main call list_windows \
@@ -54,9 +62,10 @@ cua-driver-main call list_windows \
   --socket ~/.cache/cua-driver/cua-driver-x11.sock
 ```
 
-Capture the exact returned PID/window ID, then use a background click on Play.
-Do not use foreground delivery. Play is approximately `(150, 212)` in the
-tested 640x480 launcher, but use a fresh capture ID.
+Capture the exact returned PID/window ID, verify that it belongs to the transient
+service, then use a background click on Play. Do not use foreground delivery.
+Play is approximately `(150, 212)` in the tested 640x480 launcher, but use a
+fresh capture ID.
 
 Success is not the CUA acknowledgement. It requires all of:
 
@@ -65,7 +74,7 @@ Success is not the CUA acknowledgement. It requires all of:
 - `hardware-renderer-proof.json` showing that the game PID's `amdgpu`
   gfx-engine counter increased on `/dev/dri/renderD129`;
 - no software-renderer marker in the owned cgroup or logs;
-- a CUA capture of the rendered game frame.
+- a CUA capture whose mean luminance passes the non-black game-frame gate.
 
 The accepted 2026-10-10 artifacts are in
 `evidence/runtime/desktop-gpu-safe/`.

@@ -1,0 +1,19 @@
+{
+  "action": {
+    "delivery": {
+      "mode": "background"
+    },
+    "effect": "unverifiable",
+    "route": "synthetic_events",
+    "summary": "Clicked at (150.0, 212.0) \u00d7 1 (delivery_mode=background, path=x11_xsendevent); not verified \u2014 confirm with a screenshot. [window_point=(150, 212) screen_point=(790, 506)]"
+  },
+  "capture_id": "capture_554c81799f64413385210048f457a8be_000000000000000e",
+  "coordinates": {
+    "x": 150,
+    "y": 212
+  },
+  "target": {
+    "pid": 582253,
+    "window_id": 65011716
+  }
+}

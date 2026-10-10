@@ -1,7 +1,9 @@
 import argparse
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from bridge.warband_desktop_runner import (
     DesktopSafetyFailure,
@@ -11,9 +13,14 @@ from bridge.warband_desktop_runner import (
     build_proton_environment,
     build_rule_lua,
     build_systemd_command,
+    call_cua,
+    cua_window_target,
     current_control_group_pids,
     desktop_violations,
+    image_mean_luminance,
     process_driver_evidence,
+    select_owned_cua_window,
+    terminate_control_group_descendants,
     workspace_is_inactive,
 )
 
@@ -115,7 +122,13 @@ class WarbandDesktopRunnerTests(unittest.TestCase):
             prefix=Path("/prefix"),
             proton=Path("/proton"),
             game=Path("/game"),
+            cua=Path("/cua"),
             cua_socket=Path("/cua.sock"),
+            auto_play=True,
+            launcher_timeout=40,
+            play_x=150,
+            play_y=212,
+            cua_session="test-session",
             game_arguments=["-m", "WarbandMCP"],
             cpu_quota=200,
             memory_high="1500M",
@@ -128,8 +141,148 @@ class WarbandDesktopRunnerTests(unittest.TestCase):
         self.assertIn("MemoryMax=2G", command)
         self.assertIn("TasksMax=192", command)
         self.assertIn("KillMode=control-group", command)
+        self.assertIn("--auto-play", command)
+        self.assertIn("/cua", command)
+        self.assertIn("test-session", command)
         self.assertIn("--game-arg=-m", command)
         self.assertIn("--game-arg=WarbandMCP", command)
+
+    @patch("bridge.warband_desktop_runner.subprocess.run")
+    def test_cua_call_uses_exact_socket_and_requires_object_json(self, run):
+        run.return_value = subprocess.CompletedProcess(
+            [], 0, stdout='{"windows":[]}', stderr=""
+        )
+        response = call_cua(
+            Path("/cua"),
+            Path("/driver.sock"),
+            "list_windows",
+            {"session": "test"},
+        )
+        self.assertEqual(response, {"windows": []})
+        command = run.call_args.args[0]
+        self.assertEqual(command[:3], ("/cua", "call", "list_windows"))
+        self.assertEqual(command[-2:], ("--socket", "/driver.sock"))
+
+        run.return_value = subprocess.CompletedProcess([], 0, stdout="[]", stderr="")
+        with self.assertRaisesRegex(DesktopSafetyFailure, "non-object"):
+            call_cua(Path("/cua"), Path("/driver.sock"), "list_windows", {})
+
+        run.side_effect = subprocess.TimeoutExpired("cua", 20)
+        with self.assertRaisesRegex(DesktopSafetyFailure, "CUA list_windows timed out"):
+            call_cua(Path("/cua"), Path("/driver.sock"), "list_windows", {})
+
+    def test_cua_window_selection_is_owned_exact_and_unambiguous(self):
+        response = {
+            "windows": [
+                {
+                    "app_name": "steam_app_48700",
+                    "pid": 41,
+                    "window_id": 3,
+                    "width": 640,
+                    "height": 480,
+                    "title": "Mount&Blade Warband",
+                },
+                {
+                    "app_name": "steam_app_48700",
+                    "pid": 99,
+                    "window_id": 4,
+                    "width": 640,
+                    "height": 480,
+                    "title": "Mount&Blade Warband",
+                },
+                {
+                    "app_name": "other",
+                    "pid": 41,
+                    "window_id": 5,
+                    "width": 640,
+                    "height": 480,
+                    "title": "Mount&Blade Warband",
+                },
+            ]
+        }
+        selected = select_owned_cua_window(
+            response,
+            (41,),
+            exact_size=(640, 480),
+            title="Mount&Blade Warband",
+        )
+        self.assertEqual(cua_window_target(selected or {}), {"pid": 41, "window_id": 3})
+
+        response["windows"].append(dict(response["windows"][0], window_id=6))
+        with self.assertRaisesRegex(DesktopSafetyFailure, "multiple"):
+            select_owned_cua_window(response, (41,), exact_size=(640, 480))
+
+    def test_cua_game_window_filter_ignores_bink_and_small_windows(self):
+        response = {
+            "windows": [
+                {
+                    "app_name": "steam_app_48700",
+                    "pid": 41,
+                    "window_id": 7,
+                    "width": 1600,
+                    "height": 919,
+                    "title": "Bink Video",
+                },
+                {
+                    "app_name": "steam_app_48700",
+                    "pid": 41,
+                    "window_id": 8,
+                    "width": 1600,
+                    "height": 919,
+                    "title": "Mount&Blade Warband",
+                },
+            ]
+        }
+        selected = select_owned_cua_window(
+            response,
+            (41,),
+            minimum_size=(1000, 700),
+            title="Mount&Blade Warband",
+        )
+        self.assertEqual(cua_window_target(selected or {})["window_id"], 8)
+        with self.assertRaisesRegex(DesktopSafetyFailure, "integer PID"):
+            cua_window_target({"pid": 41})
+
+    @patch("bridge.warband_desktop_runner.os.kill")
+    @patch("bridge.warband_desktop_runner.current_control_group_pids")
+    def test_cleanup_signals_only_exact_cgroup_descendants(self, pids, kill):
+        pids.side_effect = [(10, 11, 12), (10,)]
+        result = terminate_control_group_descendants(self_pid=10)
+        self.assertEqual(result, {"sigterm": [11, 12], "sigkill": []})
+        self.assertEqual(
+            kill.call_args_list,
+            [
+                unittest.mock.call(11, 15),
+                unittest.mock.call(12, 15),
+            ],
+        )
+
+    @patch("bridge.warband_desktop_runner.os.kill")
+    @patch("bridge.warband_desktop_runner.current_control_group_pids")
+    def test_cleanup_kills_only_stubborn_exact_cgroup_descendants(self, pids, kill):
+        pids.side_effect = [(10, 11), (10, 11)]
+        result = terminate_control_group_descendants(timeout=0, self_pid=10)
+        self.assertEqual(result, {"sigterm": [11], "sigkill": [11]})
+        self.assertEqual(kill.call_args_list[-1], unittest.mock.call(11, 9))
+
+    @patch("bridge.warband_desktop_runner.shutil.which", return_value="/magick")
+    @patch("bridge.warband_desktop_runner.subprocess.run")
+    def test_game_capture_luminance_is_bounded(self, run, _which):
+        run.return_value = subprocess.CompletedProcess(
+            [], 0, stdout="0.386697", stderr=""
+        )
+        self.assertAlmostEqual(image_mean_luminance(Path("/game.png")), 0.386697)
+        self.assertIn("-alpha", run.call_args.args[0])
+
+        run.return_value = subprocess.CompletedProcess(
+            [], 0, stdout="not-a-number", stderr=""
+        )
+        with self.assertRaisesRegex(DesktopSafetyFailure, "invalid luminance"):
+            image_mean_luminance(Path("/game.png"))
+
+        run.side_effect = subprocess.TimeoutExpired("magick", 10)
+        with self.assertRaisesRegex(DesktopSafetyFailure, "validation timed out"):
+            image_mean_luminance(Path("/game.png"))
 
     def test_cgroup_and_game_driver_proof_are_bound_to_owned_process(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -28,6 +28,7 @@ if __package__:
         software_renderer_evidence,
     )
     from bridge.warband_gpu_supervisor import (
+        DEFAULT_CUA,
         DEFAULT_GAME,
         DEFAULT_PROTON,
         STEAM_ROOT,
@@ -44,6 +45,7 @@ else:
         software_renderer_evidence,
     )
     from warband_gpu_supervisor import (
+        DEFAULT_CUA,
         DEFAULT_GAME,
         DEFAULT_PROTON,
         STEAM_ROOT,
@@ -230,6 +232,125 @@ def build_proton_command(
     return [str(proton), "runinprefix", game.name, *game_arguments]
 
 
+def call_cua(
+    cua: Path,
+    cua_socket: Path,
+    tool: str,
+    payload: Mapping[str, object],
+    timeout: float = 20,
+) -> dict[str, object]:
+    try:
+        completed = subprocess.run(
+            (
+                str(cua),
+                "call",
+                tool,
+                json.dumps(payload, separators=(",", ":")),
+                "--socket",
+                str(cua_socket),
+            ),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise DesktopSafetyFailure(f"CUA {tool} timed out") from error
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip()
+        raise DesktopSafetyFailure(f"CUA {tool} failed: {detail}")
+    try:
+        response = json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        raise DesktopSafetyFailure(f"CUA {tool} returned malformed JSON") from error
+    if not isinstance(response, dict):
+        raise DesktopSafetyFailure(f"CUA {tool} returned a non-object response")
+    return response
+
+
+def select_owned_cua_window(
+    response: Mapping[str, object],
+    owned_pids: Iterable[int],
+    *,
+    exact_size: tuple[int, int] | None = None,
+    minimum_size: tuple[int, int] | None = None,
+    title: str | None = None,
+) -> dict[str, object] | None:
+    windows = response.get("windows")
+    if not isinstance(windows, list):
+        raise DesktopSafetyFailure("CUA list_windows response has no windows list")
+    owned = set(owned_pids)
+    matches: list[dict[str, object]] = []
+    for window in windows:
+        if not isinstance(window, dict):
+            continue
+        if str(window.get("app_name", "")).casefold() != "steam_app_48700":
+            continue
+        if title is not None and window.get("title") != title:
+            continue
+        pid = window.get("pid")
+        width = window.get("width")
+        height = window.get("height")
+        if not isinstance(pid, int) or pid not in owned:
+            continue
+        if not isinstance(width, int) or not isinstance(height, int):
+            continue
+        if exact_size is not None and (width, height) != exact_size:
+            continue
+        if minimum_size is not None and (
+            width < minimum_size[0] or height < minimum_size[1]
+        ):
+            continue
+        matches.append(window)
+    if len(matches) > 1:
+        raise DesktopSafetyFailure("CUA found multiple matching owned Warband windows")
+    return matches[0] if matches else None
+
+
+def cua_window_target(window: Mapping[str, object]) -> dict[str, int]:
+    pid = window.get("pid")
+    window_id = window.get("window_id")
+    if not isinstance(pid, int) or not isinstance(window_id, int):
+        raise DesktopSafetyFailure("CUA window has no integer PID/window ID")
+    return {"pid": pid, "window_id": window_id}
+
+
+def image_mean_luminance(path: Path) -> float:
+    magick = shutil.which("magick")
+    if magick is None:
+        raise DesktopSafetyFailure("ImageMagick is required for game-frame validation")
+    try:
+        completed = subprocess.run(
+            (
+                magick,
+                str(path),
+                "-alpha",
+                "off",
+                "-colorspace",
+                "Gray",
+                "-format",
+                "%[fx:mean]",
+                "info:",
+            ),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=10,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise DesktopSafetyFailure("game-frame validation timed out") from error
+    try:
+        luminance = float(completed.stdout.strip())
+    except ValueError as error:
+        raise DesktopSafetyFailure("ImageMagick returned invalid luminance") from error
+    if completed.returncode != 0 or not 0 <= luminance <= 1:
+        detail = completed.stderr.strip() or completed.stdout.strip()
+        raise DesktopSafetyFailure(f"game-frame validation failed: {detail}")
+    return luminance
+
+
 def build_systemd_command(
     args: argparse.Namespace, script: Path, unit_name: str
 ) -> list[str]:
@@ -256,7 +377,19 @@ def build_systemd_command(
         str(args.game),
         "--cua-socket",
         str(args.cua_socket),
+        "--cua",
+        str(args.cua),
+        "--launcher-timeout",
+        str(args.launcher_timeout),
+        "--play-x",
+        str(args.play_x),
+        "--play-y",
+        str(args.play_y),
+        "--cua-session",
+        args.cua_session,
     ]
+    if args.auto_play:
+        inner.append("--auto-play")
     for argument in args.game_arguments:
         inner.append(f"--game-arg={argument}")
     return [
@@ -468,6 +601,41 @@ def _terminate(process: subprocess.Popen[bytes] | None) -> None:
         process.wait(timeout=5)
 
 
+def terminate_control_group_descendants(
+    *, timeout: float = 3, self_pid: int | None = None
+) -> dict[str, list[int]]:
+    """Stop only descendant processes in this runner's exact systemd cgroup."""
+    own_pid = os.getpid() if self_pid is None else self_pid
+    term_signaled: list[int] = []
+    kill_signaled: list[int] = []
+    targets = set(current_control_group_pids()) - {own_pid}
+    for pid in sorted(targets):
+        try:
+            os.kill(pid, signal.SIGTERM)
+            term_signaled.append(pid)
+        except ProcessLookupError:
+            pass
+
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        survivors = set(current_control_group_pids()) - {own_pid}
+        if not survivors:
+            return {
+                "sigterm": term_signaled,
+                "sigkill": kill_signaled,
+            }
+        time.sleep(0.1)
+
+    survivors = set(current_control_group_pids()) - {own_pid}
+    for pid in sorted(survivors):
+        try:
+            os.kill(pid, signal.SIGKILL)
+            kill_signaled.append(pid)
+        except ProcessLookupError:
+            pass
+    return {"sigterm": term_signaled, "sigkill": kill_signaled}
+
+
 def _assert_no_existing_warband() -> None:
     clients = hypr_json("clients")
     assert isinstance(clients, list)
@@ -487,12 +655,15 @@ def _assert_no_existing_warband() -> None:
 
 
 def run_bounded(args: argparse.Namespace) -> int:
-    for path, label in (
+    required_paths = [
         (args.proton, "Proton executable"),
         (args.game, "Warband executable"),
         (args.prefix / "pfx", "Proton prefix"),
         (args.cua_socket, "CUA X11 socket"),
-    ):
+    ]
+    if args.auto_play:
+        required_paths.append((args.cua, "CUA executable"))
+    for path, label in required_paths:
         if not path.exists():
             raise DesktopSafetyFailure(f"{label} does not exist: {path}")
     _assert_no_existing_warband()
@@ -541,6 +712,10 @@ def run_bounded(args: argparse.Namespace) -> int:
     last_report = started
     last_sample_time = started
     last_ticks = 0
+    last_cua_poll = started - 1
+    auto_clicked = False
+    game_captured = False
+    cleanup_signals: dict[str, list[int]] = {"sigterm": [], "sigkill": []}
     try:
         environment = build_proton_environment(
             os.environ,
@@ -558,6 +733,7 @@ def run_bounded(args: argparse.Namespace) -> int:
             session_path,
             {
                 "cua_socket": str(args.cua_socket),
+                "auto_play": args.auto_play,
                 "dxvk_d3d9_sha256": dxvk.get("d3d9_sha256"),
                 "focus_before": focus_before,
                 "game_pid": process.pid,
@@ -613,8 +789,122 @@ def run_bounded(args: argparse.Namespace) -> int:
             ):
                 raise DesktopSafetyFailure("Hyprland recorded Warband focus activation")
 
+            owned_pids = set(pids)
+            if args.auto_play and now - last_cua_poll >= 0.5:
+                windows = call_cua(
+                    args.cua,
+                    args.cua_socket,
+                    "list_windows",
+                    {"session": args.cua_session},
+                )
+                if not auto_clicked:
+                    launcher = select_owned_cua_window(
+                        windows,
+                        owned_pids,
+                        exact_size=(640, 480),
+                        title="Mount&Blade Warband",
+                    )
+                    if launcher is None:
+                        if now - started >= args.launcher_timeout:
+                            raise DesktopSafetyFailure(
+                                "CUA did not find the owned 640x480 Warband launcher "
+                                f"within {args.launcher_timeout:.0f}s"
+                            )
+                    else:
+                        target = cua_window_target(launcher)
+                        capture = call_cua(
+                            args.cua,
+                            args.cua_socket,
+                            "get_window_state",
+                            {
+                                "session": args.cua_session,
+                                **target,
+                                "include_accessibility_tree": False,
+                                "screenshot_out_file": str(
+                                    args.log_dir / "launcher.png"
+                                ),
+                            },
+                        )
+                        capture_id = capture.get("capture_id")
+                        if (
+                            capture.get("screenshot_frame_valid") is not True
+                            or not isinstance(capture_id, str)
+                            or not capture_id
+                        ):
+                            raise DesktopSafetyFailure(
+                                "CUA launcher capture was not a valid frame"
+                            )
+                        action = call_cua(
+                            args.cua,
+                            args.cua_socket,
+                            "click",
+                            {
+                                "session": args.cua_session,
+                                **target,
+                                "x": args.play_x,
+                                "y": args.play_y,
+                                "delivery_mode": "background",
+                                "capture_id": capture_id,
+                            },
+                            timeout=30,
+                        )
+                        delivery = action.get("delivery")
+                        if (
+                            not isinstance(delivery, Mapping)
+                            or delivery.get("mode") != "background"
+                        ):
+                            raise DesktopSafetyFailure(
+                                "CUA did not confirm background delivery for Play"
+                            )
+                        _metadata(
+                            args.log_dir / "cua-play.json",
+                            {
+                                "action": action,
+                                "capture_id": capture_id,
+                                "coordinates": {"x": args.play_x, "y": args.play_y},
+                                "target": target,
+                            },
+                        )
+                        auto_clicked = True
+                elif hardware and not game_captured:
+                    game_window = select_owned_cua_window(
+                        windows,
+                        owned_pids,
+                        minimum_size=(1000, 700),
+                        title="Mount&Blade Warband",
+                    )
+                    if game_window is not None:
+                        target = cua_window_target(game_window)
+                        capture = call_cua(
+                            args.cua,
+                            args.cua_socket,
+                            "get_window_state",
+                            {
+                                "session": args.cua_session,
+                                **target,
+                                "include_accessibility_tree": False,
+                                "screenshot_out_file": str(args.log_dir / "game.png"),
+                            },
+                        )
+                        if capture.get("screenshot_frame_valid") is not True:
+                            raise DesktopSafetyFailure(
+                                "CUA game capture was not a valid frame"
+                            )
+                        luminance = image_mean_luminance(args.log_dir / "game.png")
+                        if luminance >= 0.08:
+                            _metadata(
+                                args.log_dir / "cua-game-capture.json",
+                                {
+                                    "capture": capture,
+                                    "mean_luminance": luminance,
+                                    "minimum_mean_luminance": 0.08,
+                                    "target": target,
+                                },
+                            )
+                            game_captured = True
+                last_cua_poll = now
+
             if not hardware:
-                owned_pids = set(pids)
                 warband_pids = {
                     int(client["pid"])
                     for client in clients
@@ -642,6 +932,9 @@ def run_bounded(args: argparse.Namespace) -> int:
                     )
                 for key, sample in gpu_samples.items():
                     gpu_baselines.setdefault(key, sample)
+
+            if args.auto_play and hardware and game_captured:
+                return 0
 
             if now - started >= args.max_runtime:
                 return 124
@@ -672,6 +965,7 @@ def run_bounded(args: argparse.Namespace) -> int:
         return (process.returncode or 0) if not stopping else 130
     finally:
         _terminate(process)
+        cleanup_signals = terminate_control_group_descendants()
         disable_rule()
         if event_buffer:
             event_lines.append(event_buffer.decode(errors="replace"))
@@ -682,10 +976,14 @@ def run_bounded(args: argparse.Namespace) -> int:
             session_path,
             {
                 "cua_socket": str(args.cua_socket),
+                "auto_play": args.auto_play,
+                "cua_play_dispatched": auto_clicked,
+                "cleanup_signals": cleanup_signals,
                 "ended_at": datetime.now(UTC).isoformat(),
                 "focus_after": focus_identity(focus_after_raw),
                 "focus_before": focus_before,
                 "hardware_renderer_proven": bool(hardware),
+                "game_capture_valid": game_captured,
                 "graphics_backend": args.graphics_backend,
                 "renderer": probe.renderer,
                 "started_at": started_at,
@@ -730,7 +1028,13 @@ def make_parser() -> argparse.ArgumentParser:
     run.add_argument("--prefix", type=Path, default=DEFAULT_PREFIX)
     run.add_argument("--proton", type=Path, default=DEFAULT_PROTON)
     run.add_argument("--game", type=Path, default=DEFAULT_GAME)
+    run.add_argument("--cua", type=Path, default=DEFAULT_CUA)
     run.add_argument("--cua-socket", type=Path, default=DEFAULT_CUA_SOCKET)
+    run.add_argument("--auto-play", action="store_true")
+    run.add_argument("--launcher-timeout", type=float, default=45)
+    run.add_argument("--play-x", type=int, default=150)
+    run.add_argument("--play-y", type=int, default=212)
+    run.add_argument("--cua-session", default="warband-hidden-acceptance")
     run.add_argument("--game-arg", action="append", default=[], dest="game_arguments")
     run.add_argument("--bounded", action="store_true", help=argparse.SUPPRESS)
     return parser

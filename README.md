@@ -63,8 +63,9 @@ Current foundations include:
   plus a hash-acknowledged live command that refuses unreviewed execution;
 - a [GPU-safe hidden-workspace test harness](bridge/CUA_RUNBOOK.md) that pins
   rendering to the AMD RX 6600 XT, keeps CUA/Warband off active workspaces,
-  enforces systemd limits and refuses software rendering or missing game-PID DRM
-  proof; accepted evidence is in
+  automatically drives the owned launcher through background delivery, enforces
+  systemd limits, and refuses software rendering, missing game-PID DRM proof or
+  black transition-frame evidence; accepted evidence is in
   [`evidence/runtime/desktop-gpu-safe/`](evidence/runtime/desktop-gpu-safe/);
 - reproducible tests and retained engine/visual evidence.
 
