@@ -1,0 +1,56 @@
+{
+  "recorded_at": "2026-10-10T07:34:21Z",
+  "status": "launcher-safe_gameplay-unproven",
+  "hardware_probe": {
+    "artifact": "evidence/runtime/gpu-probe.json",
+    "backend": "gamescope-headless",
+    "gpu_selector": "1002:73ff",
+    "renderer": "AMD Radeon RX 6600 XT (RADV NAVI23)"
+  },
+  "guardrails": {
+    "cpu_quota_percent": 250,
+    "memory_high": "2G",
+    "memory_max": "3G",
+    "nice": 10,
+    "software_markers": [
+      "llvmpipe",
+      "softpipe",
+      "lavapipe",
+      "swrast"
+    ],
+    "tasks_max": 256,
+    "teardown": "systemd KillMode=control-group and TimeoutStopSec=5s",
+    "working_directory_preserved": true
+  },
+  "live_launcher_observation": {
+    "cua_capture": {
+      "dimensions": "640x480",
+      "image_retained_in_repository": false,
+      "sha256": "93598ab21af9c1b87884564925ab7a4b2eff4589c33ef157777959244b5df32d",
+      "visible_state": "Mount&Blade Warband 1.174 launcher with WarbandMCP selected"
+    },
+    "cua_transport": "private X11 socket on Gamescope Xwayland",
+    "hardware_gl_proven": false,
+    "hardware_proof_refusal": "mb_warband.exe did not map radeonsi_dri.so within 45s",
+    "hyprland_warband_focus_events": 0,
+    "max_observed_rss_mib": 741.8,
+    "observed_startup_cpu_percent": 57.9,
+    "observed_steady_cpu_percent_range": [
+      1.2,
+      3.0
+    ],
+    "software_renderer_evidence_found": false
+  },
+  "negative_findings": {
+    "at_spi": "Wine launcher exposed no actionable AT-SPI elements",
+    "command_line_bypass": "-m WarbandMCP remained in the launcher; binary exposes no general launcher bypass",
+    "dxvk_interactive_path": "native DXVK preflight passed, but the launcher did not map under the full Proton session",
+    "x11_input": "CUA XTEST pixel and keyboard delivery did not activate Play through headless Gamescope",
+    "wayland_cua": "rejected and removed because capture resolved through the host portal to the real desktop"
+  },
+  "tests": {
+    "focused_suite": "python -m unittest -v test_gpu_safe_runner test_warband_gpu_supervisor",
+    "focused_test_count": 14,
+    "software_renderer_refusal_exit": 70
+  }
+}

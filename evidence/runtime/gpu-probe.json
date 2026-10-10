@@ -1,0 +1,5 @@
+{
+  "backend": "gamescope-headless",
+  "gpu_selector": "1002:73ff",
+  "renderer": "AMD Radeon RX 6600 XT (RADV NAVI23)"
+}

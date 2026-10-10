@@ -19,6 +19,7 @@ separate engine facts support it.
 | Host voice | live provider synthesis | voice tests, `evidence/voice/` | host playback and dialogue wiring not yet exercised |
 | Restricted agent interface | agent usable (fixture only) | `test_agentic_usability.py`, `evidence/agent-usability/` | simulated action; not live party control |
 | Constrained session/API | bridge simulated | `test_agentic_agent_api.py`, `docs/constrained-agent-api.md` | production bridge application and restart outcome recovery pending |
+| GPU-safe live test harness | physical-GPU probe + live private launcher capture | `test_gpu_safe_runner.py`, `test_warband_gpu_supervisor.py`, `evidence/runtime/gpu-probe.json`, `evidence/runtime/gpu-safety-validation.json` | launcher capture is safe; unattended Play and game-process GPU proof remain open |
 
 ## Video ledger
 
@@ -32,3 +33,8 @@ remains primary for policy filtering, idempotency and persistence.
 Each final clip entry must include the recorded action, before/after state, raw
 artifact links, introducing Jujutsu change ID, capture method and any setup done by
 CUA. Videos must not imply that CUA performed the claimed agentic mechanic.
+
+The retired Xvfb evidence is not acceptable final footage because Warband used
+llvmpipe. New clips must come from the bounded Gamescope harness and must include
+game-process hardware proof; a hardware-rendered compositor around a launcher is
+not sufficient.

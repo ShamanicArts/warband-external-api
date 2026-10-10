@@ -1,112 +1,119 @@
-# Off-screen Warband through CUA
+# GPU-safe off-screen Warband through CUA
 
-This is a real Native Warband instance, not the old ExternalAPI mod bridge.
-All screenshots, mouse input and keyboard input go through `cua-driver-main`.
-No `hyprctl`, `xdotool`, or separate input injector is used.
+> **Never launch Warband on Xvfb.** The retired `:97` setup rendered through
+> llvmpipe and consumed roughly ten CPU cores. It is incident history, not a
+> usable fallback.
 
-Verified on 2026-10-09: launcher dropdown opened, Native selected using Up/Return,
-game launched, tutorial selected and loaded, and Escape opened the in-game pause
-menu. All verified through CUA screenshots. Left paused in the tutorial, with
-audio enabled as requested. Mute through the game's Options UI when requested.
-Single Escape taps initially missed; a later retry sequence opened the menu.
-Movement, combat, campaign control and NPC conversations are not yet verified.
+The supported test boundary is headless Gamescope pinned to the AMD RX 6600 XT.
+Gamescope creates a private Xwayland display, so Warband does not map a window
+on the user's Hyprland desktop. A transient user service imposes CPU, memory,
+task and wall-clock limits. The runner continuously scans its owned process tree
+and logs for `llvmpipe`, `softpipe`, `lavapipe` and `swrast`; any match aborts
+the entire owned control group.
 
-## Running session
+Current default limits are:
 
-- X11 display: `:97` (Xvfb, 1600×900, TCP disabled).
-- CUA socket: `/tmp/shuvcode/warband-cua/driver.sock`.
-- CUA session label: `warband-isolated`.
-- Separate copied Proton prefix: `/tmp/shuvcode/warband-cua/compatdata`.
-- Process supervision: tmux session `warband-external-api`, windows `x11`,
-  `wm`, `cua`, and `game`. `steam` is the earlier desktop launch; don't stop it
-  just to stop the isolated session.
-- Openbox was extracted locally under `/tmp/shuvcode/warband-cua/wm` from the
-  signed Arch package. No system package installation was performed.
+- `CPUQuota=250%`
+- `MemoryHigh=2G`, `MemoryMax=3G`
+- `TasksMax=256`
+- `Nice=10`
+- 15-minute wall-clock limit, with bounded five-second teardown
 
-`delivery_mode:"foreground"` means foreground **inside :97**, not on the user's
-Hyprland desktop. Background synthetic events were ineffective in the original
-XWayland session. This is an isolated-runtime workaround, not a CUA source fix.
+The unit preserves the caller's working directory and uses
+`KillMode=control-group`, so detached Wine, CUA or Gamescope descendants cannot
+outlive a completed run.
 
-## Observe and act
+## Prove the compositor path
+
+This check does not launch Warband:
 
 ```bash
-cua-driver-main call list_windows '{"session":"warband-isolated"}' \
-  --socket /tmp/shuvcode/warband-cua/driver.sock
+nice -n 10 python bridge/gpu_safe_runner.py probe \
+  --json-out evidence/runtime/gpu-probe.json
 ```
 
-Use the returned live PID and window ID; launcher, intro and game windows have
-different IDs. Capture each target before acting:
+The proof must name `AMD Radeon RX 6600 XT (RADV NAVI23)`, establish the
+headless backend and start a private Xwayland display. A missing physical device
+or any software-renderer marker is a hard failure.
+
+## Observe the launcher safely
+
+Create a fresh log directory and start a bounded launcher-only session:
 
 ```bash
+run_dir=$(mktemp -d /tmp/warband-gpu-safe.XXXXXX)
+nice -n 10 python bridge/gpu_safe_runner.py run \
+  --width 800 --height 600 --fps 30 --max-runtime 120 \
+  --log-dir "$run_dir" -- \
+  python bridge/warband_gpu_supervisor.py --graphics-backend wined3d
+```
+
+The supervisor refuses `DISPLAY=:0` and requires the private-display marker set
+by the verified runner. It starts CUA against private X11 only: host Wayland is
+removed from CUA's environment. Do not enable native Wayland or Gamescope's
+`--expose-wayland` for CUA; in testing, screen capture resolved through the host
+portal and exposed the real desktop rather than the private Gamescope output.
+
+The CUA socket and session metadata are written inside `run_dir`. While the
+bounded session is alive, use its live PID and XID:
+
+```bash
+cua-driver-main call list_windows \
+  '{"session":"warband-isolated"}' \
+  --socket "$run_dir/cua-driver.sock"
+
 cua-driver-main call get_window_state \
-  '{"pid":PID,"window_id":XID,"session":"warband-isolated","include_accessibility_tree":false,"screenshot_out_file":"/tmp/shuvcode/warband-cua/current.png"}' \
-  --socket /tmp/shuvcode/warband-cua/driver.sock
-
-cua-driver-main call click \
-  '{"pid":PID,"window_id":XID,"session":"warband-isolated","x":X,"y":Y,"delivery_mode":"foreground"}' \
-  --socket /tmp/shuvcode/warband-cua/driver.sock
-
-cua-driver-main call press_key \
-  '{"pid":PID,"window_id":XID,"session":"warband-isolated","key":"Escape","delivery_mode":"foreground"}' \
-  --socket /tmp/shuvcode/warband-cua/driver.sock
+  '{"pid":PID,"window_id":XID,"session":"warband-isolated","include_accessibility_tree":false,"screenshot_out_file":"/tmp/warband-launcher.png"}' \
+  --socket "$run_dir/cua-driver.sock"
 ```
 
-Replace placeholders with actual numbers. Coordinates are from the returned
-screenshot, which may be scaled. Verify effects with another capture, not just
-the action's success message. Dropdown popups may refuse foreground activation;
-the module dropdown worked with Up/Return targeting the launcher instead.
+CUA has independently captured the 640x480 Warband 1.174 launcher with
+`WarbandMCP` selected. The tested Wine launcher exposes no AT-SPI controls, and
+pixel/keyboard XTEST delivery through headless Gamescope does not activate Play.
+Therefore launcher capture is proven, but unattended transition into the game is
+not. Do not report a CUA action acknowledgement as a game transition.
 
-## Tested startup commands
+## Require actual game-process GPU rendering
 
-Run each long-lived command in its own existing tmux window using `send-keys`.
-Do not start duplicate X servers, daemons or game instances.
+For any future gameplay or evidence run, add:
 
 ```bash
-/home/shamanic/.cache/manifold/toolchains/xvfb/usr/bin/Xvfb :97 \
-  -screen 0 1600x900x24 -nolisten tcp -noreset -ac
-
-env -u WAYLAND_DISPLAY DISPLAY=:97 \
-  LD_LIBRARY_PATH=/tmp/shuvcode/warband-cua/wm/usr/lib \
-  XDG_DATA_DIRS=/tmp/shuvcode/warband-cua/wm/usr/share:/usr/share \
-  /tmp/shuvcode/warband-cua/wm/usr/bin/openbox \
-  --config-file /tmp/shuvcode/warband-cua/wm/etc/xdg/openbox/rc.xml
-
-env -u WAYLAND_DISPLAY -u CUA_DRIVER_RS_ENABLE_WAYLAND \
-  DISPLAY=:97 XDG_SESSION_TYPE=x11 cua-driver-main serve \
-  --socket /tmp/shuvcode/warband-cua/driver.sock \
-  --pid-file /tmp/shuvcode/warband-cua/driver.pid --no-overlay
-
-# Working directory: Steam's MountBlade Warband installation.
-env -u WAYLAND_DISPLAY DISPLAY=:97 WINE_FULLSCREEN_FSR=0 \
-  WINE_DISABLE_FULLSCREEN_HACK=1 PROTON_LOG=1 \
-  PROTON_LOG_DIR=/tmp/shuvcode/warband-cua \
-  SteamAppId=48700 SteamGameId=48700 \
-  STEAM_COMPAT_CLIENT_INSTALL_PATH=/home/shamanic/.local/share/Steam \
-  STEAM_COMPAT_DATA_PATH=/tmp/shuvcode/warband-cua/compatdata \
-  "/home/shamanic/.local/share/Steam/steamapps/common/Proton 9.0 (Beta)/proton" \
-  runinprefix mb_warband.exe
+--require-hardware-gl --hardware-deadline 45
 ```
 
-The prefix copy needs `pfx`, `version`, `tracked_files`, and `config_info` from
-the original compatdata directory, not just `pfx`. It is temporary and is not
-guaranteed to survive reboot or temporary-file cleanup. Never point cleanup or
-prefix experiments at the working Steam/Pendor prefix.
+That requirement succeeds only when the actual `mb_warband.exe` process maps
+`radeonsi_dri.so`; Gamescope's own Vulkan renderer is not enough. It also fails
+closed when the guarded command exits before producing the proof. The current
+launcher-only path is expected to return status 70 at this boundary because Play
+cannot yet be activated through private CUA.
 
-This display uses software OpenGL rendering in the tested launch. Gameplay
-performance and GPU acceleration are not established by launcher input success.
-The X server uses local access without an Xauthority cookie (`-ac`); TCP is
-disabled, but other local users could access it. This is not a security sandbox.
-# Exact-coordinate verification note (2026-10-09)
+The supervisor also has a DXVK backend. `--require-dxvk` verifies that the
+isolated prefix's 32-bit `d3d9.dll` hash matches Proton's DXVK DLL, that Proton
+loads it as native and that Gamescope selected the AMD GPU. The full Proton/DXVK
+launch currently does not map the Warband launcher under headless Gamescope, so
+it is preflight evidence, not a working interactive path.
 
-The isolated `:97` Warband capture can be composited with an InputOnly popup
-(`4194305`, depth 0). Capturing that popup fails; window-relative actions on the
-composited image can be offset, especially for small world-map targets. Use
-`get_desktop_state` and `click` with `scope: "desktop"` for exact screen pixels
-in this isolated X11 session. This is still CUA, not direct X11/Hyprland automation.
-The CUA daemon owns display `:97`; desktop scope here does not target the user's
-normal desktop. Always inspect the current screenshot before choosing coordinates.
+Warband 1.174 has no general command-line module/launcher bypass. Static analysis
+found only the `-sm` debug/module-system option; a bounded `-m WarbandMCP` run
+remained in the launcher. Play changes state within the same process rather than
+spawning a second executable.
 
-`get_desktop_state` accepts `screenshot_out_file`, not `include_accessibility_tree`.
-Its CLI-returned capture IDs currently fail action lookup, so screen-absolute clicks
-use the freshly observed pixels without attaching that ID. Verify each effect.
-Single key taps can miss under software rendering; repeat deliberately and inspect.
+## Evidence and cleanup
+
+Every live run should retain:
+
+- `gamescope.log` naming the physical AMD renderer;
+- `session.json` with private display and lifecycle state;
+- the relevant DXVK or WineD3D proof file;
+- periodic aggregate CPU/RSS samples;
+- a Hyprland event capture showing no Warband/Gamescope desktop focus event;
+- CUA before/after captures for any claimed interaction.
+
+After a run, verify that no exact owned process or transient unit remains. Never
+kill broad Wine, Steam, Gamescope or CUA process sets because other agents may own
+them. If the outer `systemd-run --wait` client is interrupted, resolve the exact
+unit from the owned process's `/proc/PID/cgroup` and stop only that unit.
+
+The old Xvfb/Openbox commands, temporary `:97` display and software-rendered
+screenshots are deliberately omitted. They proved CUA interaction but not an
+acceptable runtime and must not be revived.

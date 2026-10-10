@@ -28,6 +28,9 @@ Current foundations include:
   events and bounded audio retrieval;
 - a deterministic [restricted-agent usability fixture](docs/agent-usability.md)
   for later announced cross-model interface tests;
+- a [GPU-safe off-screen test harness](bridge/CUA_RUNBOOK.md) that pins Gamescope
+  to a physical AMD GPU, isolates CUA from the desktop, enforces systemd resource
+  limits and refuses software rendering or missing game-process GPU proof;
 - reproducible tests and retained engine/visual evidence.
 
 The current evidence index and final video ledger live in
