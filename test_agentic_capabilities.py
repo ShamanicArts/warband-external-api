@@ -9,8 +9,8 @@ from warband_agentic import (
     CapabilityRegistry,
     ContextKind,
     ContextRef,
-    ControlLease,
     EvidenceLevel,
+    LeaseBook,
     LeaseMode,
     RiskClass,
     RoleGrant,
@@ -53,8 +53,6 @@ def definition(
 class CapabilityRegistryTests(unittest.TestCase):
     def setUp(self):
         tokens = iter(("token:1", "token:2", "token:3", "token:4"))
-        self.registry = CapabilityRegistry(lambda: next(tokens))
-        self.registry.register(definition())
         self.actor = ActorRef("controller:elder", ActorKind.SYSTEM)
         self.elder = ActorRef("agent:13", ActorKind.AGENT, 13)
         self.context = ContextRef(ContextKind.DIALOGUE, "scene:376", 12, 3, 90)
@@ -68,16 +66,19 @@ class CapabilityRegistryTests(unittest.TestCase):
             1000,
             2000,
         )
-        self.lease = ControlLease(
-            "lease:elder",
+        self.lease_book = LeaseBook(lambda: "lease:elder")
+        self.lease = self.lease_book.acquire(
             self.actor,
             self.elder,
             ("dialogue",),
             LeaseMode.EXCLUSIVE,
-            1,
             1000,
             1600,
         )
+        self.registry = CapabilityRegistry(
+            lambda: next(tokens), self.lease_book.resolve
+        )
+        self.registry.register(definition())
 
     def issue(self, expires=1500):
         return self.registry.issue(
@@ -98,6 +99,7 @@ class CapabilityRegistryTests(unittest.TestCase):
             "arguments": {"entry_id": 2515},
             "expected_revision": 12,
             "submitted_at_ms": 1200,
+            "lease_id": self.lease.lease_id,
         }
         values.update(changes)
         return ActionSubmission(**values)
@@ -155,7 +157,7 @@ class CapabilityRegistryTests(unittest.TestCase):
     def test_consume_validates_schema_lease_and_is_single_use(self):
         affordance = self.issue()
         action = self.registry.consume(
-            self.submit(affordance), self.context, self.grant, 1200, self.lease
+            self.submit(affordance), self.context, self.grant, 1200
         )
         self.assertEqual(action.capability.handler_id, "native-dialogue-choice")
         with self.assertRaisesRegex(ValueError, "already consumed"):
@@ -164,8 +166,31 @@ class CapabilityRegistryTests(unittest.TestCase):
                 self.context,
                 self.grant,
                 1201,
-                self.lease,
             )
+
+    def test_control_lease_must_resolve_from_the_trusted_book(self):
+        affordance = self.issue()
+        with self.assertRaisesRegex(ValueError, "Unknown or expired"):
+            self.registry.consume(
+                self.submit(affordance, lease_id="lease:forged"),
+                self.context,
+                self.grant,
+                1200,
+            )
+
+        registry = CapabilityRegistry(lambda: "no-resolver")
+        registry.register(definition())
+        affordance = registry.issue(
+            "dialogue.choose",
+            self.actor,
+            (self.elder,),
+            self.context,
+            self.grant,
+            1100,
+            1500,
+        )
+        with self.assertRaisesRegex(ValueError, "no trusted lease resolver"):
+            registry.consume(self.submit(affordance), self.context, self.grant, 1200)
 
     def test_stale_changed_expired_and_wrong_actor_submissions_are_rejected(self):
         cases = (
@@ -174,7 +199,6 @@ class CapabilityRegistryTests(unittest.TestCase):
                 self.context,
                 1200,
                 self.grant,
-                self.lease,
                 "stale",
             ),
             (
@@ -182,16 +206,14 @@ class CapabilityRegistryTests(unittest.TestCase):
                 ContextRef(ContextKind.DIALOGUE, "scene:376", 13, 3, 91),
                 1200,
                 self.grant,
-                self.lease,
                 "context changed",
             ),
-            ({}, self.context, 1500, self.grant, self.lease, "expired"),
+            ({}, self.context, 1500, self.grant, "expired"),
             (
                 {"actor": ActorRef("controller:other", ActorKind.SYSTEM)},
                 self.context,
                 1200,
                 self.grant,
-                self.lease,
                 "different actor",
             ),
             (
@@ -199,7 +221,6 @@ class CapabilityRegistryTests(unittest.TestCase):
                 self.context,
                 1200,
                 self.grant,
-                self.lease,
                 "timestamp",
             ),
             (
@@ -207,12 +228,11 @@ class CapabilityRegistryTests(unittest.TestCase):
                 self.context,
                 1200,
                 self.grant,
-                self.lease,
                 "timestamp",
             ),
         )
-        for changes, context, now, grant, lease, message in cases:
-            registry = CapabilityRegistry(lambda: "case-token")
+        for changes, context, now, grant, message in cases:
+            registry = CapabilityRegistry(lambda: "case-token", self.lease_book.resolve)
             registry.register(definition())
             affordance = registry.issue(
                 "dialogue.choose",
@@ -228,7 +248,7 @@ class CapabilityRegistryTests(unittest.TestCase):
                 self.assertRaisesRegex(ValueError, message),
             ):
                 registry.consume(
-                    self.submit(affordance, **changes), context, grant, now, lease
+                    self.submit(affordance, **changes), context, grant, now
                 )
 
     def test_parameter_schema_rejects_missing_extra_type_enum_and_range(self):
@@ -240,7 +260,9 @@ class CapabilityRegistryTests(unittest.TestCase):
             ({"entry_id": 2515, "confirmation": "maybe"}, "allowed"),
         )
         for index, (arguments, message) in enumerate(invalid_arguments):
-            registry = CapabilityRegistry(lambda: f"schema:{index}")
+            registry = CapabilityRegistry(
+                lambda: f"schema:{index}", self.lease_book.resolve
+            )
             registry.register(definition())
             affordance = registry.issue(
                 "dialogue.choose",
@@ -260,7 +282,6 @@ class CapabilityRegistryTests(unittest.TestCase):
                     self.context,
                     self.grant,
                     1200,
-                    self.lease,
                 )
 
     def test_grant_and_lease_scope_bound_affordance_lifetime(self):
@@ -286,24 +307,33 @@ class CapabilityRegistryTests(unittest.TestCase):
                 1100,
                 1200,
             )
-        affordance = self.issue()
-        wrong_target = ControlLease(
-            "wrong",
+        wrong_target = ActorRef("agent:99", ActorKind.AGENT, 99)
+        wrong_book = LeaseBook(lambda: "wrong")
+        wrong_lease = wrong_book.acquire(
             self.actor,
-            ActorRef("agent:99", ActorKind.AGENT, 99),
+            wrong_target,
             ("dialogue",),
             LeaseMode.EXCLUSIVE,
-            1,
             1000,
             1400,
         )
+        registry = CapabilityRegistry(lambda: "wrong-token", wrong_book.resolve)
+        registry.register(definition())
+        affordance = registry.issue(
+            "dialogue.choose",
+            self.actor,
+            (self.elder,),
+            self.context,
+            self.grant,
+            1100,
+            1500,
+        )
         with self.assertRaisesRegex(ValueError, "outside"):
-            self.registry.consume(
-                self.submit(affordance),
+            registry.consume(
+                self.submit(affordance, lease_id=wrong_lease.lease_id),
                 self.context,
                 self.grant,
                 1200,
-                wrong_target,
             )
 
     def test_definition_refuses_ambiguous_parameter_schema(self):

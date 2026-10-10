@@ -183,11 +183,12 @@ class _Issued:
 class CapabilityRegistry:
     """Register semantic capabilities and issue context-bound action tokens."""
 
-    def __init__(self, token_factory=None):
+    def __init__(self, token_factory=None, lease_resolver=None):
         self._definitions = {}
         self._issued = {}
         self._action_ids = set()
         self._token_factory = token_factory or (lambda: secrets.token_urlsafe(24))
+        self._lease_resolver = lease_resolver
         self._lock = RLock()
 
     def register(self, definition):
@@ -266,7 +267,7 @@ class CapabilityRegistry:
             self._issued[token] = _Issued(affordance, definition, grant.grant_id)
             return affordance
 
-    def consume(self, submission, current_context, grant, now_ms, lease=None):
+    def consume(self, submission, current_context, grant, now_ms):
         if not isinstance(submission, ActionSubmission) or not isinstance(
             current_context, ContextRef
         ):
@@ -303,6 +304,13 @@ class CapabilityRegistry:
                 raise ValueError("Game context changed after affordance issuance")
             _validate_object(definition.parameters, submission.arguments)
             if definition.requires_lease:
+                if self._lease_resolver is None:
+                    raise ValueError(
+                        "Capability registry has no trusted lease resolver"
+                    )
+                if submission.lease_id is None:
+                    raise ValueError("Capability requires a control lease ID")
+                lease = self._lease_resolver(submission.lease_id, now_ms)
                 self._validate_lease(
                     lease, submission.actor, affordance, definition, now_ms
                 )

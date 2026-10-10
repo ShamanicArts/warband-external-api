@@ -462,3 +462,20 @@ control lease before resolving the private handler binding. Tokens are single-us
 and action IDs cannot be replayed. This layer validates and resolves; it does not
 execute game mutations or treat validation as an outcome. Eight registry tests
 bring the active suite to **149 tests**.
+
+## Control arbitration and perception filtering
+
+`warband_agentic.authority` adds a trusted in-process `LeaseBook`: exclusive and
+shared leases arbitrate overlapping target/domain control, wildcard domains
+conflict correctly, generations remain monotonic across release/expiry, and only
+the controller may release. Capability consumption now resolves submitted lease
+IDs through that book; constructing a plausible `ControlLease` object cannot forge
+authority. The first implementation is intentionally in-memory, so persistent
+lease recovery and native-AI resumption hooks remain future work.
+
+Named `PerceptionPolicy` definitions filter canonical observation facts by role,
+context, key namespace and fact source. Restricted output retains source labels and
+reports coarse omitted categories without exposing hidden keys or values. Initial
+conservative policies cover readonly observer, strategic player, NPC self, party
+commander, faction sovereign, test director and full operator roles. Nine new
+authority/lease tests bring the active suite to **158 tests**.

@@ -310,6 +310,7 @@ class ActionSubmission:
     arguments: Mapping[str, JsonValue]
     expected_revision: int
     submitted_at_ms: int
+    lease_id: str | None = None
     schema: str = CONTRACT_VERSION
 
     def __post_init__(self):
@@ -320,6 +321,8 @@ class ActionSubmission:
         object.__setattr__(self, "arguments", _freeze_json(self.arguments, "arguments"))
         _nonnegative("expected_revision", self.expected_revision)
         _nonnegative("submitted_at_ms", self.submitted_at_ms)
+        if self.lease_id is not None:
+            _nonempty("lease_id", self.lease_id)
         if self.schema != CONTRACT_VERSION:
             raise ValueError("unsupported contract schema")
 

@@ -1,5 +1,11 @@
 """Provider-neutral contracts for the Warband agentic runtime."""
 
+from warband_agentic.authority import (
+    LeaseBook,
+    ObservationFilter,
+    PerceptionPolicy,
+    default_perception_policies,
+)
 from warband_agentic.capabilities import (
     CapabilityDefinition,
     CapabilityRegistry,
@@ -51,11 +57,15 @@ __all__ = [
     "FactSource",
     "GameEvent",
     "LeaseMode",
+    "LeaseBook",
     "ObservationEnvelope",
+    "ObservationFilter",
+    "PerceptionPolicy",
     "RiskClass",
     "RoleGrant",
     "RoleId",
     "ValidatedAction",
     "contract_manifest",
+    "default_perception_policies",
     "to_wire",
 ]
