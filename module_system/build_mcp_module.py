@@ -1235,11 +1235,15 @@ def build(native: Path, output: Path, endpoint: str, token: str):
     )
 
 
-if __name__ == "__main__":
+def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--native", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--endpoint", default="http://127.0.0.1")
     parser.add_argument("--token-file", type=Path, required=True)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     build(args.native, args.output, args.endpoint, args.token_file.read_text().strip())
+
+
+if __name__ == "__main__":
+    main()

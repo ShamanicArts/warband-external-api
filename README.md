@@ -49,6 +49,25 @@ Current foundations include:
 The current evidence index and final video ledger live in
 [docs/evidence-report.md](docs/evidence-report.md).
 
+## Installable toolkit
+
+The current Python package is `warband-agentic-kit` 0.2.0. A development install
+provides five commands:
+
+```bash
+uv sync
+uv run warband-game-bridge --help
+uv run warband-build-module --help
+uv run warband-mcp
+uv run warband-voice --help
+uv run warband-agent-usability --help
+```
+
+See [the packaging guide](docs/packaging.md) for reproducible sdist-to-wheel
+builds, isolated Native module generation and runtime startup. The repository is
+not ready for public release yet: no project license has been selected, and
+fresh-install/live acceptance plus final video evidence remain open.
+
 MCP is one adapter, not the core product boundary. CUA is used only for isolated
 launch and independent visual validation, never as an invisible game backend.
 

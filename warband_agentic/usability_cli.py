@@ -8,10 +8,10 @@ from warband_agentic.contracts import to_wire
 from warband_agentic.usability import build_faction_usability_fixture
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=("export", "evaluate"))
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     fixture = build_faction_usability_fixture()
     if args.command == "export":
         result = fixture.briefing()

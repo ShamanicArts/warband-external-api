@@ -1,9 +1,26 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "warband-mcp"
-version = "0.1.0"
-description = "Warband MCP tools backed by game scripts and an HTTP bridge"
+name = "warband-agentic-kit"
+version = "0.2.0"
+description = "Provider-neutral agentic modding and scripting kit for Warband"
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["mcp>=1.26,<2"]
+
+[project.scripts]
+warband-mcp = "src.warband_mcp:main"
+warband-game-bridge = "bridge.game_bridge:main"
+warband-build-module = "module_system.build_mcp_module:main"
+warband-voice = "warband_agentic.voice_server:main"
+warband-agent-usability = "warband_agentic.usability_cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bridge*", "module_system*", "src*", "warband_agentic*"]
+namespaces = true
 
 [dependency-groups]
 dev = ["ruff>=0.14"]

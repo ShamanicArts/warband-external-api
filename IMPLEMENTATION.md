@@ -674,3 +674,20 @@ then atomically persist canonical transcript JSON. The bridge-simulated driver
 test raises separated discovery to **230 tests**: 96 root, 86 bridge and 48
 module-system. Live multi-faction orchestration, save/checkpoint recovery and
 strategic scoring remain open.
+
+## Installable Python distribution
+
+The project now builds as `warband-agentic-kit` 0.2.0 with locked metadata and
+installed commands for the bridge, isolated Native module builder, MCP server,
+voice service and restricted-agent usability harness. The packaging regression
+builds a source distribution, builds the wheel from that clean source artifact,
+checks that runtime/bridge/builder/MCP files and entrypoints are present while
+private runtime/evidence artifacts are absent, installs the wheel outside the
+checkout, imports the core modules and exercises every non-MCP command's help
+path. This raises separated discovery to **232 tests**: 98 root, 86 bridge and 48
+module-system tests.
+
+This is structural installability, not public-release acceptance. A project
+license is still unselected; dependency/source licensing verdicts, guided client
+registration, packaged application discovery, fresh-Native end-to-end acceptance
+and final hardware-rendered video evidence remain open. See `docs/packaging.md`.

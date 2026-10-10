@@ -581,5 +581,9 @@ async def warband_native_dialogue_events(
     )
 
 
-if __name__ == "__main__":
+def main():
     mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()

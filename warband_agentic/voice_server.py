@@ -83,12 +83,12 @@ def load_voice_token(path):
     return token
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--token-file", type=Path, required=True)
     parser.add_argument("--port", type=int, default=8870)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     service = build_voice_service(load_voice_config(args.config))
     server = make_voice_server(
         service, load_voice_token(args.token_file), port=args.port

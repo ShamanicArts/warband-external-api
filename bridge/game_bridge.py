@@ -1057,14 +1057,14 @@ def load_token(path):
     return token
 
 
-if __name__ == "__main__":
+def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--token-file", type=Path, required=True)
     parser.add_argument("--database", type=Path, required=True)
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--create-token", action="store_true")
     parser.add_argument("--catalog", type=Path)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.create_token:
         with args.token_file.open("x") as f:
             f.write(secrets.token_hex(32))
@@ -1082,3 +1082,7 @@ if __name__ == "__main__":
         server.serve_forever()
     finally:
         server.server_close()
+
+
+if __name__ == "__main__":
+    main()
