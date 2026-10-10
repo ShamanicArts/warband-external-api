@@ -2,8 +2,11 @@
 
 import hashlib
 import json
+import os
+import tempfile
 from copy import deepcopy
 from enum import StrEnum
+from pathlib import Path
 
 from warband_agentic.agent_api import AgentConflict, AgentTurn
 from warband_agentic.contracts import ActionOutcome, ActionState, ContextKind, to_wire
@@ -73,6 +76,7 @@ class SynchronizedFactionEpoch:
         self._campaign_game_time = None
         self._decisions = None
         self._records = None
+        self._campaign_advance = None
 
     def queue_observation_refreshes(self):
         if self.state is not BenchmarkEpochState.CREATED:
@@ -181,6 +185,37 @@ class SynchronizedFactionEpoch:
         )
         return _json_copy(self._records, "decision records")
 
+    def record_campaign_advance(self, status):
+        """Attach one completed, matching fixed-time advance to the transcript."""
+        if self.state is not BenchmarkEpochState.RESOLVED:
+            raise RuntimeError("campaign time cannot advance before actions resolve")
+        value = _json_copy(status, "campaign advance")
+        if not isinstance(value, dict):
+            raise TypeError("campaign advance must be an object")
+        if value.get("epoch_id") != self.epoch_id:
+            raise ValueError("campaign advance belongs to another epoch")
+        if value.get("state") != "complete":
+            raise ValueError("campaign advance is not complete")
+        if value.get("start_clock") != self._campaign_game_time:
+            raise ValueError("campaign advance did not start at the decision time")
+        if (
+            value.get("target_reached") is not True
+            or value.get("stop_acknowledged") is not True
+            or value.get("stop_command_status") != "acknowledged"
+        ):
+            raise ValueError("campaign advance lacks target and stop proof")
+        for name in ("start_clock", "target_clock", "current_clock", "elapsed_hours"):
+            if type(value.get(name)) is not int:
+                raise ValueError(f"campaign advance {name} must be an integer")
+        if (
+            value["target_clock"] <= value["start_clock"]
+            or value["current_clock"] < value["target_clock"]
+            or value["elapsed_hours"] != value["current_clock"] - value["start_clock"]
+        ):
+            raise ValueError("campaign advance clock evidence is inconsistent")
+        self._campaign_advance = value
+        return _json_copy(value, "campaign advance")
+
     def transcript(self):
         if self._turns is None:
             raise RuntimeError("transcript requires a synchronized turn set")
@@ -196,6 +231,41 @@ class SynchronizedFactionEpoch:
                 "turns": self._turns,
                 "decisions": self._decisions,
                 "decision_records": self._records,
+                "campaign_advance": self._campaign_advance,
             },
             "transcript",
         )
+
+    def write_transcript(self, path):
+        """Atomically persist one completed epoch transcript as canonical JSON."""
+        if self.state is not BenchmarkEpochState.RESOLVED:
+            raise RuntimeError("only a resolved epoch can be persisted")
+        if self._campaign_advance is None:
+            raise RuntimeError("epoch has no completed campaign advance")
+        target = Path(path)
+        if not target.name or not target.parent.is_dir():
+            raise ValueError("transcript parent directory must already exist")
+        payload = (
+            json.dumps(
+                self.transcript(),
+                allow_nan=False,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n"
+        )
+        descriptor, temporary_name = tempfile.mkstemp(
+            dir=target.parent,
+            prefix=f".{target.name}.",
+            suffix=".tmp",
+        )
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as file:
+                file.write(payload)
+                file.flush()
+                os.fsync(file.fileno())
+            os.replace(temporary_name, target)
+        finally:
+            if os.path.exists(temporary_name):
+                os.unlink(temporary_name)
+        return target

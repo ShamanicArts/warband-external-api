@@ -15,6 +15,8 @@ An epoch performs four explicit phases:
    per faction.
 4. Commit submissions in faction-ID order and retain accepted outcomes plus
    invalid/rejected decision errors in the transcript.
+5. Resolve every accepted action, run a matching `CampaignEpochDriver` interval,
+   and attach its engine-clock plus acknowledged-stop proof.
 
 Controlled party IDs must be disjoint across applications. An overlap fails at
 construction rather than making first-response timing determine authority.
@@ -25,10 +27,19 @@ The caller supplies JSON `run_metadata`. A real benchmark should include module
 and save hashes, scenario seed, model/provider/version/settings, token and time
 budgets, pricing/cost, timeout policy and runner version. The epoch transcript
 contains the exact filtered turns, turn-set hash, submitted responses, validation
-errors and refreshed outcomes. It never contains the private application objects.
+errors, refreshed outcomes and campaign advance. It never contains the private
+application objects. `write_transcript(path)` atomically replaces one canonical
+JSON artifact only after the epoch is resolved and its fixed-time advance is
+complete.
 
-This is not yet the full benchmark harness. The next layer must pause/advance a
-real campaign by fixed game time, stop rest safely, capture checkpoints, derive
-scenario metrics, persist transcripts atomically, resume interrupted runs, and
-schedule providers under equal budgets. External model runs still require the
-user-visible preflight notice described in the design specification.
+`bridge.campaign_epoch_driver.CampaignEpochDriver` starts bounded Native
+`rest_for_hours_interactive`, distinguishes command acknowledgement from elapsed
+time, compares live engine clock against the epoch target, and queues an explicit
+zero-hour stop. Completion requires both target-clock evidence and an acknowledged
+stop. A menu/encounter transition or stale telemetry is interruption, not success.
+
+This is not yet the full benchmark harness. The next layer must orchestrate the
+driver against a live campaign, capture save/checkpoints, derive scenario metrics,
+resume interrupted runs, and schedule providers under equal budgets. External
+model runs still require the user-visible preflight notice described in the design
+specification.

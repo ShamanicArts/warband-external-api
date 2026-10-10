@@ -663,3 +663,14 @@ game time. Fixed-time campaign driving, safe rest stop, checkpoint persistence,
 resume, metrics/scoring and announced external-model runs remain separate future
 layers. Three coordinator tests bring separated discovery to **229 tests**: 95
 root, 86 bridge and 48 module-system.
+
+`CampaignEpochDriver` now provides the bounded time-advance half of that contract
+over the production Store. It starts Native attackable rest, refuses to equate
+acknowledgement with elapsed time, compares fresh engine clock to the exact target,
+queues an explicit zero-hour stop, and requires the stop acknowledgement before
+completion. The coordinator only accepts a matching completed advance after all
+faction actions resolve, validates its clock arithmetic and stop proof, and can
+then atomically persist canonical transcript JSON. The bridge-simulated driver
+test raises separated discovery to **230 tests**: 96 root, 86 bridge and 48
+module-system. Live multi-faction orchestration, save/checkpoint recovery and
+strategic scoring remain open.

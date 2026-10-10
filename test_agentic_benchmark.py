@@ -1,4 +1,7 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from warband_agentic import (
     ActionOutcome,
@@ -71,7 +74,25 @@ class FakeSession:
 
     def outcome(self, request_id):
         self.calls.append(("outcome", self.faction_id, request_id))
-        return self._outcome
+        if self._outcome is None:
+            return None
+        return ActionOutcome(
+            self._outcome.action_id,
+            ActionState.OBSERVED,
+            self._outcome.context,
+            self._outcome.context.revision + 1,
+            {"status": "acknowledged"},
+            (),
+            (
+                Evidence(
+                    EvidenceLevel.ENGINE_OBSERVED,
+                    "test boundary",
+                    "party order read back",
+                ),
+            ),
+            None,
+            1200,
+        )
 
 
 class FakeFactionApplication:
@@ -127,11 +148,39 @@ class SynchronizedFactionEpochTests(unittest.TestCase):
         self.assertFalse(records[16]["accepted"])
         self.assertEqual(records[16]["error_type"], "AgentConflict")
 
+        refreshed = self.epoch.refresh_outcomes()
+        self.assertEqual(refreshed[15]["outcome"]["state"], "observed")
+        self.epoch.record_campaign_advance(
+            {
+                "epoch_id": "epoch:12",
+                "state": "complete",
+                "start_clock": 90,
+                "target_clock": 91,
+                "current_clock": 91,
+                "elapsed_hours": 1,
+                "target_reached": True,
+                "start_command_status": "acknowledged",
+                "stop_command_status": "acknowledged",
+                "stop_acknowledged": True,
+                "reason": None,
+            }
+        )
+
         transcript = self.epoch.transcript()
         self.assertEqual(transcript["epoch_id"], "epoch:12")
         self.assertEqual(transcript["campaign_game_time"], 90)
         self.assertEqual(len(transcript["turn_set_sha256"]), 64)
+        self.assertEqual(transcript["campaign_advance"]["state"], "complete")
         self.assertNotIn("application", str(transcript))
+
+        with tempfile.TemporaryDirectory() as directory:
+            artifact = Path(directory) / "epoch-12.json"
+            written = self.epoch.write_transcript(artifact)
+            self.assertEqual(written, artifact)
+            loaded = json.loads(artifact.read_text())
+            self.assertEqual(loaded["epoch_id"], "epoch:12")
+            self.assertEqual(loaded["turn_set_sha256"], transcript["turn_set_sha256"])
+            self.assertEqual(list(loaded["turns"]), ["15", "16"])
 
     def test_overlapping_party_control_is_rejected(self):
         apps = {
