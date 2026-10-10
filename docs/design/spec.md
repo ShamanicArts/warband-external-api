@@ -545,8 +545,8 @@ The kit is ready for an initial public developer release when:
       keeps identity/lease/handler bindings private and filters session events.
 - [x] Add explicit trusted Python extension registration with versioned
       declarations, collision checks, settings/ownership validation, scoped
-      backend operations and host integration. Installed-package discovery and
-      generated ModSys handlers remain open.
+      backend operations, host integration and exact-ID installed entry-point
+      loading. Automatic loading and generated ModSys handlers remain open.
 - [x] Add evidence-gated, scenario-defined faction metrics/scoring and a canonical
       multi-epoch run report, plus a fixed-clock paged campaign metric collector.
       Live collector acceptance, save recovery and provider scheduling remain open.

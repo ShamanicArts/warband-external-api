@@ -7,7 +7,9 @@ untrusted agent is attached to the resulting constrained session.
 """
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from importlib import metadata
+from types import MappingProxyType
 from typing import Mapping
 
 from warband_agentic.agent_api import ConstrainedAgentSession
@@ -21,6 +23,7 @@ from warband_agentic.contracts import (
 
 EXTENSION_SCHEMA = "warband.agentic/extension/v1"
 EXTENSION_CATALOG_SCHEMA = "warband.agentic/extensions/v1"
+EXTENSION_ENTRY_POINT_GROUP = "warband_agentic.extensions"
 _SEMVER = re.compile(
     r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
     r"(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
@@ -243,6 +246,35 @@ class AgenticExtension:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class ExtensionBundle:
+    """One installed extension declaration plus its trusted private callables."""
+
+    extension: AgenticExtension
+    factories: Mapping
+    settings_validators: Mapping = field(default_factory=dict)
+
+    def __post_init__(self):
+        if not isinstance(self.extension, AgenticExtension):
+            raise TypeError("extension bundle requires an AgenticExtension")
+        for name, value in (
+            ("factories", self.factories),
+            ("settings_validators", self.settings_validators),
+        ):
+            if not isinstance(value, Mapping):
+                raise TypeError(f"extension bundle {name} must be a mapping")
+            object.__setattr__(self, name, MappingProxyType(dict(value)))
+
+    def register(self, registry):
+        if not isinstance(registry, ExtensionRegistry):
+            raise TypeError("registry must be an ExtensionRegistry")
+        registry.register(
+            self.extension,
+            self.factories,
+            self.settings_validators,
+        )
+
+
 class ScopedGameBackend:
     """Expose Store reads and only the operations declared by an app kind."""
 
@@ -449,3 +481,39 @@ class ExtensionRegistry:
                 self._extensions.values(), key=lambda item: item.extension_id
             )
         )
+
+
+def load_named_extension_entry_points(registry, names):
+    """Load only explicitly named installed extension bundles into a registry."""
+    if not isinstance(registry, ExtensionRegistry):
+        raise TypeError("registry must be an ExtensionRegistry")
+    requested = tuple(names)
+    if len(requested) > 32 or any(
+        not isinstance(name, str) or not name.strip() for name in requested
+    ):
+        raise ValueError("extension names must contain at most 32 non-empty values")
+    if len(requested) != len(set(requested)):
+        raise ValueError("extension names must be unique")
+    available = metadata.entry_points(group=EXTENSION_ENTRY_POINT_GROUP)
+    by_name = {}
+    for entry_point in available:
+        by_name.setdefault(entry_point.name, []).append(entry_point)
+    for name in requested:
+        matches = by_name.get(name, ())
+        if not matches:
+            raise ValueError(f"Requested extension {name} is not installed")
+        if len(matches) != 1:
+            raise ValueError(f"Requested extension {name} is ambiguous")
+        try:
+            provider = matches[0].load()
+            if not callable(provider):
+                raise TypeError("extension entry point must be callable")
+            bundle = provider()
+        except Exception as exc:
+            raise ValueError(f"Cannot load requested extension {name}") from exc
+        if not isinstance(bundle, ExtensionBundle):
+            raise ValueError(f"Requested extension {name} returned no bundle")
+        if bundle.extension.extension_id != name:
+            raise ValueError(f"Requested extension {name} declared another ID")
+        bundle.register(registry)
+    return registry

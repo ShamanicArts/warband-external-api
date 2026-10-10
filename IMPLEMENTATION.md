@@ -814,3 +814,20 @@ Two bridge simulations cover an 18-row/two-page, two-faction collection and
 clock-drift refusal. Separated discovery passes **250 tests**: 114 root, 88 bridge
 and 48 module-system. A real stopped-campaign collection, save/process recovery
 and provider-driven benchmark remain open.
+
+## Explicit installed extension loading
+
+Third-party Python packages can now publish a zero-argument `ExtensionBundle`
+factory under the `warband_agentic.extensions` entry-point group. The host CLI
+loads an installed extension only when the operator supplies its exact declared
+ID with `--extension`; it never imports every discovered package and JSON still
+cannot name a module. Missing, duplicate/ambiguous, malformed, incompatible or
+ID-mismatched bundles fail before host-plan database or socket side effects.
+
+An installed-style subprocess regression creates real temporary `.dist-info`
+metadata with one valid extension and one deliberately broken unrequested entry
+point. Check mode loads only the named bundle, validates its custom session,
+reports both exact extension versions, creates no databases, and returns a
+secret-free error for a missing ID. Separated discovery passes **251 tests**: 115
+root, 88 bridge and 48 module-system. Automatic package loading, runtime hot
+reload and compiled ModSys-handler extensions remain open.

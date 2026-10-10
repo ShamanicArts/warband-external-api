@@ -133,8 +133,8 @@ acknowledgement is not promoted to observed outcome.
 ## Current limitations
 
 - The stock CLI covers the three static built-in applications. Explicit trusted
-  extension registration is supported, while installed-package discovery, hot
-  reload and dynamic session creation are not implemented.
+  extension registration and named installed entry points are supported, while
+  automatic loading, hot reload and dynamic session creation are not implemented.
 - When a `SemanticEventLog` is supplied, new action records durably reconstruct
   exact request idempotency, the latest public outcome and private
   application-owned bridge correlation after restart. Recovery never dispatches

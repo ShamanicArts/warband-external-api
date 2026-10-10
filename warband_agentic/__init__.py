@@ -69,13 +69,16 @@ from warband_agentic.events import (
 )
 from warband_agentic.extensions import (
     EXTENSION_CATALOG_SCHEMA,
+    EXTENSION_ENTRY_POINT_GROUP,
     EXTENSION_SCHEMA,
     AgenticExtension,
     ApplicationKind,
+    ExtensionBundle,
     ExtensionRegistry,
     OwnershipRule,
     ResourceClaim,
     ScopedGameBackend,
+    load_named_extension_entry_points,
 )
 from warband_agentic.scoring import (
     BENCHMARK_RUN_SCHEMA,
@@ -137,8 +140,10 @@ __all__ = [
     "Evidence",
     "EvidenceLevel",
     "EXTENSION_CATALOG_SCHEMA",
+    "EXTENSION_ENTRY_POINT_GROUP",
     "EXTENSION_SCHEMA",
     "ExtensionRegistry",
+    "ExtensionBundle",
     "EVENT_STORE_SCHEMA_VERSION",
     "AppendResult",
     "EventPage",
@@ -192,6 +197,7 @@ __all__ = [
     "make_voice_server",
     "make_agent_server",
     "menu_operation_from_validated",
+    "load_named_extension_entry_points",
     "npc_speech_operation_from_validated",
     "party_facts_from_world_result",
     "party_operation_from_validated",

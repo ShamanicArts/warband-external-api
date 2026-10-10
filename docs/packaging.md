@@ -68,7 +68,8 @@ game launch; software rendering is forbidden.
   license and referenced-source/dependency terms are resolved.
 - The Python artifact and built-in multi-session host are reproducible, but there
   is not yet a guided installer or automatic MCP-client registration.
-- Explicit Python extension registration is packaged. Installed-package
-  discovery, new compiled-handler generation and hot reload are not.
+- Explicit Python extension registration and exact-ID installed entry-point
+  loading are packaged. Automatic loading, new compiled-handler generation and
+  hot reload are not.
 - A fresh-install end-to-end module build and game acceptance run still needs
   retained hardware-rendered evidence and final video clips.

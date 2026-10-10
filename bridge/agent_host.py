@@ -15,7 +15,10 @@ from bridge.application_extensions import built_in_extension_registry
 from bridge.game_bridge import Store, make_server
 from warband_agentic.agent_http import make_agent_server
 from warband_agentic.events import SemanticEventLog
-from warband_agentic.extensions import ExtensionRegistry
+from warband_agentic.extensions import (
+    ExtensionRegistry,
+    load_named_extension_entry_points,
+)
 
 HOST_CONFIG_SCHEMA = "warband.agentic/host-config/v1"
 HOST_DIAGNOSTICS_SCHEMA = "warband.agentic/host-diagnostics/v1"
@@ -587,10 +590,13 @@ def make_host_control_server(host, token, bind_host="127.0.0.1", port=8879):
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--extension", action="append", default=[])
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args(argv)
     try:
-        plan = load_agent_host_plan(args.config)
+        extensions = built_in_extension_registry()
+        load_named_extension_entry_points(extensions, args.extension)
+        plan = load_agent_host_plan(args.config, extensions)
         if args.check:
             json.dump(plan.diagnostics(), sys.stdout, indent=2, sort_keys=True)
             sys.stdout.write("\n")

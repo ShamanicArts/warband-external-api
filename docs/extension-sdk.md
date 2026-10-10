@@ -42,6 +42,29 @@ plan = load_agent_host_plan("/private/path/agent-host.json", registry)
 AgentApplicationHost(plan).serve_forever()
 ```
 
+An installed package can expose the same trusted bundle through standard Python
+distribution metadata:
+
+```toml
+[project.entry-points."warband_agentic.extensions"]
+"my.mod" = "my_mod.agent_app:extension_bundle"
+```
+
+The entry point must be a zero-argument callable returning `ExtensionBundle`.
+Its entry-point name must exactly equal the bundle's declared extension ID. The
+stock host never imports every discovered package: the operator explicitly names
+each trusted extension to load.
+
+```bash
+warband-agent-host \
+  --extension my.mod \
+  --config /private/path/agent-host.json \
+  --check
+```
+
+Missing, ambiguous, incompatible or malformed named extensions fail before
+database creation or socket binding. Unnamed entry points are not imported.
+
 The matching session configuration names only the registered kind and its
 declared settings:
 
@@ -85,9 +108,9 @@ GET /v1/host/extensions
 
 ## Current limits
 
-- The stock `warband-agent-host` CLI registers only `warband.native` 0.2.0.
-  Custom extensions currently use an explicit Python launcher as above.
-- There is no package-entry-point discovery, dynamic loading or hot reload.
+- The stock `warband-agent-host` CLI registers only `warband.native` 0.2.0 unless
+  the operator supplies one or more explicit `--extension` IDs. There is no
+  automatic package loading, runtime dynamic loading or hot reload.
 - The SDK composes applications over existing reviewed bridge operation families.
   It does not yet compile new ModSys handlers, allocate slots/registers/globals or
   merge new callback seams; declarations can reserve those resource names for

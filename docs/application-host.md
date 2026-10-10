@@ -6,6 +6,8 @@ per configured application. The stock CLI packages the three built-in reference
 applications without giving agents bridge credentials or requiring handwritten
 Python composition. Trusted custom launchers can explicitly supply an extension
 registry as documented in [the extension SDK guide](extension-sdk.md).
+Installed extensions can alternatively be selected by exact ID with repeated
+`--extension` arguments; discovery alone never imports them.
 
 The versioned example is
 [`config/agent-host.example.json`](../config/agent-host.example.json). Relative
@@ -72,9 +74,9 @@ or an external agent.
 ## Current limits
 
 - The application set is static for one host process; there is no hot reload.
-- The stock CLI loads only the three reviewed built-in kinds. Trusted Python
-  launchers can explicitly register custom kinds, but installed-package discovery
-  and dynamic loading are not implemented; JSON never names an import path.
+- The stock CLI loads only the three reviewed built-in kinds by default. Operators
+  may explicitly select installed entry-point extensions by ID, but there is no
+  automatic loading or hot reload; JSON never names an import path.
 - Refresh scheduling is explicit host/runner policy. The host does not silently
   choose faction decision epochs or repeatedly scan an NPC scene.
 - Voice remains a separately authenticated host process. It is not co-hosted.
