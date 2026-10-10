@@ -19,6 +19,13 @@ timestamps and handler bindings. A client cannot name a different actor, forge a
 lease or submit a raw bridge operation. The capability registry rechecks grant,
 lease, expiry, context, revision and arguments immediately before dispatch.
 
+Each affordance's `parameters.required` list is literal: every named argument
+must be submitted. A property with `const` is a server-bound required value to
+copy exactly, not permission to omit that property. `issued_at_ms` and
+`expires_at_ms` use the session runtime's millisecond clock. Clients should treat
+them only as same-session validity metadata and fetch a fresh turn after expiry
+or any conflict; fixture clocks may intentionally be synthetic.
+
 `ConstrainedAgentSession` receives application callbacks for canonical
 observation, affordance issuance and validated dispatch. It applies the named
 perception policy before returning a turn. Turns are cached for an unchanged

@@ -1,0 +1,106 @@
+{
+  "fixture": "faction-revision-recovery-v2",
+  "fixture_sha256": "2c8bd1b6e632ebb7ad2b37f33356926f853e1a4680ae0424ac4611759dd1ac20",
+  "evaluation": "Each response object was submitted verbatim to warband_agentic.usability_cli evaluate --fixture faction-revision-recovery-v2",
+  "advance_notice": {
+    "scope": "Investigation-only usability evaluation; no code edits, game control, credentials, or external tools",
+    "reasoning_effort": "low",
+    "expected_runtime": "10-30 seconds per model",
+    "models": [
+      "GPT-6 Luna via Codex",
+      "Muse Spark 1.3 Contributor via OpenCode/Shelf",
+      "DeepSeek 4.1 via OpenCode/Shelf if present",
+      "Grok 4.6 via Cursor"
+    ],
+    "cost_notice": "Muse is free; BB exposed no provider monetary receipt for Luna or Grok."
+  },
+  "results": [
+    {
+      "thread_id": "thr_xc4q78j3p8",
+      "provider": "codex",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "low",
+      "wall_time_ms": 10479,
+      "reported_context_used_tokens": 22729,
+      "strict_json_wrapper_compliance": true,
+      "response": {
+        "affordance_token": "aff:defend-praven-r8",
+        "arguments": {
+          "order": "defend",
+          "target_id": 2
+        },
+        "expected_revision": 8
+      },
+      "accepted": true,
+      "score": 100,
+      "capability": "party.issue-order",
+      "clarity_score_1_to_5": 5,
+      "critique": {
+        "what_was_clear": "The task explicitly requests defending Praven, and the current affordance binds that order to target 2.",
+        "what_was_confusing": "The prior attempt used a stale token and revision, but the task clearly says to use the currently issued affordance.",
+        "missing_information": "None needed to construct the response."
+      }
+    },
+    {
+      "thread_id": "thr_gva4ibu8f2",
+      "provider": "opencode",
+      "model": "opencode/muse-spark-1.3-contributor-free",
+      "reasoning_effort": "low",
+      "wall_time_ms": 7378,
+      "reported_context_used_tokens": null,
+      "strict_json_wrapper_compliance": true,
+      "response": {
+        "affordance_token": "aff:defend-praven-r8",
+        "arguments": {
+          "order": "defend",
+          "target_id": 2
+        },
+        "expected_revision": 8
+      },
+      "accepted": true,
+      "score": 100,
+      "capability": "party.issue-order",
+      "clarity_score_1_to_5": 5,
+      "critique": {
+        "what_was_clear": "Task to retry Praven defense with current affordance; action_binding explicitly says copy revision 8 and that older tokens are invalid; defend affordance token and arguments match observation facts.",
+        "what_was_confusing": "Nothing material; expiry fields and dual targets required a brief check to confirm party 17 + settlement 2 mapping.",
+        "missing_information": "None needed for this retry; consequence_warning and prior stale_context message were sufficient."
+      }
+    },
+    {
+      "thread_id": "thr_b7ejddy983",
+      "provider": "acp-cursor",
+      "model": "grok-4.6",
+      "reasoning_effort": "low",
+      "wall_time_ms": 23602,
+      "reported_context_used_tokens": null,
+      "strict_json_wrapper_compliance": false,
+      "wrapper_note": "The response object was correct but wrapped in a Markdown JSON fence despite the exact-JSON instruction.",
+      "response": {
+        "affordance_token": "aff:defend-praven-r8",
+        "arguments": {
+          "order": "defend",
+          "target_id": 2
+        },
+        "expected_revision": 8
+      },
+      "accepted": true,
+      "score": 100,
+      "capability": "party.issue-order",
+      "clarity_score_1_to_5": 4,
+      "critique": {
+        "what_was_clear": "The task says retry defending Praven, not the raid option. Action binding says copy expected_revision from observation.context.revision (8) and that earlier-revision tokens are invalid. Prior attempt shows exactly why the old token aff:defend-praven and expected_revision 7 were rejected (stale_context). Current affordance aff:defend-praven-r8 has const order=defend and target_id=2, matching Praven (settlements.2.name) and the threat report.",
+        "what_was_confusing": "Two live issue-order affordances look almost identical except token, order const, and target. The raid option is a trap if you key off capability name instead of the task. Token naming changed from aff:defend-praven to aff:defend-praven-r8; that pattern is only obvious after comparing prior_attempt to the current list.",
+        "missing_information": "No explicit mapping from settlement name Praven to target_id 2 except via facts plus affordance consts. No statement of whether arguments must still be sent when they are consts. expires_at_ms/issued_at_ms are unexplained relative to wall clock."
+      }
+    }
+  ],
+  "unavailable": [
+    {
+      "requested": "DeepSeek 4.1 via OpenCode v2/Shelf",
+      "reason": "Not present in the provider model catalog; no substitute or guessed model ID was used."
+    }
+  ],
+  "cost": "No provider-reported monetary cost was exposed by BB for these runs.",
+  "boundary": "This is deterministic fixture evidence only. It does not prove live Warband party control."
+}

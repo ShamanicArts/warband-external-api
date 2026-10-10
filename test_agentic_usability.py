@@ -1,7 +1,11 @@
+import hashlib
 import json
 import unittest
 
-from warband_agentic.usability import build_faction_usability_fixture
+from warband_agentic.usability import (
+    build_faction_revision_recovery_fixture,
+    build_faction_usability_fixture,
+)
 
 
 class AgentUsabilityFixtureTests(unittest.TestCase):
@@ -24,6 +28,16 @@ class AgentUsabilityFixtureTests(unittest.TestCase):
         self.assertNotIn("fixture.party_order", encoded)
         self.assertEqual(len(briefing["affordances"]), 2)
         self.assertEqual(briefing["observation"]["role"], "faction.sovereign")
+
+    def test_v1_export_remains_bound_to_accepted_external_evidence(self):
+        payload = (
+            json.dumps(self.fixture.briefing(), indent=2, sort_keys=True).encode()
+            + b"\n"
+        )
+        self.assertEqual(
+            hashlib.sha256(payload).hexdigest(),
+            "b810f38bf41f82278e0d5aebf0a752f81754f9e03cfa95d7957bec5dabe208d5",
+        )
 
     def test_correct_bounded_action_passes_registry_and_scores(self):
         evaluation = self.fixture.evaluate(self.correct_response())
@@ -57,6 +71,56 @@ class AgentUsabilityFixtureTests(unittest.TestCase):
         evaluation = self.fixture.evaluate(response)
         self.assertFalse(evaluation.accepted)
         self.assertIn("required value", evaluation.reasons[0])
+
+
+class AgentUsabilityRecoveryFixtureTests(unittest.TestCase):
+    def setUp(self):
+        self.fixture = build_faction_revision_recovery_fixture()
+
+    def correct_response(self):
+        return {
+            "affordance_token": "aff:defend-praven-r8",
+            "arguments": {"order": "defend", "target_id": 2},
+            "expected_revision": 8,
+        }
+
+    def test_refreshed_binding_is_explicit_safe_and_current(self):
+        briefing = self.fixture.briefing()
+        encoded = json.dumps(briefing)
+        self.assertEqual(
+            briefing["action_binding"],
+            {
+                "expected_revision": 8,
+                "source": "observation.context.revision",
+                "rule": (
+                    "Copy this integer exactly into response.expected_revision. "
+                    "Affordance tokens from earlier revisions are invalid."
+                ),
+            },
+        )
+        self.assertEqual(briefing["observation"]["context"]["revision"], 8)
+        self.assertEqual(briefing["prior_attempt"]["outcome"]["code"], "stale_context")
+        self.assertNotIn("lease:fixture", encoded)
+        self.assertNotIn("handler_id", encoded)
+
+    def test_current_retry_passes_real_capability_registry(self):
+        evaluation = self.fixture.evaluate(self.correct_response())
+        self.assertTrue(evaluation.accepted)
+        self.assertEqual(evaluation.score, 100)
+        self.assertEqual(evaluation.capability, "party.issue-order")
+
+    def test_stale_token_and_stale_revision_are_independently_rejected(self):
+        stale_token = {
+            **self.correct_response(),
+            "affordance_token": "aff:defend-praven",
+        }
+        self.assertIn(
+            "Unknown affordance", self.fixture.evaluate(stale_token).reasons[0]
+        )
+
+        fresh_fixture = build_faction_revision_recovery_fixture()
+        stale_revision = {**self.correct_response(), "expected_revision": 7}
+        self.assertIn("stale", fresh_fixture.evaluate(stale_revision).reasons[0])
 
 
 if __name__ == "__main__":

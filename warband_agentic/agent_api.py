@@ -235,6 +235,22 @@ class ConstrainedAgentSession:
                     "handler_id",
                 ],
                 "expected_revision_source": "turn.observation.context.revision",
+                "arguments": {
+                    "schema_source": "turn.affordances[].parameters",
+                    "required_properties_source": (
+                        "turn.affordances[].parameters.required"
+                    ),
+                    "const_properties": "submit_the_exact_value",
+                },
+                "affordance_time": {
+                    "fields": ["issued_at_ms", "expires_at_ms"],
+                    "unit": "milliseconds",
+                    "clock": "session_runtime_clock",
+                    "client_rule": (
+                        "treat_as_same_session_validity_metadata_and_fetch_a_fresh_"
+                        "turn_after_expiry_or_conflict"
+                    ),
+                },
             },
         }
 
@@ -474,9 +490,7 @@ class ConstrainedAgentSession:
             ActionState.OBSERVED: (ActionState.OBSERVED,),
         }
         if refreshed.state not in allowed[previous.state]:
-            raise ValueError(
-                "outcome_refresher returned an invalid state transition"
-            )
+            raise ValueError("outcome_refresher returned an invalid state transition")
 
     def events(self, after_sequence=0, limit=100):
         if type(after_sequence) is not int or after_sequence < 0:
@@ -511,9 +525,7 @@ class ConstrainedAgentSession:
         return replace(
             event,
             payload={
-                key: value
-                for key, value in event.payload.items()
-                if key != "_recovery"
+                key: value for key, value in event.payload.items() if key != "_recovery"
             },
         )
 
@@ -619,15 +631,12 @@ class ConstrainedAgentSession:
                         previous.request_hash != record.request_hash
                         or previous.capability != record.capability
                         or previous.targets != record.targets
-                        or previous.application_recovery
-                        != record.application_recovery
+                        or previous.application_recovery != record.application_recovery
                         or previous.outcome.action_id != record.outcome.action_id
                         or previous.outcome.context != record.outcome.context
                     ):
                         raise ValueError("Conflicting recovered request history")
-                    self._validate_refreshed_outcome(
-                        previous.outcome, record.outcome
-                    )
+                    self._validate_refreshed_outcome(previous.outcome, record.outcome)
                 self._requests[request_id] = record
                 self._unrecoverable_requests.discard(request_id)
             if (

@@ -39,9 +39,19 @@ class UsabilityEvaluation:
 class FactionUsabilityFixture:
     """One-turn fixture exercising filtered perception and bounded action choice."""
 
-    def __init__(self):
+    def __init__(
+        self,
+        *,
+        revision=7,
+        fixture_name="faction-order-v1",
+        observation_suffix="1",
+        tokens=("aff:defend-praven", "aff:raid-party-99"),
+    ):
+        self.fixture_name = fixture_name
         self.now_ms = 1200
-        self.context = ContextRef(ContextKind.CAMPAIGN, "campaign:world", 7, None, 101)
+        self.context = ContextRef(
+            ContextKind.CAMPAIGN, "campaign:world", revision, None, 101
+        )
         self.controller = ActorRef("controller:faction:1", ActorKind.SYSTEM)
         self.party = ActorRef("party:17", ActorKind.PARTY, 17)
         self.settlement = ActorRef("settlement:2", ActorKind.SETTLEMENT, 2)
@@ -64,8 +74,10 @@ class FactionUsabilityFixture:
             1000,
             2000,
         )
-        tokens = iter(("aff:defend-praven", "aff:raid-party-99"))
-        self.registry = CapabilityRegistry(lambda: next(tokens), self.leases.resolve)
+        token_source = iter(tokens)
+        self.registry = CapabilityRegistry(
+            lambda: next(token_source), self.leases.resolve
+        )
         self.registry.register(
             CapabilityDefinition(
                 "party.issue-order",
@@ -90,7 +102,7 @@ class FactionUsabilityFixture:
                 True,
             )
         )
-        self.observation = self._build_observation()
+        self.observation = self._build_observation(observation_suffix)
         self.affordances = (
             self.registry.issue(
                 "party.issue-order",
@@ -130,9 +142,10 @@ class FactionUsabilityFixture:
             ),
         )
 
-    def _build_observation(self):
+    def _build_observation(self, observation_suffix):
+        revision = self.context.revision
         canonical = ObservationEnvelope(
-            "canonical:fixture:1",
+            f"canonical:fixture:{observation_suffix}",
             self.controller,
             RoleId.OPERATOR_FULL,
             self.context,
@@ -141,21 +154,31 @@ class FactionUsabilityFixture:
                     "faction.name",
                     "Kingdom of Swadia",
                     FactSource.DEFINITION_METADATA,
-                    7,
+                    revision,
                 ),
                 Fact(
                     "settlements.2.name",
                     "Praven",
                     FactSource.DEFINITION_METADATA,
-                    7,
+                    revision,
                 ),
-                Fact("reports.2.threat", "imminent", FactSource.ENGINE_OBSERVED, 7),
-                Fact("parties.17.status", "available", FactSource.ENGINE_OBSERVED, 7),
+                Fact(
+                    "reports.2.threat",
+                    "imminent",
+                    FactSource.ENGINE_OBSERVED,
+                    revision,
+                ),
+                Fact(
+                    "parties.17.status",
+                    "available",
+                    FactSource.ENGINE_OBSERVED,
+                    revision,
+                ),
                 Fact(
                     "operator.enemy_exact_strength",
                     417,
                     FactSource.ENGINE_OBSERVED,
-                    7,
+                    revision,
                 ),
             ),
             (),
@@ -164,11 +187,16 @@ class FactionUsabilityFixture:
         filters = ObservationFilter()
         for policy in default_perception_policies():
             filters.register(policy)
-        return filters.apply(canonical, self.grant, "fixture:observation:1", 1100)
+        return filters.apply(
+            canonical,
+            self.grant,
+            f"fixture:observation:{observation_suffix}",
+            1100,
+        )
 
     def briefing(self):
         return {
-            "fixture": "faction-order-v1",
+            "fixture": self.fixture_name,
             "task": (
                 "Praven (settlement 2) faces an imminent reported threat. Use the "
                 "reversible affordance that orders controlled party 17 to defend it. "
@@ -209,7 +237,7 @@ class FactionUsabilityFixture:
                     submission, self.context, self.grant, self.now_ms
                 )
                 capability = validated.capability.name
-                if validated.affordance.token != "aff:defend-praven":
+                if validated.affordance.token != self.affordances[0].token:
                     reasons.append("selected action does not defend Praven")
             except (KeyError, TypeError, ValueError) as exc:
                 reasons.append(str(exc))
@@ -229,5 +257,50 @@ class FactionUsabilityFixture:
         )
 
 
+class FactionRevisionRecoveryFixture(FactionUsabilityFixture):
+    """A refreshed turn that requires abandoning a stale token and revision."""
+
+    def __init__(self):
+        super().__init__(
+            revision=8,
+            fixture_name="faction-revision-recovery-v2",
+            observation_suffix="2",
+            tokens=("aff:defend-praven-r8", "aff:raid-party-99-r8"),
+        )
+
+    def briefing(self):
+        briefing = super().briefing()
+        briefing["task"] = (
+            "The previous defense submission was rejected because the campaign "
+            "context advanced. Retry the requested defense of Praven using only a "
+            "currently issued affordance. Do not reuse the stale token or revision."
+        )
+        briefing["action_binding"] = {
+            "expected_revision": self.context.revision,
+            "source": "observation.context.revision",
+            "rule": (
+                "Copy this integer exactly into response.expected_revision. "
+                "Affordance tokens from earlier revisions are invalid."
+            ),
+        }
+        briefing["prior_attempt"] = {
+            "response": {
+                "affordance_token": "aff:defend-praven",
+                "arguments": {"order": "defend", "target_id": 2},
+                "expected_revision": 7,
+            },
+            "outcome": {
+                "accepted": False,
+                "code": "stale_context",
+                "message": "Expected revision 7 is stale; current revision is 8.",
+            },
+        }
+        return briefing
+
+
 def build_faction_usability_fixture():
     return FactionUsabilityFixture()
+
+
+def build_faction_revision_recovery_fixture():
+    return FactionRevisionRecoveryFixture()

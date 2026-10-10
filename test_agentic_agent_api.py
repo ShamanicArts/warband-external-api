@@ -131,9 +131,7 @@ class SessionHarness:
                     1800,
                     {
                         "type": "object",
-                        "properties": {
-                            "order": {"type": "string", "const": "defend"}
-                        },
+                        "properties": {"order": {"type": "string", "const": "defend"}},
                         "required": ("order",),
                         "additionalProperties": False,
                     },
@@ -219,6 +217,31 @@ class ConstrainedAgentSessionTests(unittest.TestCase):
         self.assertNotIn("private:lease", manifest)
         self.assertIn("turn.observation.context.revision", manifest)
 
+    def test_manifest_explains_argument_binding_and_affordance_time(self):
+        submission = self.harness.session.manifest()["submission"]
+        self.assertEqual(
+            submission["arguments"],
+            {
+                "schema_source": "turn.affordances[].parameters",
+                "required_properties_source": (
+                    "turn.affordances[].parameters.required"
+                ),
+                "const_properties": "submit_the_exact_value",
+            },
+        )
+        self.assertEqual(
+            submission["affordance_time"],
+            {
+                "fields": ["issued_at_ms", "expires_at_ms"],
+                "unit": "milliseconds",
+                "clock": "session_runtime_clock",
+                "client_rule": (
+                    "treat_as_same_session_validity_metadata_and_fetch_a_fresh_"
+                    "turn_after_expiry_or_conflict"
+                ),
+            },
+        )
+
     def test_submission_injects_identity_and_lease_then_records_event(self):
         self.harness.session.turn()
         outcome = self.harness.session.submit(self.harness.request())
@@ -226,9 +249,7 @@ class ConstrainedAgentSessionTests(unittest.TestCase):
         validated = self.harness.dispatches[0]
         self.assertEqual(validated.submission.actor, self.harness.controller)
         self.assertEqual(validated.submission.lease_id, "private:lease:17")
-        self.assertEqual(
-            self.harness.session.outcome("request:1"), outcome
-        )
+        self.assertEqual(self.harness.session.outcome("request:1"), outcome)
         page = self.harness.session.events()
         self.assertEqual(
             [event.event_type for event in page.events], ["action.observed"]
@@ -254,9 +275,7 @@ class ConstrainedAgentSessionTests(unittest.TestCase):
         self.harness = SessionHarness(database)
 
         self.assertEqual(self.harness.session.outcome("request:1"), original)
-        self.assertEqual(
-            self.harness.session.submit(self.harness.request()), original
-        )
+        self.assertEqual(self.harness.session.submit(self.harness.request()), original)
         self.assertEqual(self.harness.dispatches, [])
         changed = self.harness.request()
         changed["arguments"] = {"order": "raid"}
@@ -410,9 +429,7 @@ class ConstrainedAgentHttpTests(unittest.TestCase):
         )
         self.assertEqual(status, 200)
         self.assertEqual(outcome["state"], "observed")
-        _, lookup = self.request(
-            "/v1/agent/actions/" + quote("request:1", safe="")
-        )
+        _, lookup = self.request("/v1/agent/actions/" + quote("request:1", safe=""))
         self.assertEqual(lookup, outcome)
         _, events = self.request("/v1/agent/events?after=0&limit=10")
         self.assertEqual(events["events"][0]["event_type"], "action.observed")
