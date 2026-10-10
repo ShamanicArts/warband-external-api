@@ -58,6 +58,7 @@ class ConstrainedAgentSession:
         event_log=None,
         clock_ms=None,
         action_id_factory=None,
+        outcome_refresher=None,
     ):
         if not isinstance(session_id, str) or not session_id.strip():
             raise ValueError("session_id must be a non-empty string")
@@ -78,6 +79,8 @@ class ConstrainedAgentSession:
                 raise TypeError(f"{name} must be callable")
         if lease_selector is not None and not callable(lease_selector):
             raise TypeError("lease_selector must be callable")
+        if outcome_refresher is not None and not callable(outcome_refresher):
+            raise TypeError("outcome_refresher must be callable")
         self.session_id = session_id
         self._grant = grant
         self._registry = registry
@@ -91,6 +94,7 @@ class ConstrainedAgentSession:
         self._action_id_factory = action_id_factory or (
             lambda request_id: f"action:{self.session_id}:{request_id}"
         )
+        self._outcome_refresher = outcome_refresher
         self._turn = None
         self._requests = {}
         self._lock = threading.RLock()
@@ -222,7 +226,7 @@ class ConstrainedAgentSession:
             except ValueError as exc:
                 raise AgentConflict(str(exc)) from exc
             outcome = self._dispatch(validated, current, now_ms)
-            self._requests[request_id] = (request_hash, outcome)
+            self._requests[request_id] = (request_hash, outcome, validated.affordance)
             self._record_action_event(request_id, validated.affordance, outcome)
             self._turn = None
             return outcome
@@ -266,9 +270,70 @@ class ConstrainedAgentSession:
             raise ValueError("request_id must be a non-empty string")
         with self._lock:
             try:
-                return self._requests[request_id][1]
+                request_hash, outcome, affordance = self._requests[request_id]
             except KeyError as exc:
                 raise AgentNotFound("Unknown session request") from exc
+            if self._outcome_refresher is None:
+                return outcome
+            refreshed = self._outcome_refresher(request_id, outcome)
+            self._validate_refreshed_outcome(outcome, refreshed)
+            if refreshed != outcome:
+                self._requests[request_id] = (
+                    request_hash,
+                    refreshed,
+                    affordance,
+                )
+                self._record_action_event(request_id, affordance, refreshed)
+            return refreshed
+
+    @staticmethod
+    def _validate_refreshed_outcome(previous, refreshed):
+        if not isinstance(refreshed, ActionOutcome):
+            raise TypeError("outcome_refresher returned no ActionOutcome")
+        if refreshed.action_id != previous.action_id:
+            raise ValueError("outcome_refresher changed the action ID")
+        if refreshed.context != previous.context:
+            raise ValueError("outcome_refresher changed the action context")
+        allowed = {
+            ActionState.SUBMITTED: tuple(ActionState),
+            ActionState.ACCEPTED: (
+                ActionState.ACCEPTED,
+                ActionState.DISPATCHED,
+                ActionState.ACKNOWLEDGED,
+                ActionState.REJECTED,
+                ActionState.EXPIRED,
+                ActionState.INTERRUPTED,
+                ActionState.OBSERVED,
+            ),
+            ActionState.DISPATCHED: (
+                ActionState.DISPATCHED,
+                ActionState.ACKNOWLEDGED,
+                ActionState.REJECTED,
+                ActionState.EXPIRED,
+                ActionState.INTERRUPTED,
+                ActionState.OBSERVED,
+            ),
+            ActionState.ACKNOWLEDGED: (
+                ActionState.ACKNOWLEDGED,
+                ActionState.OBSERVED,
+            ),
+            ActionState.REJECTED: (ActionState.REJECTED,),
+            ActionState.EXPIRED: (
+                ActionState.EXPIRED,
+                ActionState.ACKNOWLEDGED,
+                ActionState.REJECTED,
+            ),
+            ActionState.INTERRUPTED: (
+                ActionState.INTERRUPTED,
+                ActionState.ACKNOWLEDGED,
+                ActionState.REJECTED,
+            ),
+            ActionState.OBSERVED: (ActionState.OBSERVED,),
+        }
+        if refreshed.state not in allowed[previous.state]:
+            raise ValueError(
+                "outcome_refresher returned an invalid state transition"
+            )
 
     def events(self, after_sequence=0, limit=100):
         if type(after_sequence) is not int or after_sequence < 0:
@@ -326,7 +391,9 @@ class ConstrainedAgentSession:
             outcome.action_id,
         )
         self._event_log.append(
-            event, f"agent-session:{self.session_id}:request:{request_id}"
+            event,
+            f"agent-session:{self.session_id}:request:{request_id}:"
+            f"state:{outcome.state.value}",
         )
 
     def _canonical_observation(self):

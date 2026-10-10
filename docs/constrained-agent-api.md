@@ -24,6 +24,28 @@ observation, affordance issuance and validated dispatch. It applies the named
 perception policy before returning a turn. Turns are cached for an unchanged
 semantic context so polling does not mint endless duplicate affordances.
 
+Applications may also supply a trusted outcome refresher. Public outcome lookup
+then reconciles queued work with engine-owned lifecycle state while preserving
+the original action and context identity, enforcing legal state transitions and
+emitting a distinct action event for every observed transition.
+
+## Native menu application
+
+`bridge.native_menu_agent_app.NativeMenuAgentApplication` is the first
+production composition over the live bridge `Store`. It owns a private
+player-strategic grant and exclusive `player.menu` lease, derives semantic
+revisions from current telemetry, and issues only exact-session affordances from
+the live menu catalog.
+
+A validated submission queues the existing `select_menu` operation without
+exposing its raw opcode or bridge command ID. Initial queue acceptance is
+reported as declared evidence. Subsequent public outcome lookup reconciles
+`dispatched`, `acknowledged`, `rejected`, `expired` and `interrupted` states from
+the Store; only a matching Warband acknowledgement is promoted to
+engine-acknowledged evidence. Menu or session changes invalidate stale
+affordances. Pass `application.session` to `make_agent_server` to expose the same
+boundary over HTTP.
+
 ## HTTP adapter
 
 `make_agent_server(session, token)` binds only to `127.0.0.1` and requires a
@@ -58,10 +80,11 @@ acknowledgement is not promoted to observed outcome.
 - Construction is Python-first; packaged application loading and multi-session
   lifecycle management are not implemented yet.
 - Outcome idempotency is in-memory for the running session. Action events are
-  durable when a `SemanticEventLog` is supplied, but full outcome reconstruction
-  after session restart remains pending.
+  durable when a `SemanticEventLog` is supplied and live Native-menu outcomes
+  reconcile against the Store, but full request/outcome reconstruction after an
+  application restart remains pending.
 - The default event view exposes only action events emitted for this session.
   Role-filtered delivery of broader world/dialogue events needs an explicit event
   audience policy and must not expose the shared log wholesale.
-- The API is tested against deterministic callbacks. The existing Native menu
-  action still needs a production application adapter from live bridge telemetry.
+- Production composition currently covers the Native menu path only. Campaign
+  faction, party, NPC and dialogue applications remain to be wired.

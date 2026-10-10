@@ -17,6 +17,9 @@ Current foundations include:
 - an authenticated [constrained agent API](docs/constrained-agent-api.md) that
   keeps actor/grant/lease/handler identity server-owned and exposes filtered
   turns, bounded submissions, outcomes and session-safe event cursors;
+- a production Native-menu application that derives exact-session affordances
+  from live bridge telemetry, queues validated selections and reconciles public
+  outcomes against Warband acknowledgements without exposing bridge command IDs;
 - trusted control-lease arbitration and role/context/source-filtered observations
   that report omissions without leaking hidden facts;
 - semantic adapters for canonical engine observations, committed dialogue events,
